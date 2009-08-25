@@ -265,7 +265,7 @@ class SopCmd(object):
                 cmd.finish()
         else:
             if finish:
-                fail('text="Some lamps failed to turn off"')
+                cmd.fail('text="Some lamps failed to turn off"')
 
     def ping(self, cmd):
         """ Top-level 'ping' command handler. Query the actor for liveness/happiness. """
