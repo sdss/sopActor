@@ -1,0 +1,13 @@
+* text=auto !eol
+etc/sop.cfg -text
+python/sopActor/Commands/SopCmd.py -text
+python/sopActor/Commands/__init__.py -text
+python/sopActor/__init__.py -text
+python/sopActor/bossThread.py -text
+python/sopActor/ffsThread.py -text
+python/sopActor/gcameraThread.py -text
+python/sopActor/lampThreads.py -text
+python/sopActor/masterThread.py -text
+python/sopActor/myGlobals.py -text
+python/sopActor/sopActor_main.py -text
+ups/sopActor.table -text
