@@ -83,8 +83,8 @@ class Sop(actorcore.Actor.Actor):
         self.bcast.warn("Sop is connected.")
         
     @staticmethod
-    def startThreads(actorState, cmd=None, startQueues=False, restart=False):
-        """Start or restart the worker threads and queues"""
+    def startThreads(actorState, cmd=None, startQueues=False, restart=False, restartThreads=None):
+        """Start or restart the worker threads and queues; restartThreads is a list of names to restart"""
 
         try:
             actorState.threads
@@ -97,6 +97,7 @@ class Sop(actorcore.Actor.Actor):
 
             startQueues = True
 
+        threadsToStart = []
         for tname, tid, threadModule, target in [("master",  sopActor.MASTER,    masterThread,  masterThread.main),
                                                  ("boss",    sopActor.BOSS,      bossThread,    bossThread.main),
                                                  ("gcamera", sopActor.GCAMERA,   gcameraThread, gcameraThread.main),
@@ -107,11 +108,11 @@ class Sop(actorcore.Actor.Actor):
                                                  ("wht",     sopActor.WHT_LAMP,  None,          lampThreads.wht_main),
                                                  ("ffs",     sopActor.FFS,       ffsThread,     ffsThread.main),
                                                  ]:
+            if restartThreads and tname not in restartThreads:
+                continue
+
             if startQueues:
                 actorState.queues[tid] = sopActor.Queue(0)
-
-            if tname == "master":       # don't start the master thread, we're not using it
-                continue
 
             if restart:
                 if threadModule:
@@ -135,11 +136,18 @@ class Sop(actorcore.Actor.Actor):
 
                 tname = re.sub(r"^([^\d]*)(?:-(\d*))?$", updateName, actorState.threads[tid].name)
 
+            if cmd:
+                cmd.inform('text="Starting %s"' % tname)
+
+            actorState.queues[tid] = sopActor.Queue(0) # remove any unprocessed Msg.EXITs
+                
             actorState.threads[tid] = threading.Thread(target=target, name=tname,
                                                        args=[actorState.actor, actorState.queues])
             actorState.threads[tid].daemon = True
 
-        for t in actorState.threads.values():
+            threadsToStart.append(actorState.threads[tid])
+
+        for t in threadsToStart:
             t.start()
 #
 # To work

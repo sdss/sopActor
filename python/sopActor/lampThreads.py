@@ -27,6 +27,7 @@ def lamp_main(actor, queue, lampName):
 
     actorState = sopActor.myGlobals.actorState
     timeout = actorState.timeout
+    threadName = lampName
 
     while True:
         try:
@@ -45,20 +46,27 @@ def lamp_main(actor, queue, lampName):
                                                     cmdStr=("%s.%s" % (lampName.lower(), action)),
                                                     timeLim=timeLim)
                 if cmdVar.didFail:
-                    if False and lampName == "Ne":
-                        import pdb; pdb.set_trace()
                     msg.cmd.warn('text="Failed to turn %s lamps %s"' % (lampName, action))
 
                 msg.replyQueue.put(Msg.LAMP_COMPLETE, cmd=msg.cmd, success=not cmdVar.didFail)
 
             elif msg.type == Msg.STATUS:
-                msg.cmd.inform('text="%s thread"' % lampName)
+                msg.cmd.inform('text="%s thread"' % threadName)
                 msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
 
             else:
                 raise ValueError, ("Unknown message type %s" % msg.type)
         except Queue.Empty:
-            actor.bcast.diag('text="%s alive"' % lampName)
+            actor.bcast.diag('text="%s alive"' % threadName)
+        except Exception, e:
+            errMsg = "Unexpected exception %s in sop %s thread" % (e, threadName)
+            actor.bcast.warn('text="%s"' % errMsg)
+            tback(errMsg, e)
+
+            try:
+                msg.replyQueue.put(Msg.EXIT, cmd=msg.cmd, success=False)
+            except Exception, e:
+                pass
 
 def ff_main(actor, queues):
     """Main loop for FF lamps thread"""

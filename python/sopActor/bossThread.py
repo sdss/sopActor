@@ -9,6 +9,7 @@ from opscore.utility.tback import tback
 def main(actor, queues):
     """Main loop for boss ICC thread"""
 
+    threadName = "boss"
     actorState = sopActor.myGlobals.actorState
     timeout = actorState.timeout
 
@@ -26,10 +27,14 @@ def main(actor, queues):
                 msg.cmd.respond("text=\"starting exposure\"")
 
                 timeLim = msg.expTime + 180.0  # seconds
+                timeLim += 100
                 if True:
+                    import time
+                    print "Starting integration for %gs: %s" % (msg.expTime, time.ctime())
                     cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=msg.cmd,
                                                         cmdStr=("exposure %s itime=%g" % (msg.expType, msg.expTime)),
                                                         keyVars=[], timeLim=timeLim)
+                    print "Ending integration for %gs: %s" % (msg.expTime, time.ctime())
                 else:
                     msg.cmd.inform('text="Not taking a %gs exposure"' % msg.expTime)
 
@@ -41,9 +46,18 @@ def main(actor, queues):
                 msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=not cmdVar.didFail)
 
             elif msg.type == Msg.STATUS:
-                msg.cmd.inform('text="BOSS thread"')
+                msg.cmd.inform('text="%s thread"' % threadName)
                 msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
             else:
                 raise ValueError, ("Unknown message type %s" % msg.type)
         except Queue.Empty:
-            actor.bcast.diag("text=\"boss alive\"")
+            actor.bcast.diag('text="%s alive"' % threadName)
+        except Exception, e:
+            errMsg = "Unexpected exception %s in sop %s thread" % (e, threadName)
+            actor.bcast.warn('text="%s"' % errMsg)
+            tback(errMsg, e)
+
+            try:
+                msg.replyQueue.put(Msg.EXIT, cmd=msg.cmd, success=False)
+            except Exception, e:
+                pass
