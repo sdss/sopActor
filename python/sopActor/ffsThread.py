@@ -24,13 +24,6 @@ def main(actor, queues):
                 return
             elif msg.type == Msg.FFS_MOVE:
                 cmd = msg.cmd
-
-                if False:               # we're having trouble with the mcp replying; here's a workaround
-                    print "RHL"
-                    cmdVar = actorState.actor.cmdr.call(actor="mcp", forUserCmd=cmd, cmdStr="info")
-                    
-                    if cmdVar.didFail:
-                        guideCmd.warn("text=\"Failed to get mcp info\"")
                 
                 ffsStatus = actorState.models["mcp"].keyVarDict["ffsStatus"]
 

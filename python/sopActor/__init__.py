@@ -17,6 +17,7 @@ except NameError:
     class WHT_LAMP(): pass                  # WHT lamps
     class BOSS(): pass                      # command the Boss ICC
     class GCAMERA(): pass                   # command the gcamera ICC
+    class TCC(): pass                       # command the TCC
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -32,6 +33,9 @@ except NameError:
 
         # Command types; use classes so that the unique IDs are automatically generated
         class DO_CALIB(): pass
+        class DITHERED_FLAT(): pass
+        class HARTMANN(): pass
+        class DO_SCIENCE(): pass
         class EXIT(): pass
         class FFS_MOVE(): pass
         class FFS_COMPLETE(): pass
@@ -41,6 +45,7 @@ except NameError:
         class EXPOSE(): pass
         class EXPOSURE_FINISHED(): pass
         class REPLY(): pass
+        class SLEW(): pass
 
         def __init__(self, type, cmd, **data):
             self.type = type
@@ -69,8 +74,12 @@ class Queue(_Queue.PriorityQueue):
 
     Empty = _Queue.Empty
 
-    def __init__(self, args):
-        _Queue.Queue.__init__(self, args)
+    def __init__(self, name, *args):
+        _Queue.Queue.__init__(self, *args)
+        self.name = name        
+
+    def __str__(self):
+        return self.name
 
     def put(self, arg0, *args, **kwds):
         """Put  messaage onto the queue, calling the superclass's put method
@@ -82,6 +91,7 @@ Expects a Msg, otherwise tries to construct a Msg from its arguments"""
             msg = Msg(arg0, *args, **kwds)
 
         msg.senderName = threading.current_thread().name
+        msg.senderQueue = self
 
         _Queue.Queue.put(self, msg)
 
@@ -99,10 +109,10 @@ class MultiCommand(object):
     
     def __init__(self, cmd, timeout, *args, **kwargs):
         self.cmd = cmd
-        self._replyQueue = Queue(0)
+        self._replyQueue = Queue("(replyQueue)", 0)
         self.timeout = timeout
         self.commands = []
-
+        
         if args:
             self.append(*args, **kwargs)
 
@@ -131,13 +141,12 @@ class MultiCommand(object):
                 if not msg.success:
                     failed = True
             except Queue.Empty:
-                nonResponsive = [k.split("-")[0] for k in seen.keys() if not seen[k]]
+                responsive = [k.split("-")[0] for k in seen.keys() if seen[k]]
 
-                self.cmd.warn('text="Some tasks failed to respond: %s"' % " ".join(nonResponsive))
+                self.cmd.warn('text="%d tasks failed to respond; heard from: %s"' % (
+                    len(self.commands) - len(responsive), " ".join(responsive)))
                 return False
 
         return not failed
-
-print "RHL __init__"
 
 __all__ = ["MASTER", "Msg"]

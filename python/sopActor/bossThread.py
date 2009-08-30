@@ -28,7 +28,7 @@ def main(actor, queues):
 
                 timeLim = msg.expTime + 180.0  # seconds
                 timeLim += 100
-                if True:
+                if True:                # really take data
                     import time
                     print "Starting integration for %gs: %s" % (msg.expTime, time.ctime())
                     cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=msg.cmd,

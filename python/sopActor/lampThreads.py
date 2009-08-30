@@ -41,6 +41,11 @@ def lamp_main(actor, queue, lampName):
             elif msg.type == Msg.LAMP_ON:
                 action = "on" if msg.on else "off"
 
+                if lampName in ["uv", "wht",]:
+                    msg.cmd.warn('text="ignoring %s.%s"' % (action, lampName))
+                    msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
+                    continue
+
                 timeLim = 10.0          # seconds
                 cmdVar = actorState.actor.cmdr.call(actor="mcp", forUserCmd=msg.cmd, 
                                                     cmdStr=("%s.%s" % (lampName.lower(), action)),

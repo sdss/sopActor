@@ -7,11 +7,27 @@ from opscore.utility.qstr import qstr
 from opscore.utility.tback import tback
 from sopActor import MultiCommand
 
+def doLamps(cmd, actorState, FF=False, Ne=False, HgCd=False, WHT=False, UV=False, openFFS=None):
+    """Turn all the lamps on/off"""
+
+    multiCmd = MultiCommand(cmd, actorState.timeout)
+
+    multiCmd.append(actorState.queues[sopActor.FF_LAMP  ], Msg.LAMP_ON, on=FF)
+    multiCmd.append(actorState.queues[sopActor.HGCD_LAMP], Msg.LAMP_ON, on=Ne)
+    multiCmd.append(actorState.queues[sopActor.NE_LAMP  ], Msg.LAMP_ON, on=HgCd)
+    multiCmd.append(actorState.queues[sopActor.WHT_LAMP ], Msg.LAMP_ON, on=WHT)
+    multiCmd.append(actorState.queues[sopActor.UV_LAMP  ], Msg.LAMP_ON, on=UV)
+    if openFFS is not None:
+        multiCmd.append(actorState.queues[sopActor.FFS], Msg.FFS_MOVE, open=openFFS)
+    
+    return multiCmd.run()
+
 def main(actor, queues):
     """Main loop for master thread"""
 
     threadName = "master"
     timeout = sopActor.myGlobals.actorState.timeout
+    overhead = 150                      # overhead per exposure, minimum; seconds
 
     while True:
         try:
@@ -37,16 +53,14 @@ def main(actor, queues):
                 darkTime = msg.darkTime
                 flatTime = msg.flatTime
                 guiderFlatTime = msg.guiderFlatTime
-                leaveScreenClosed = msg.leaveScreenClosed
-
-                overhead = 150          # overhead per exposure, minimum; seconds
+                openFFS = msg.openFFS
                 #
                 # Close the petals
                 #
                 success = True
 
                 if nflat + narc > 0:
-                    if not MultiCommand(cmd, actorState.timeout,
+                    if not MultiCommand(cmd, timeout,
                                         actorState.queues[sopActor.FFS], Msg.FFS_MOVE, open=False).run():
                         cmd.warn('text="Failed to close the flat field screen"')
                         msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
@@ -55,15 +69,7 @@ def main(actor, queues):
                 # Biases
                 #
                 if nbias + ndark > 0:
-                    turnLampsOff = MultiCommand(cmd, actorState.timeout)
-
-                    turnLampsOff.append(actorState.queues[sopActor.FF_LAMP  ], Msg.LAMP_ON, on=False)
-                    turnLampsOff.append(actorState.queues[sopActor.HGCD_LAMP], Msg.LAMP_ON, on=False)
-                    turnLampsOff.append(actorState.queues[sopActor.NE_LAMP  ], Msg.LAMP_ON, on=False)
-                    turnLampsOff.append(actorState.queues[sopActor.UV_LAMP  ], Msg.LAMP_ON, on=False)
-                    turnLampsOff.append(actorState.queues[sopActor.WHT_LAMP ], Msg.LAMP_ON, on=False)
-
-                    if not turnLampsOff.run():
+                    if not doLamps(cmd, actorState):
                         cmd.warn('text="Failed to prepare for bias/dark exposures"')
                         msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
                         continue
@@ -103,15 +109,7 @@ def main(actor, queues):
                 # Flats
                 #
                 if nflat > 0:
-                    turnFFOn = MultiCommand(cmd, actorState.timeout)
-
-                    turnFFOn.append(actorState.queues[sopActor.FF_LAMP  ], Msg.LAMP_ON, on=True)
-                    turnFFOn.append(actorState.queues[sopActor.HGCD_LAMP], Msg.LAMP_ON, on=False)
-                    turnFFOn.append(actorState.queues[sopActor.NE_LAMP  ], Msg.LAMP_ON, on=False)
-                    turnFFOn.append(actorState.queues[sopActor.UV_LAMP  ], Msg.LAMP_ON, on=False)
-                    turnFFOn.append(actorState.queues[sopActor.WHT_LAMP ], Msg.LAMP_ON, on=False)
-
-                    if not turnFFOn.run():
+                    if not doLamps(cmd, actorState, FF=True):
                         cmd.warn('text="Failed to prepare for flat exposure"')
                         msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
                         continue
@@ -128,7 +126,7 @@ def main(actor, queues):
                         if guiderFlatTime > 0 and msg.cartridge > 0:
                             doFlat.append(actorState.queues[sopActor.GCAMERA], Msg.EXPOSE,
                                           expTime=guiderFlatTime, expType="flat", cartridge=msg.cartridge,
-                                          timeout=guideFlatTime + 15)
+                                          timeout=guiderFlatTime + 15)
                                          
 
                         if not doFlat.run():
@@ -145,27 +143,20 @@ def main(actor, queues):
                 # Arcs
                 #
                 if narc > 0:
-                    turnArcsOn = MultiCommand(cmd, arcTime + overhead)
-
-                    turnArcsOn.append(actorState.queues[sopActor.FF_LAMP  ], Msg.LAMP_ON, on=False)
-                    turnArcsOn.append(actorState.queues[sopActor.HGCD_LAMP], Msg.LAMP_ON, on=True)
-                    turnArcsOn.append(actorState.queues[sopActor.NE_LAMP  ], Msg.LAMP_ON, on=True)
-                    turnArcsOn.append(actorState.queues[sopActor.UV_LAMP  ], Msg.LAMP_ON, on=False)
-                    turnArcsOn.append(actorState.queues[sopActor.WHT_LAMP ], Msg.LAMP_ON, on=False)
-
-                    if not turnArcsOn.run():
+                    if not doLamps(cmd, actorState, Ne=True, HgCd=True):
                         cmd.warn('text="Failed to prepare for arc exposure"')
                         msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
                         continue
 
                     for n in range(narc):
-                        cmd.inform('text="Take a %gs arc exposure here"' % (arcTime))
-                        if not MultiCommand(cmd, actorState.timeout,
+                        cmd.inform('text="Taking a %gs arc exposure"' % (arcTime))
+                        if not MultiCommand(cmd, arcTime + overhead,
                                             actorState.queues[sopActor.BOSS], Msg.EXPOSE,
                                             expTime=arcTime, expType="arc").run():
                             cmd.warn("text=\"Failed to take arc\"")
-                            success = False
-                            return
+                            failed = True
+                            break
+                            
 
                     if not success:
                         msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
@@ -173,27 +164,159 @@ def main(actor, queues):
                 #
                 # We're done.  Return telescope to desired state
                 #
-                turnLampsOff = MultiCommand(cmd, actorState.timeout)
-
-                turnLampsOff.append(actorState.queues[sopActor.FF_LAMP  ], Msg.LAMP_ON, on=False)
-                turnLampsOff.append(actorState.queues[sopActor.HGCD_LAMP], Msg.LAMP_ON, on=False)
-                turnLampsOff.append(actorState.queues[sopActor.NE_LAMP  ], Msg.LAMP_ON, on=False)
-                turnLampsOff.append(actorState.queues[sopActor.UV_LAMP  ], Msg.LAMP_ON, on=False)
-                turnLampsOff.append(actorState.queues[sopActor.WHT_LAMP ], Msg.LAMP_ON, on=False)
-                
-                if not turnLampsOff.run():
+                if not doLamps(cmd, actorState, openFFS=openFFS):
                     cmd.warn('text="Failed to turn lamps off"')
                     msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
                     continue
 
-                if not leaveScreenClosed:
-                    if not MultiCommand(cmd, actorState.timeout,
-                                        actorState.queues[sopActor.FFS], Msg.FFS_MOVE, open=True).run():
-                        cmd.warn('text="Failed to open the flat field screen"')
-                        msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
-                        continue
+                msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=True)
+
+            elif msg.type == Msg.DO_SCIENCE:
+                #import pdb; pdb.set_trace()
+
+                cmd = msg.cmd
+                actorState = msg.actorState
+
+                expTime = msg.expTime
+                #
+                # Open the petals
+                #
+                if not doLamps(cmd, actorState, openFFS=True):
+                    cmd.warn('text="Failed to open the flat field screen"')
+                    msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
+                    continue
+
+                cmd.inform('text="Taking a science exposure"')
+
+                if not MultiCommand(cmd, overhead + expTime,
+                                    actorState.queues[sopActor.BOSS], Msg.EXPOSE,
+                                    expTime=expTime, expType="science").run():
+                    cmd.warn('text="Failed to take science exposure"')
+                    msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
+                    continue
+
+                cmd.inform('text="science exposure finished"')
 
                 msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=True)
+
+            elif msg.type == Msg.HARTMANN:
+                """Take three arc exposures with the Hartmann screens out, left in, and right in"""
+                #import pdb; pdb.set_trace()
+
+                cmd = msg.cmd
+                actorState = msg.actorState
+
+                expTime = msg.expTime
+                sp1 = msg.sp1
+                sp2 = msg.sp2
+
+                if not doLamps(cmd, actorState, Ne=True, HgCd=True):
+                    cmd.warn('text="Some lamps failed to turn on"')
+                    msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
+                    continue
+
+                success = True
+                for state, expose in [("out", True), ("left", True), ("right", True), ("out", False)]:
+                    spec = ""
+                    if sp1:
+                        if not sp2:
+                            spec = "spec=sp1"
+                    elif sp2:
+                        spec = "spec=sp2"
+
+                    cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=cmd,
+                                                        cmdStr=("hartmann %s %s" % (state, spec)),
+                                                        keyVars=[], timeLim=timeout)
+
+                    if cmdVar.didFail:
+                        cmd.warn('text="Failed to take Hartmann mask %s"' % state)
+                        success = False
+                        break
+
+                    if expose:
+                        if False:
+                            print "XXXXXXXXXXXX Faking exposure"
+                            cmd.warn('text="XXXXXXXXXXXX Faking exposure"')
+                            continue
+
+                        cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=cmd,
+                                                            cmdStr=("exposure %s itime=%g" % ("arc", expTime)),
+                                                            keyVars=[], timeLim=expTime + overhead)
+
+                        if cmdVar.didFail:
+                            cmd.warn('text="Failed to take %gs exposure"' % expTime)
+                            success = False
+                            break
+
+                #
+                # We're done.  Return telescope to desired state
+                #
+                if not doLamps(cmd, actorState):
+                    cmd.warn('text="Failed to turn lamps off"')
+                    success = False
+
+                msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=success)
+
+            elif msg.type == Msg.DITHERED_FLAT:
+                """Take a set of nStep dithered flats, moving the collimator by nTick between exposures"""
+
+                cmd = msg.cmd
+                actorState = msg.actorState
+
+                expTime = msg.expTime
+                spN = msg.spN
+                nStep = msg.nStep
+                nTick = msg.nTick
+
+                if not doLamps(cmd, actorState, FF=True):
+                    msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
+                    cmd.warn('text="Some lamps failed to turn on"')
+                    continue
+
+                success = True          # let's be optimistic
+                moved = 0
+                for i in range(nStep + 1):  # +1: final large move to get back to where we started
+                    expose = True
+                    if i == 0:
+                        move = nTick*(nStep//2)
+                    elif i == nStep:
+                        move = -moved
+                        expose = False
+                    else:
+                        move = -nTick
+
+                    dA = dB = move
+                    dC = -dA
+
+                    cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=cmd,
+                                                        cmdStr=("moveColl spec=%s a=%d b=%d c=%d" % (spN, dA, dB, dC)),
+                                                        keyVars=[], timeLim=timeout)
+
+                    if cmdVar.didFail:
+                        cmd.warn('text="Failed to move collimator for %s"' % spN)
+                        success = False
+                        break
+
+                    moved += move
+                    cmd.inform('text="After %dth collimator move: at %d"' % (i, moved))
+
+                    if expose:
+                        if False:
+                            cmd.inform('text="XXXXX Not taking a %gs exposure"' % expTime)
+                        else:
+                            cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=cmd,
+                                                                cmdStr=("exposure %s itime=%g" % ("flat", expTime)),
+                                                                keyVars=[], timeLim=expTime + overhead)
+
+                            if cmdVar.didFail:
+                                cmd.warn('text="Failed to take %gs exposure"' % expTime)
+                                success = False
+                                break
+
+
+                doLamps(cmd, actorState)
+
+                msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=success)
 
             elif msg.type == Msg.EXPOSURE_FINISHED:
                 if msg.success:
