@@ -54,6 +54,10 @@ def main(actor, queues):
                 flatTime = msg.flatTime
                 guiderFlatTime = msg.guiderFlatTime
                 openFFS = msg.openFFS
+                startGuider = msg.startGuider
+
+                if startGuider:
+                    openFFS = True
                 #
                 # Close the petals
                 #
@@ -115,15 +119,16 @@ def main(actor, queues):
                         continue
 
                     for n in range(nflat):
-                        cmd.inform('text="Taking a %gs flat exposure"' % (flatTime))
-
                         doFlat = MultiCommand(cmd, flatTime + guiderFlatTime + overhead)
 
                         if flatTime > 0:
+                            cmd.inform('text="Taking a %gs flat exposure"' % (flatTime))
+
                             doFlat.append(actorState.queues[sopActor.BOSS], Msg.EXPOSE, expTime=flatTime, expType="flat",
                                           timeout=flatTime + 180)
 
                         if guiderFlatTime > 0 and msg.cartridge > 0:
+                            cmd.inform('text="Taking a %gs guider flat exposure"' % (guiderFlatTime))
                             doFlat.append(actorState.queues[sopActor.GCAMERA], Msg.EXPOSE,
                                           expTime=guiderFlatTime, expType="flat", cartridge=msg.cartridge,
                                           timeout=guiderFlatTime + 15)
@@ -168,6 +173,12 @@ def main(actor, queues):
                     cmd.warn('text="Failed to turn lamps off"')
                     msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
                     continue
+
+                if startGuider:
+                    # Try to start the guider; ignore any responses on the queue
+                    
+                    msg.cmd.warn('text="Starting guider"')
+                    actorState.actor.cmdr.cmdq(actor="guider", forUserCmd=cmd, cmdStr=("on"))
 
                 msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=True)
 

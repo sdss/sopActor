@@ -36,9 +36,11 @@ class SopCmd(object):
                                         keys.Key("expTime", types.Float(), help="Exposure time"),
                                         keys.Key("fiberId", types.Int(), help="A fiber ID"),
                                         keys.Key("flatTime", types.Float(), help="Exposure time for flats"),
+                                        keys.Key("cartridge", types.Int(), help="A cartridge ID"),
                                         keys.Key("guiderFlatTime", types.Float(), help="Exposure time for guider flats"),
                                         keys.Key("keepQueues", help="Restart thread queues"),
                                         keys.Key("openFFS", help="Open flat field screen"),
+                                        keys.Key("startGuider", help="Start the guider"),
                                         keys.Key("sp1", help="Select SP1"),
                                         keys.Key("sp2", help="Select SP2"),
                                         keys.Key("geek", help="Show things that only some of us love"),
@@ -52,7 +54,7 @@ class SopCmd(object):
         #
         self.vocab = [
             ("doCalibs",
-             "[<narc>] [<nbias>] [<ndark>] [<nflat>] [<arcTime>] [<darkTime>] [<flatTime>] [<guiderFlatTime>] [openFFS]",
+             "[<narc>] [<nbias>] [<ndark>] [<nflat>] [<arcTime>] [<darkTime>] [<flatTime>] [<guiderFlatTime>] [openFFS] [<cartridge>]",
              self.doCalibs),
             ("doScience", "[<expTime>]", self.doScience),
             ("ditheredFlat", "(sp1|sp2) [<expTime>] [<nStep>] [<nTick>]", self.ditheredFlat),
@@ -61,8 +63,9 @@ class SopCmd(object):
             ("lampsOff", "", self.lampsOff),
             ("ping", "", self.ping),
             ("restart", "[<threads>] [keepQueues]", self.restart),
-            ("gotoField", "[openFFS]", self.gotoField),
+            ("gotoField", "[openFFS] [startGuider]", self.gotoField),
             ("gotoInstrumentChange", "", self.gotoInstrumentChange),
+            ("setScale", "<delta>|<scale>", self.setScale),
             ("scaleChange", "<delta>|<scale>", self.scaleChange),
             ("status", "[geek]", self.status),
             ]
@@ -81,7 +84,9 @@ class SopCmd(object):
         flatTime = float(cmd.cmd.keywords["flatTime"].values[0]) if "flatTime" in cmd.cmd.keywords else 10
         guiderFlatTime = float(cmd.cmd.keywords["guiderFlatTime"].values[0]) if \
                          "guiderFlatTime" in cmd.cmd.keywords else 0.5
+        cartridge = int(cmd.cmd.keywords["cartridge"].values[0]) if "cartridge" in cmd.cmd.keywords else 0
         openFFS = True if "openFFS" in cmd.cmd.keywords else False
+        startGuider = True if "startGuider" in cmd.cmd.keywords else False
 
         if narc + nbias + ndark + nflat == 0:
             cmd.fail('text="You must take at least one arc, bias, dark, or flat exposure"')
@@ -95,7 +100,6 @@ class SopCmd(object):
         #
         # Lookup the current cartridge if we're taking guider flats
         #
-        cartridge = 0
         if nflat > 0 and guiderFlatTime > 0:
             try:
                 cartridge = int(actorState.models["guider"].keyVarDict["cartridgeLoaded"][0])
@@ -106,7 +110,8 @@ class SopCmd(object):
                                                actorState=actorState,
                                                narc=narc, nbias=nbias, ndark=ndark, nflat=nflat,
                                                flatTime=flatTime, arcTime=arcTime, darkTime=darkTime,
-                                               cartridge=cartridge, guiderFlatTime=guiderFlatTime, openFFS=openFFS)
+                                               cartridge=cartridge, guiderFlatTime=guiderFlatTime, openFFS=openFFS,
+                                               startGuider=startGuider)
 
     def doScience(self, cmd):
         """Take a set of science frames"""
@@ -275,8 +280,12 @@ class SopCmd(object):
                                       restartThreads=threads, restartQueues=not keepQueues)
 
     def scaleChange(self, cmd):
-        """Change telescope scale by a factor of (1 + delta)
-        N.b. I can't currently get the ScaleFac from the TCC, so you'll have to provide it
+        """Alias for setScale
+        """
+        self.setScale(cmd)
+
+    def setScale(self, cmd):
+        """Change telescope scale by a factor of (1 + 0.01*delta), or to scale
         """
 
         actorState = myGlobals.actorState
