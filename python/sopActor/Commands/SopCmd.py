@@ -79,9 +79,9 @@ class SopCmd(object):
         nbias = int(cmd.cmd.keywords["nbias"].values[0]) if "nbias" in cmd.cmd.keywords else 0
         ndark = int(cmd.cmd.keywords["ndark"].values[0]) if "ndark" in cmd.cmd.keywords else 0
         nflat = int(cmd.cmd.keywords["nflat"].values[0]) if "nflat" in cmd.cmd.keywords else 0
-        arcTime = float(cmd.cmd.keywords["arcTime"].values[0]) if "arcTime" in cmd.cmd.keywords else 2
+        arcTime = float(cmd.cmd.keywords["arcTime"].values[0]) if "arcTime" in cmd.cmd.keywords else 4
         darkTime = float(cmd.cmd.keywords["darkTime"].values[0]) if "darkTime" in cmd.cmd.keywords else -1
-        flatTime = float(cmd.cmd.keywords["flatTime"].values[0]) if "flatTime" in cmd.cmd.keywords else 10
+        flatTime = float(cmd.cmd.keywords["flatTime"].values[0]) if "flatTime" in cmd.cmd.keywords else 20
         guiderFlatTime = float(cmd.cmd.keywords["guiderFlatTime"].values[0]) if \
                          "guiderFlatTime" in cmd.cmd.keywords else 0.5
         cartridge = int(cmd.cmd.keywords["cartridge"].values[0]) if "cartridge" in cmd.cmd.keywords else 0
