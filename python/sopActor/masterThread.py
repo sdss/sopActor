@@ -211,7 +211,7 @@ def main(actor, queues):
                 msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=True)
 
             elif msg.type == Msg.HARTMANN:
-                """Take three arc exposures with the Hartmann screens out, left in, and right in"""
+                """Take two arc exposures with the left then the right Hartmann screens in"""
                 #import pdb; pdb.set_trace()
 
                 cmd = msg.cmd
@@ -220,6 +220,13 @@ def main(actor, queues):
                 expTime = msg.expTime
                 sp1 = msg.sp1
                 sp2 = msg.sp2
+                if sp1:
+                    if not sp2:
+                        specArg = "spec=sp1"
+                elif sp2:
+                    specArg = "spec=sp2"
+                else:
+                    specArg = ""
 
                 if not doLamps(cmd, actorState, Ne=True, HgCd=True):
                     cmd.warn('text="Some lamps failed to turn on"')
@@ -227,16 +234,9 @@ def main(actor, queues):
                     continue
 
                 success = True
-                for state, expose in [("out", True), ("left", True), ("right", True), ("out", False)]:
-                    spec = ""
-                    if sp1:
-                        if not sp2:
-                            spec = "spec=sp1"
-                    elif sp2:
-                        spec = "spec=sp2"
-
+                for state, expose in [("left", True), ("right", True)]:
                     cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=cmd,
-                                                        cmdStr=("hartmann %s %s" % (state, spec)),
+                                                        cmdStr=("hartmann %s %s" % (state, specArg)),
                                                         keyVars=[], timeLim=timeout)
 
                     if cmdVar.didFail:
@@ -265,6 +265,14 @@ def main(actor, queues):
                 if not doLamps(cmd, actorState):
                     cmd.warn('text="Failed to turn lamps off"')
                     success = False
+
+                # If we failed, open the Hartmann doors.
+                if not success:
+                    cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=cmd,
+                                                        cmdStr=("hartmann out %s" % (state, specArg)),
+                                                        keyVars=[], timeLim=timeout)
+                    if cmdVar.didFail:
+                        cmd.warn('text="############# WARNING: Failed to open hartmann doors after failed hartmann exposure"')
 
                 msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=success)
 
