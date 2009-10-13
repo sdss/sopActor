@@ -266,13 +266,12 @@ def main(actor, queues):
                     cmd.warn('text="Failed to turn lamps off"')
                     success = False
 
-                # If we failed, open the Hartmann doors.
-                if not success:
-                    cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=cmd,
-                                                        cmdStr=("hartmann out %s" % (state, specArg)),
-                                                        keyVars=[], timeLim=timeout)
-                    if cmdVar.didFail:
-                        cmd.warn('text="############# WARNING: Failed to open hartmann doors after failed hartmann exposure"')
+                cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=cmd,
+                                                    cmdStr=("hartmann out %s" % (specArg)),
+                                                    keyVars=[], timeLim=timeout)
+                if cmdVar.didFail:
+                    cmd.warn('text="############# WARNING: Failed to open hartmann doors at end of hartmann sequence"')
+                    success = False
 
                 msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=success)
 
