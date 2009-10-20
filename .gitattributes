@@ -13,4 +13,5 @@ python/sopActor/sopActor_main.py -text
 python/sopActor/tccThread.py -text
 python/sopActor/utils/__init__.py -text
 python/sopActor/utils/tcc.py -text
+/setup.py -text
 ups/sopActor.table -text
