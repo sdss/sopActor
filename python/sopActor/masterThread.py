@@ -7,7 +7,8 @@ from opscore.utility.qstr import qstr
 from opscore.utility.tback import tback
 from sopActor import MultiCommand
 
-def doLamps(cmd, actorState, FF=False, Ne=False, HgCd=False, WHT=False, UV=False, openFFS=None):
+def doLamps(cmd, actorState, FF=False, Ne=False, HgCd=False, WHT=False, UV=False,
+            openFFS=None, openHartmann=None):
     """Turn all the lamps on/off"""
 
     multiCmd = MultiCommand(cmd, actorState.timeout)
@@ -19,6 +20,16 @@ def doLamps(cmd, actorState, FF=False, Ne=False, HgCd=False, WHT=False, UV=False
     multiCmd.append(actorState.queues[sopActor.UV_LAMP  ], Msg.LAMP_ON, on=UV)
     if openFFS is not None:
         multiCmd.append(actorState.queues[sopActor.FFS], Msg.FFS_MOVE, open=openFFS)
+    #
+    # There's no Hartmann thread, so just open them synchronously for now.  This should be rare.
+    #
+    if openHartmann is not None:
+        cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=cmd,
+                                            cmdStr=("hartmann out"), keyVars=[], timeLim=actorState.timeout)
+
+        if cmdVar.didFail:
+            cmd.warn('text="Failed to take Hartmann mask out"')
+            return False
     
     return multiCmd.run()
 
@@ -190,9 +201,9 @@ def main(actor, queues):
 
                 expTime = msg.expTime
                 #
-                # Open the petals
+                # Open the petals and Hartmann doors
                 #
-                if not doLamps(cmd, actorState, openFFS=True):
+                if not doLamps(cmd, actorState, openFFS=True, openHartmann=True):
                     cmd.warn('text="Failed to open the flat field screen"')
                     msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
                     continue
