@@ -228,7 +228,10 @@ def main(actor, queues):
                 else:
                     specArg = ""
 
-                if not doLamps(cmd, actorState, Ne=True, HgCd=True):
+                ffsState0 = actorState.models["mcp"].keyVarDict["ffsCommandedOpen"][0] # initial state
+                openFFS = False if ffsState0 else None                                 # False => close FFS
+
+                if not doLamps(cmd, actorState, Ne=True, HgCd=True, openFFS=openFFS):
                     cmd.warn('text="Some lamps failed to turn on"')
                     msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
                     continue
@@ -271,7 +274,9 @@ def main(actor, queues):
                 #
                 # We're done.  Return telescope to desired state
                 #
-                if not doLamps(cmd, actorState):
+                openFFS = True if ffsState0 else None # True => reopen FFS
+
+                if not doLamps(cmd, actorState, openFFS=openFFS):
                     cmd.warn('text="Failed to turn lamps off"')
                     success = False
 
