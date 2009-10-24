@@ -57,7 +57,7 @@ class SopCmd(object):
              "[<narc>] [<nbias>] [<ndark>] [<nflat>] [<arcTime>] [<darkTime>] [<flatTime>] [<guiderFlatTime>] [openFFS] [<cartridge>]",
              self.doCalibs),
             ("doScience", "[<expTime>]", self.doScience),
-            ("ditheredFlat", "(sp1|sp2) [<expTime>] [<nStep>] [<nTick>]", self.ditheredFlat),
+            ("ditheredFlat", "[sp1] [sp2] [<expTime>] [<nStep>] [<nTick>]", self.ditheredFlat),
             ("fk5InFiber", "<fiberId>", self.fk5InFiber),
             ("hartmann", "[sp1] [sp2] [<expTime>]", self.hartmann),
             ("lampsOff", "", self.lampsOff),
@@ -145,7 +145,14 @@ class SopCmd(object):
     def ditheredFlat(self, cmd, finish=True):
         """Take a set of nStep dithered flats, moving the collimator by nTick between exposures"""
 
-        spN = "sp1" if "sp1" in cmd.cmd.keywords else "sp2"
+        spN = []
+        all = ["sp1", "sp2",]
+        for s in all:
+            if s in cmd.cmd.keywords:
+                spN += [s]
+
+        if not spN:
+            spN = all
 
         nStep = int(cmd.cmd.keywords["nStep"].values[0]) if "nStep" in cmd.cmd.keywords else 22
         nTick = int(cmd.cmd.keywords["nTick"].values[0]) if "nTick" in cmd.cmd.keywords else 62

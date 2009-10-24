@@ -256,6 +256,15 @@ def main(actor, queues):
 
                         if cmdVar.didFail:
                             cmd.warn('text="Failed to take %gs exposure"' % expTime)
+                            cmd.warn('text="Moving Hartmann masks out"')
+
+                            cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=cmd,
+                                                                cmdStr=("hartmann %s %s" % ("out", spec)),
+                                                                keyVars=[], timeLim=timeout)
+
+                            if cmdVar.didFail:
+                                cmd.warn('text="Failed to move Hartmann masks out"')
+
                             success = False
                             break
 
@@ -306,13 +315,17 @@ def main(actor, queues):
                     dA = dB = move
                     dC = -dA
 
-                    cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=cmd,
-                                                        cmdStr=("moveColl spec=%s a=%d b=%d c=%d" % (spN, dA, dB, dC)),
-                                                        keyVars=[], timeLim=timeout)
+                    for sp in spN:
+                        cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=cmd,
+                                                            cmdStr=("moveColl spec=%s a=%d b=%d c=%d" % (sp, dA, dB, dC)),
+                                                            keyVars=[], timeLim=timeout)
 
-                    if cmdVar.didFail:
-                        cmd.warn('text="Failed to move collimator for %s"' % spN)
-                        success = False
+                        if cmdVar.didFail:
+                            cmd.warn('text="Failed to move collimator for %s"' % sp)
+                            success = False
+                            break
+
+                    if not success:
                         break
 
                     moved += move
@@ -328,9 +341,22 @@ def main(actor, queues):
 
                             if cmdVar.didFail:
                                 cmd.warn('text="Failed to take %gs exposure"' % expTime)
+                                cmd.warn('text="Moving collimators back to initial positions"')
+
+                                dA = dB = -moved
+                                dC = -dA
+
+                                for sp in spN:
+                                    cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=cmd,
+                                                                        cmdStr=("moveColl spec=%s a=%d b=%d c=%d" % (sp, dA, dB, dC)),
+                                                                        keyVars=[], timeLim=timeout)
+
+                                    if cmdVar.didFail:
+                                        cmd.warn('text="Failed to move collimator for %s back to initial position"' % sp)
+                                        break
+
                                 success = False
                                 break
-
 
                 doLamps(cmd, actorState)
 
