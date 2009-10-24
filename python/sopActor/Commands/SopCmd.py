@@ -166,7 +166,7 @@ class SopCmd(object):
     def hartmann(self, cmd, finish=True):
         """Take three arc exposures with the Hartmann screens out, left in, and right in"""
 
-        expTime = float(cmd.cmd.keywords["expTime"].values[0]) if "expTime" in cmd.cmd.keywords else 1
+        expTime = float(cmd.cmd.keywords["expTime"].values[0]) if "expTime" in cmd.cmd.keywords else 4
         sp1 = "sp1" in cmd.cmd.keywords
         sp2 = "sp2" in cmd.cmd.keywords
 
