@@ -249,15 +249,6 @@ def main(actor, queues):
 
                 success = True
                 for state, expose in [("left", True), ("right", True)]:
-                    cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=cmd,
-                                                        cmdStr=("hartmann %s %s" % (state, specArg)),
-                                                        keyVars=[], timeLim=timeout)
-
-                    if cmdVar.didFail:
-                        cmd.warn('text="Failed to take Hartmann mask %s"' % state)
-                        success = False
-                        break
-
                     if expose:
                         if False:
                             print "XXXXXXXXXXXX Faking exposure"
@@ -265,20 +256,13 @@ def main(actor, queues):
                             continue
 
                         cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=cmd,
-                                                            cmdStr=("exposure %s itime=%g" % ("arc", expTime)),
+                                                            cmdStr=("exposure %s itime=%g hartmann=%s" % \
+                                                                        ("arc", expTime, state)),
                                                             keyVars=[], timeLim=expTime + overhead)
 
                         if cmdVar.didFail:
                             cmd.warn('text="Failed to take %gs exposure"' % expTime)
                             cmd.warn('text="Moving Hartmann masks out"')
-
-                            cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=cmd,
-                                                                cmdStr=("hartmann %s %s" % ("out", spec)),
-                                                                keyVars=[], timeLim=timeout)
-
-                            if cmdVar.didFail:
-                                cmd.warn('text="Failed to move Hartmann masks out"')
-
                             success = False
                             break
 
@@ -289,13 +273,6 @@ def main(actor, queues):
 
                 if not doLamps(cmd, actorState, openFFS=openFFS):
                     cmd.warn('text="Failed to turn lamps off"')
-                    success = False
-
-                cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=cmd,
-                                                    cmdStr=("hartmann out %s" % (specArg)),
-                                                    keyVars=[], timeLim=timeout)
-                if cmdVar.didFail:
-                    cmd.warn('text="############# WARNING: Failed to open hartmann doors at end of hartmann sequence"')
                     success = False
 
                 msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=success)

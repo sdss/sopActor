@@ -1,3 +1,3 @@
-setupRequired(actorcore CPL)
+setupRequired(actorcore)
 
 pathPrepend(PYTHONPATH, ${PRODUCT_DIR}/python)
