@@ -64,17 +64,14 @@ def main(actor, queues):
                 darkTime = msg.darkTime
                 flatTime = msg.flatTime
                 guiderFlatTime = msg.guiderFlatTime
-                openFFS = msg.openFFS
+                inEnclosure = msg.inEnclosure
                 startGuider = msg.startGuider
-
-                if startGuider:
-                    openFFS = True
                 #
                 # Close the petals
                 #
                 success = True
 
-                if nflat + narc > 0:
+                if not inEnclosure and nflat + narc > 0:
                     if not MultiCommand(cmd, timeout,
                                         actorState.queues[sopActor.FFS], Msg.FFS_MOVE, open=False).run():
                         cmd.warn('text="Failed to close the flat field screen"')
@@ -172,15 +169,14 @@ def main(actor, queues):
                             cmd.warn("text=\"Failed to take arc\"")
                             failed = True
                             break
-                            
-
+                        
                     if not success:
                         msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
                         continue
                 #
                 # We're done.  Return telescope to desired state
                 #
-                if not doLamps(cmd, actorState, openFFS=openFFS):
+                if not doLamps(cmd, actorState, openFFS=None if inEnclosure else True):
                     cmd.warn('text="Failed to turn lamps off"')
                     msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
                     continue

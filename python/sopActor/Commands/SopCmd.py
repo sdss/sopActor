@@ -37,6 +37,7 @@ class SopCmd(object):
                                         keys.Key("fiberId", types.Int(), help="A fiber ID"),
                                         keys.Key("flatTime", types.Float(), help="Exposure time for flats"),
                                         keys.Key("cartridge", types.Int(), help="A cartridge ID"),
+                                        keys.Key("inEnclosure", help="We are in the enclosure"),
                                         keys.Key("guiderFlatTime", types.Float(), help="Exposure time for guider flats"),
                                         keys.Key("keepQueues", help="Restart thread queues"),
                                         keys.Key("openFFS", help="Open flat field screen"),
@@ -54,7 +55,7 @@ class SopCmd(object):
         #
         self.vocab = [
             ("doCalibs",
-             "[<narc>] [<nbias>] [<ndark>] [<nflat>] [<arcTime>] [<darkTime>] [<flatTime>] [<guiderFlatTime>] [openFFS] [<cartridge>]",
+             "[<narc>] [<nbias>] [<ndark>] [<nflat>] [<arcTime>] [<darkTime>] [<flatTime>] [<guiderFlatTime>] [inEnclosure] [<cartridge>]",
              self.doCalibs),
             ("doScience", "[<expTime>]", self.doScience),
             ("ditheredFlat", "[sp1] [sp2] [<expTime>] [<nStep>] [<nTick>]", self.ditheredFlat),
@@ -85,7 +86,7 @@ class SopCmd(object):
         guiderFlatTime = float(cmd.cmd.keywords["guiderFlatTime"].values[0]) if \
                          "guiderFlatTime" in cmd.cmd.keywords else 0.5
         cartridge = int(cmd.cmd.keywords["cartridge"].values[0]) if "cartridge" in cmd.cmd.keywords else 0
-        openFFS = True if "openFFS" in cmd.cmd.keywords else False
+        inEnclosure = True if "inEnclosure" in cmd.cmd.keywords else False
         startGuider = True if "startGuider" in cmd.cmd.keywords else False
 
         if narc + nbias + ndark + nflat == 0:
@@ -110,8 +111,8 @@ class SopCmd(object):
                                                actorState=actorState,
                                                narc=narc, nbias=nbias, ndark=ndark, nflat=nflat,
                                                flatTime=flatTime, arcTime=arcTime, darkTime=darkTime,
-                                               cartridge=cartridge, guiderFlatTime=guiderFlatTime, openFFS=openFFS,
-                                               startGuider=startGuider)
+                                               cartridge=cartridge, guiderFlatTime=guiderFlatTime,
+                                               inEnclosure=inEnclosure, startGuider=startGuider)
 
     def doScience(self, cmd):
         """Take a set of science frames"""
@@ -164,11 +165,21 @@ class SopCmd(object):
                                                expTime=expTime, spN=spN, nStep=nStep, nTick=nTick)
 
     def hartmann(self, cmd, finish=True):
-        """Take three arc exposures with the Hartmann screens out, left in, and right in"""
+        """Take two arc exposures, one with the Hartmann left screen in and one with the right one in.
+
+If the flat field screens are initially open they are closed, and the Ne/HgCd lamps are turned on.
+You may specify using only one spectrograph with sp1 or sp2; the default is both.
+The exposure time is set by expTime (default: 4s)
+
+When the sequence is finished the Hartmann screens are moved out of the beam, the lamps turned off, and the
+flat field screens returned to their initial state.
+"""
 
         expTime = float(cmd.cmd.keywords["expTime"].values[0]) if "expTime" in cmd.cmd.keywords else 4
         sp1 = "sp1" in cmd.cmd.keywords
         sp2 = "sp2" in cmd.cmd.keywords
+        if not sp1 and not sp2:
+            sp1 = True; sp2 = True; 
 
         actorState = myGlobals.actorState
         actorState.queues[sopActor.MASTER].put(Msg.HARTMANN, cmd, replyQueue=actorState.queues[sopActor.MASTER],
