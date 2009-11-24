@@ -48,6 +48,7 @@ class State(object):
 
 class Sop(actorcore.Actor.Actor):
     def __init__(self, name, configFile, debugLevel=30):
+        self.headURL = "$HeadURL$"
         actorcore.Actor.Actor.__init__(self, name, configFile)
 
         self.logger.setLevel(debugLevel)
