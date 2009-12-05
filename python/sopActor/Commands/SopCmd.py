@@ -107,6 +107,9 @@ class SopCmd(object):
             except TypeError:
                 cmd.warn('text="No cartridge is known to be loaded; not taking guider flats"')
 
+        if isMarvelsCartridge(cartridge):
+            flatTime = 0                # no need to take a BOSS flat
+
         actorState.queues[sopActor.MASTER].put(Msg.DO_CALIB, cmd, replyQueue=actorState.queues[sopActor.MASTER],
                                                actorState=actorState,
                                                narc=narc, nbias=nbias, ndark=ndark, nflat=nflat,
@@ -191,7 +194,11 @@ flat field screens returned to their initial state.
         cmd.finish('text="fiber=%d"' % fiberId)
 
     def gotoField(self, cmd):
-        """Slew to the current cartridge/pointing"""
+        """Slew to the current cartridge/pointing
+
+Slew to the position of the currently loaded cartridge. At the beginning of the slew all the lamps are turned on
+and the flat field screen petals are closed.  When you arrive at the field, all the lamps are turned off again and the flat field petals are opened if you specified openFFS.
+        """
         
         actorState = myGlobals.actorState
 
@@ -348,3 +355,8 @@ flat field screens returned to their initial state.
             cmd.finish()
         else:
             cmd.fail("")
+
+def isMarvelsCartridge(cartridge):
+    """Return True iff the cartridge number corresponds to a MARVELS cartridge"""
+
+    return True if cartridge in range(1, 10) else False
