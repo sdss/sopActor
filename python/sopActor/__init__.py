@@ -197,9 +197,18 @@ class MultiCommand(object):
 
     def run(self):
         """Actually submit that set of commands and wait for them to reply. Return status"""
+        self.start()
+
+        return self.finish()
+
+    def start(self):
+        """Actually submit that set of commands"""
         
         for queue, msg in self.commands:
             queue.put(msg)
+
+    def finish(self):
+        """Wait for set of commands to reply. Return status"""
 
         seen = {}
         for tname in myGlobals.actorState.threads.values():
@@ -215,9 +224,11 @@ class MultiCommand(object):
                     failed = True
             except Queue.Empty:
                 responsive = [re.sub(r"(-\d+)?$", "", k) for k in seen.keys() if seen[k]]
+                cmdNames = [str(cmd[0]) for cmd in self.commands]
+                nonResponsive = [cmd for cmd in cmdNames if cmd not in responsive]
 
-                self.cmd.warn('text="%d tasks failed to respond; heard from: %s"' % (
-                    len(self.commands) - len(responsive), " ".join(responsive)))
+                self.cmd.warn('text="%d tasks failed to respond: %s"' % (
+                    len(nonResponsive), " ".join(nonResponsive)))
                 return False
 
         return not failed

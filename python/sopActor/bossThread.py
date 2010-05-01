@@ -32,7 +32,7 @@ def main(actor, queues):
                 else:
                     expTimeCmd = expTypeCmd = ""
                     
-                readoutCmd = "readout" if msg.readout else "noreadout"
+                readoutCmd = "" if msg.readout else "noreadout"
 
                 timeLim = msg.expTime + 180.0  # seconds
                 timeLim += 100
@@ -75,6 +75,7 @@ def main(actor, queues):
                 msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
             else:
                 raise ValueError, ("Unknown message type %s" % msg.type)
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
         except Queue.Empty:
             actor.bcast.diag('text="%s alive"' % threadName)
         except Exception, e:

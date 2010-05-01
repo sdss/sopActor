@@ -24,7 +24,8 @@ def main(actor, queues):
                 return
 
             elif msg.type == Msg.ENABLE:
-                msg.cmd.respond("text=\"%s %s\"" % (("enabling" if msg.on else "disabling"), msg.what))
+                msg.cmd.respond("text=\"%s guiding on %s\"" %
+                                (("enabling" if msg.on else "disabling"), msg.what))
 
                 timeLim = 10
                 cmdVar = actorState.actor.cmdr.call(actor="guider", forUserCmd=msg.cmd,
@@ -42,12 +43,13 @@ def main(actor, queues):
                     expTimeOpt = ""
 
                 forceOpt = "force" if (hasattr(msg, 'force') and msg.force) else ""
+                oneExposureOpt = "oneExposure" if (hasattr(msg, 'oneExposure') and msg.oneExposure) else ""
                     
                 timeLim = msg.expTime   # seconds
                 timeLim += 100
                 cmdVar = actorState.actor.cmdr.call(actor="guider", forUserCmd=msg.cmd,
-                                                    cmdStr="%s %s %s" % (("on" if msg.on else "off"),
-                                                                       expTimeOpt, forceOpt),
+                                                    cmdStr="%s %s %s %s" % (("on" if msg.on else "off"),
+                                                                       expTimeOpt, forceOpt, oneExposureOpt),
                                                     keyVars=[], timeLim=timeLim)
                     
                 msg.replyQueue.put(Msg.DONE, cmd=msg.cmd, success=not cmdVar.didFail)

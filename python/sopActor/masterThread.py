@@ -194,9 +194,9 @@ def main(actor, queues):
 
                 expTime = msg.expTime
                 #
-                # Open the petals and Hartmann doors
+                # Open the petals
                 #
-                if not doLamps(cmd, actorState, openFFS=True, openHartmann=True):
+                if not doLamps(cmd, actorState, openFFS=True):
                     cmd.warn('text="Failed to open the flat field screen"')
                     msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
                     continue
