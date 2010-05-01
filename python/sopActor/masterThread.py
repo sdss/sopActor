@@ -13,13 +13,13 @@ def doLamps(cmd, actorState, FF=False, Ne=False, HgCd=False, WHT=False, UV=False
 
     multiCmd = MultiCommand(cmd, actorState.timeout)
 
-    multiCmd.append(actorState.queues[sopActor.FF_LAMP  ], Msg.LAMP_ON, on=FF)
-    multiCmd.append(actorState.queues[sopActor.HGCD_LAMP], Msg.LAMP_ON, on=Ne)
-    multiCmd.append(actorState.queues[sopActor.NE_LAMP  ], Msg.LAMP_ON, on=HgCd)
-    multiCmd.append(actorState.queues[sopActor.WHT_LAMP ], Msg.LAMP_ON, on=WHT)
-    multiCmd.append(actorState.queues[sopActor.UV_LAMP  ], Msg.LAMP_ON, on=UV)
+    multiCmd.append(sopActor.FF_LAMP  , Msg.LAMP_ON, on=FF)
+    multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=Ne)
+    multiCmd.append(sopActor.NE_LAMP  , Msg.LAMP_ON, on=HgCd)
+    multiCmd.append(sopActor.WHT_LAMP , Msg.LAMP_ON, on=WHT)
+    multiCmd.append(sopActor.UV_LAMP  , Msg.LAMP_ON, on=UV)
     if openFFS is not None:
-        multiCmd.append(actorState.queues[sopActor.FFS], Msg.FFS_MOVE, open=openFFS)
+        multiCmd.append(sopActor.FFS, Msg.FFS_MOVE, open=openFFS)
     #
     # There's no Hartmann thread, so just open them synchronously for now.  This should be rare.
     #
@@ -72,8 +72,7 @@ def main(actor, queues):
                 success = True
 
                 if not inEnclosure and nflat + narc > 0:
-                    if not MultiCommand(cmd, timeout,
-                                        actorState.queues[sopActor.FFS], Msg.FFS_MOVE, open=False).run():
+                    if not MultiCommand(cmd, timeout, sopActor.FFS, Msg.FFS_MOVE, open=False).run():
                         cmd.warn('text="Failed to close the flat field screen"')
                         msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
                         continue
@@ -89,9 +88,8 @@ def main(actor, queues):
                     for n in range(nbias):
                         cmd.inform('text="Taking a bias exposure"')
 
-                        if not MultiCommand(cmd, overhead,
-                                            actorState.queues[sopActor.BOSS], Msg.EXPOSE,
-                                            expTime=0.0, expType="bias").run():
+                        if not MultiCommand(cmd, overhead, sopActor.BOSS, Msg.EXPOSE,
+                                            expTime=0.0, expType="bias", readout=True).run():
                             cmd.warn('text="Failed to take bias"')
                             success = False
                             break
@@ -105,9 +103,8 @@ def main(actor, queues):
                     for n in range(ndark):
                         cmd.inform('text="Taking a %gs dark exposure"' % darkTime)
 
-                        if not MultiCommand(cmd, darkTime + overhead,
-                                            actorState.queues[sopActor.BOSS], Msg.EXPOSE,
-                                            expTime=darkTime, expType="dark").run():
+                        if not MultiCommand(cmd, darkTime + overhead, sopActor.BOSS, Msg.EXPOSE,
+                                            expTime=darkTime, expType="dark", readout=True).run():
                             cmd.warn('text="Failed to take dark"') 
                             success = False
                             break
@@ -132,14 +129,14 @@ def main(actor, queues):
                         if flatTime > 0:
                             cmd.inform('text="Taking a %gs flat exposure"' % (flatTime))
 
-                            doFlat.append(actorState.queues[sopActor.BOSS], Msg.EXPOSE, expTime=flatTime, expType="flat",
-                                          timeout=flatTime + 180)
+                            doFlat.append(sopActor.BOSS, Msg.EXPOSE, expTime=flatTime, expType="flat",
+                                          readout=True, timeout=flatTime + 180)
 
                         if guiderFlatTime > 0 and msg.cartridge > 0:
                             cmd.inform('text="Taking a %gs guider flat exposure"' % (guiderFlatTime))
-                            doFlat.append(actorState.queues[sopActor.GCAMERA], Msg.EXPOSE,
+                            doFlat.append(sopActor.GCAMERA, Msg.EXPOSE,
                                           expTime=guiderFlatTime, expType="flat", cartridge=msg.cartridge,
-                                          timeout=guiderFlatTime + 15)
+                                          readout=True, timeout=guiderFlatTime + 15)
                                          
 
                         if not doFlat.run():
@@ -164,8 +161,8 @@ def main(actor, queues):
                     for n in range(narc):
                         cmd.inform('text="Taking a %gs arc exposure"' % (arcTime))
                         if not MultiCommand(cmd, arcTime + overhead,
-                                            actorState.queues[sopActor.BOSS], Msg.EXPOSE,
-                                            expTime=arcTime, expType="arc").run():
+                                            sopActor.BOSS, Msg.EXPOSE,
+                                            expTime=arcTime, expType="arc", readout=True).run():
                             cmd.warn("text=\"Failed to take arc\"")
                             failed = True
                             break
@@ -206,9 +203,8 @@ def main(actor, queues):
 
                 cmd.inform('text="Taking a science exposure"')
 
-                if not MultiCommand(cmd, overhead + expTime,
-                                    actorState.queues[sopActor.BOSS], Msg.EXPOSE,
-                                    expTime=expTime, expType="science").run():
+                if not MultiCommand(cmd, overhead + expTime, sopActor.BOSS, Msg.EXPOSE,
+                                    expTime=expTime, expType="science", readout=True).run():
                     cmd.warn('text="Failed to take science exposure"')
                     msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
                     continue
@@ -219,8 +215,6 @@ def main(actor, queues):
 
             elif msg.type == Msg.HARTMANN:
                 """Take two arc exposures with the left then the right Hartmann screens in"""
-                #import pdb; pdb.set_trace()
-
                 cmd = msg.cmd
                 actorState = msg.actorState
 

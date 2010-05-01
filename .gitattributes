@@ -6,6 +6,7 @@ python/sopActor/__init__.py -text
 python/sopActor/bossThread.py -text
 python/sopActor/ffsThread.py -text
 python/sopActor/gcameraThread.py -text
+python/sopActor/guiderThread.py -text
 python/sopActor/lampThreads.py -text
 python/sopActor/masterThread.py -text
 python/sopActor/myGlobals.py -text

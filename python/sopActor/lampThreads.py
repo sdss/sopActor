@@ -16,8 +16,6 @@ def doLamp(cmd, queue, lampName, action):
                                         cmdStr=("%s.%s" % (lampName.lower(), action)),
                                         timeLim=timeLim)
     if cmdVar.didFail:
-        if lampName == "Ne":
-            import pdb; pdb.set_trace()
         cmd.warn('text="Failed to turn %s lamps %s"' % (lampName, action))
 
     queue.put(Msg.LAMP_COMPLETE, cmd=cmd, success=not cmdVar.didFail)
@@ -42,7 +40,7 @@ def lamp_main(actor, queue, lampName):
                 action = "on" if msg.on else "off"
 
                 if lampName in ["uv", "wht",]:
-                    msg.cmd.warn('text="ignoring %s.%s"' % (action, lampName))
+                    msg.cmd.diag('text="ignoring %s.%s"' % (action, lampName))
                     msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
                     continue
 

@@ -12,11 +12,13 @@ except NameError:
     class FFS(): pass                       # Flat Field Screen
     class FF_LAMP(): pass                   # FF lamps
     class HGCD_LAMP(): pass                 # HgCd lamps
+    class HARTMANN(): pass                  # Do a Hartmann sequence
     class NE_LAMP(): pass                   # Ne lamps
     class UV_LAMP(): pass                   # uv lamps
     class WHT_LAMP(): pass                  # WHT lamps
     class BOSS(): pass                      # command the Boss ICC
     class GCAMERA(): pass                   # command the gcamera ICC
+    class GUIDER(): pass                    # command the guider
     class TCC(): pass                       # command the TCC
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -36,9 +38,12 @@ except NameError:
         class DITHERED_FLAT(): pass
         class HARTMANN(): pass
         class DO_SCIENCE(): pass
+        class DONE(): pass
         class EXIT(): pass
+        class ENABLE(): pass
         class FFS_MOVE(): pass
         class FFS_COMPLETE(): pass
+        class START(): pass
         class LAMP_ON(): pass
         class LAMP_COMPLETE(): pass
         class STATUS(): pass
@@ -104,6 +109,55 @@ Expects a Msg, otherwise tries to construct a Msg from its arguments"""
             except Queue.Empty:
                 return
 
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+class Bypass(object):
+    """
+    Provide bypasses for subsystems
+
+    A failure code from a bypassed subsystem will not cause a MultiCmd to fail
+    """
+    _bypassed = {}
+
+    @staticmethod
+    def set(name, bypassed=True, define=False):
+        if define:
+            Bypass._bypassed[name] = None
+
+        if Bypass._bypassed.has_key(name):
+            Bypass._bypassed[name] = bypassed
+        else:
+            return None
+
+        return bypassed
+
+    @staticmethod
+    def get(cmd=None, name=None):
+        if name:
+            bypassed = Bypass._bypassed.get(name, False)
+            if bypassed:
+                if cmd:
+                    cmd.warn('text="System %s failed but is bypassed"' % name)
+
+            return bypassed
+
+        return  Bypass._bypassed.items()
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+class Postcondition(object):
+    """A class to capture a Postcondition that should be passed to a MultiCmd"""
+
+    def __init__(self, queue, msgId=None, timeout=None, **kwargs):
+        self.queue = queue
+        self.msgId = msgId
+        self.timeout = timeout
+        self.kwargs = kwargs
+
+    def required(self):
+        """Is this precondition needed?"""
+        return True
+
 class MultiCommand(object):
     """Process a set of commands, waiting for the last to complete"""
     
@@ -116,11 +170,27 @@ class MultiCommand(object):
         if args:
             self.append(*args, **kwargs)
 
-    def append(self, queue, msgId, timeout=None, **kwargs):
+    def append(self, queueName, msgId=None, timeout=None, **kwargs):
+        if isinstance(queueName, Postcondition):
+            assert msgId is None
+            
+            pre = queueName
+            if not pre.required():
+                return
+
+            return self.append(pre.queueName, pre.msgId, pre.timeout, **pre.kwargs)
+
+        assert msgId is not None
+
         if timeout is not None and timeout > self.timeout:
             self.timeout = timeout
             
-        self.commands.append((queue, Msg(msgId, cmd=self.cmd, replyQueue=self._replyQueue, **kwargs)))
+        try:
+            self.commands.append((myGlobals.actorState.queues[queueName],
+                                  Msg(msgId, cmd=self.cmd, replyQueue=self._replyQueue, **kwargs)))
+        except Exception, e:
+            print "RHL", e
+            import pdb; pdb.set_trace() 
 
     def run(self):
         """Actually submit that set of commands and wait for them to reply. Return status"""
@@ -138,7 +208,7 @@ class MultiCommand(object):
                 msg = self._replyQueue.get(timeout=self.timeout)
                 seen[msg.senderName] = True
 
-                if not msg.success:
+                if not msg.success and not Bypass.get(self.cmd, msg.senderName):
                     failed = True
             except Queue.Empty:
                 responsive = [k.split("-")[0] for k in seen.keys() if seen[k]]
@@ -149,4 +219,4 @@ class MultiCommand(object):
 
         return not failed
 
-__all__ = ["MASTER", "Msg"]
+__all__ = ["MASTER", "Msg", "Postcondition", "Bypass"]

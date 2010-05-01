@@ -14,6 +14,7 @@ import actorkeys
 
 import masterThread
 import bossThread
+import guiderThread
 import gcameraThread
 import ffsThread
 import lampThreads
@@ -125,6 +126,7 @@ class Sop(actorcore.Actor.Actor):
         threadsToStart = []
         for tname, tid, threadModule, target in [("master",  sopActor.MASTER,    masterThread,  masterThread.main),
                                                  ("boss",    sopActor.BOSS,      bossThread,    bossThread.main),
+                                                 ("guider",  sopActor.GUIDER,    guiderThread,  guiderThread.main),
                                                  ("gcamera", sopActor.GCAMERA,   gcameraThread, gcameraThread.main),
                                                  ("ff",      sopActor.FF_LAMP,   lampThreads,   lampThreads.ff_main),
                                                  ("hgcd",    sopActor.HGCD_LAMP, None,          lampThreads.hgcd_main),

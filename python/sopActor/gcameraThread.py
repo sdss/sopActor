@@ -7,7 +7,7 @@ from opscore.utility.qstr import qstr
 from opscore.utility.tback import tback
 
 def main(actor, queues):
-    """Main loop for boss ICC thread"""
+    """Main loop for gcamera ICC thread"""
 
     threadName = "gcamera"
     actorState = sopActor.myGlobals.actorState

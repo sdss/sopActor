@@ -26,15 +26,21 @@ def main(actor, queues):
             elif msg.type == Msg.EXPOSE:
                 msg.cmd.respond("text=\"starting exposure\"")
 
+                if msg.expTime > 0:
+                    expTimeCmd = ("itime=%g" % msg.expTime)
+                    expTypeCmd = msg.expType
+                else:
+                    expTimeCmd = expTypeCmd = ""
+                    
+                readoutCmd = "readout" if msg.readout else "noreadout"
+
                 timeLim = msg.expTime + 180.0  # seconds
                 timeLim += 100
                 if True:                # really take data
-                    import time
-                    print "Starting integration for %gs: %s" % (msg.expTime, time.ctime())
                     cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=msg.cmd,
-                                                        cmdStr=("exposure %s itime=%g" % (msg.expType, msg.expTime)),
+                                                        cmdStr=("exposure %s %s %s" %
+                                                                (expTypeCmd, expTimeCmd, readoutCmd)),
                                                         keyVars=[], timeLim=timeLim)
-                    print "Ending integration for %gs: %s" % (msg.expTime, time.ctime())
                 else:
                     msg.cmd.inform('text="Not taking a %gs exposure"' % msg.expTime)
 
@@ -45,6 +51,25 @@ def main(actor, queues):
                     
                 msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=not cmdVar.didFail)
 
+            elif msg.type == Msg.HARTMANN:
+                msg.cmd.respond("text=\"starting Hartmann sequence\"")
+
+                timeLim = 10            # XXX Get this from Craig
+                if False:               # really take data
+                    import time
+                    cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=msg.cmd,
+                                                        cmdStr="newHartmann",
+                                                        keyVars=[], timeLim=timeLim)
+                else:
+                    msg.cmd.inform('text="Faking Hartmann sequence"')
+                    import time; time.sleep(4)
+
+                    class Foo(object):
+                        @property
+                        def didFail(self): return False
+                    cmdVar = Foo()
+                    
+                msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=not cmdVar.didFail)
             elif msg.type == Msg.STATUS:
                 msg.cmd.inform('text="%s thread"' % threadName)
                 msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
