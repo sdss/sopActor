@@ -37,15 +37,17 @@ def main(actor, queues):
                 msg.cmd.respond("text=\"%s guider\"" % (("starting" if msg.on else "stopping")))
 
                 if msg.expTime > 0:
-                    expTimeCmd = ("time=%g" % msg.expTime)
+                    expTimeOpt = ("time=%g" % msg.expTime)
                 else:
-                    expTimeCmd = ""
+                    expTimeOpt = ""
+
+                forceOpt = "force" if (hasattr(msg, 'force') and msg.force) else ""
                     
                 timeLim = msg.expTime   # seconds
                 timeLim += 100
                 cmdVar = actorState.actor.cmdr.call(actor="guider", forUserCmd=msg.cmd,
-                                                    cmdStr="%s %s" % (("on" if msg.on else "off"),
-                                                                       expTimeCmd),
+                                                    cmdStr="%s %s %s" % (("on" if msg.on else "off"),
+                                                                       expTimeOpt, forceOpt),
                                                     keyVars=[], timeLim=timeLim)
                     
                 msg.replyQueue.put(Msg.DONE, cmd=msg.cmd, success=not cmdVar.didFail)

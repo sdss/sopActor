@@ -15,6 +15,8 @@ import sopActor
 import sopActor.myGlobals as myGlobals
 from sopActor import MultiCommand
 
+print "Reloading sopActor"; reload(sopActor)
+
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 class SopPostcondition(Postcondition):
@@ -321,12 +323,12 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         if doGuider:
             try:
                 cartridge = int(actorState.models["guider"].keyVarDict["cartridgeLoaded"][0])
+                if False:
+                    if isMarvelsCartridge(cartridge):
+                        flatTime = 0                # no need to take a BOSS flat
             except TypeError:
                 cmd.warn('text="No cartridge is known to be loaded; disabling guider"')
                 doGuider = False
-
-        if isMarvelsCartridge(cartridge):
-            flatTime = 0                # no need to take a BOSS flat
 
         pointingInfo = actorState.models["platedb"].keyVarDict["pointingInfo"]
         boresight_ra = pointingInfo[3]
@@ -365,8 +367,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         multiCmd = MultiCommand(cmd, slewDuration + actorState.timeout)
 
         if True:
-            multiCmd.append(sopActor.TCC      , Msg.SLEW, actorState=actorState,
-                            ra=boresight_ra, dec=boresight_dec)
+            multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState, ra=boresight_ra, dec=boresight_dec)
         else:
             cmd.warn('text="RHL skipping slew"')
 
@@ -386,6 +387,8 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
 
         slewCompleted = True
         informGUI()
+
+        cmd.finish('text="XXXXX RHL Stopping after slew"'); return
         #
         # OK, we're there.  Time to do calibs etc.
         #
@@ -500,7 +503,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         if doGuider:
             multiCmd = MultiCommand(cmd, actorState.timeout + (readoutTime if pendingReadout else 0))
 
-            multiCmd.append(sopActor.GUIDER, Msg.START, on=True, expTime=guiderTime)
+            multiCmd.append(sopActor.GUIDER, Msg.START, on=True, expTime=guiderTime, force=True)
             for w in ("axes", "focus", "scale"):
                 multiCmd.append(sopActor.GUIDER, Msg.ENABLE, what=w, on=False)
 

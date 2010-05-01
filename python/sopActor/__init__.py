@@ -1,5 +1,5 @@
 import Queue as _Queue
-import threading
+import re, threading
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
@@ -96,6 +96,7 @@ Expects a Msg, otherwise tries to construct a Msg from its arguments"""
             msg = Msg(arg0, *args, **kwds)
 
         msg.senderName = threading.current_thread().name
+        msg.senderName0 =  re.sub(r"(-\d+)?$", "", msg.senderName)
         msg.senderQueue = self
 
         _Queue.Queue.put(self, msg)
@@ -146,7 +147,9 @@ class Bypass(object):
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 class Postcondition(object):
-    """A class to capture a Postcondition that should be passed to a MultiCmd"""
+    """A class to capture a condition that should be passed to a MultiCmd;  we require that it be satisfied
+at the end of the MultiCmd
+"""
 
     def __init__(self, queue, msgId=None, timeout=None, **kwargs):
         self.queue = queue
@@ -190,7 +193,7 @@ class MultiCommand(object):
                                   Msg(msgId, cmd=self.cmd, replyQueue=self._replyQueue, **kwargs)))
         except Exception, e:
             print "RHL", e
-            import pdb; pdb.set_trace() 
+            #import pdb; pdb.set_trace() 
 
     def run(self):
         """Actually submit that set of commands and wait for them to reply. Return status"""
@@ -208,10 +211,10 @@ class MultiCommand(object):
                 msg = self._replyQueue.get(timeout=self.timeout)
                 seen[msg.senderName] = True
 
-                if not msg.success and not Bypass.get(self.cmd, msg.senderName):
+                if not msg.success and not Bypass.get(self.cmd, msg.senderName0):
                     failed = True
             except Queue.Empty:
-                responsive = [k.split("-")[0] for k in seen.keys() if seen[k]]
+                responsive = [re.sub(r"(-\d+)?$", "", k) for k in seen.keys() if seen[k]]
 
                 self.cmd.warn('text="%d tasks failed to respond; heard from: %s"' % (
                     len(self.commands) - len(responsive), " ".join(responsive)))
