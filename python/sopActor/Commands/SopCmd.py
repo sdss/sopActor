@@ -119,6 +119,23 @@ desired state, but if it's already in that state no command is required; so retu
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+class SopState(object):
+    """The state of SOP"""
+
+    class state(object):
+        """A class that's intended to hold state data"""
+        pass
+
+    def __init__(self):
+        self.gotoField = SopState.state()
+
+try:
+    sopState
+except:
+    sopState = SopState()
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 class SopCmd(object):
     """ Wrap commands to the sop actor"""
 
@@ -146,7 +163,6 @@ class SopCmd(object):
                                         keys.Key("guiderFlatTime", types.Float(), help="Exposure time for guider flats"),
                                         keys.Key("hartmann", help="Take a Hartmann sequence"),
                                         keys.Key("keepQueues", help="Restart thread queues"),
-                                        keys.Key("openFFS", help="Open flat field screen"),
                                         keys.Key("startGuider", help="Start the guider"),
                                         keys.Key("noSlew", help="Don't slew to field"),
                                         keys.Key("sp1", help="Select SP1"),
@@ -173,7 +189,7 @@ class SopCmd(object):
             ("lampsOff", "", self.lampsOff),
             ("ping", "", self.ping),
             ("restart", "[<threads>] [keepQueues]", self.restart),
-            ("gotoField", "[<arcTime>] [<flatTime>] [<guiderFlatTime>] [hartmann] [openFFS] [startGuider] [noSlew]",
+            ("gotoField", "[<arcTime>] [<flatTime>] [<guiderFlatTime>] [hartmann] [startGuider] [noSlew]",
              self.gotoField),
             ("gotoInstrumentChange", "", self.gotoInstrumentChange),
             ("setScale", "<delta>|<scale>", self.setScale),
@@ -329,21 +345,27 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         
         actorState = myGlobals.actorState
 
-        doSlew = True if "noSlew" not in cmd.cmd.keywords else False
-        arcTime = float(cmd.cmd.keywords["arcTime"].values[0]) if "arcTime" in cmd.cmd.keywords else 4
-        flatTime = float(cmd.cmd.keywords["flatTime"].values[0]) if "flatTime" in cmd.cmd.keywords else 30
-        doHartmann = True if "hartmann" in cmd.cmd.keywords else False
-        openFFS = True if "openFFS" in cmd.cmd.keywords else False
-        doGuider = True if "startGuider" in cmd.cmd.keywords else False
-        guiderFlatTime = float(cmd.cmd.keywords["guiderFlatTime"].values[0]) \
-                         if "guiderFlatTime" in cmd.cmd.keywords else 5
-        guiderTime = float(cmd.cmd.keywords["guiderTime"].values[0]) if "guiderTime" in cmd.cmd.keywords else 5
+        sopState.gotoField.doSlew = True if "noSlew" not in cmd.cmd.keywords else False
+        sopState.gotoField.arcTime = float(cmd.cmd.keywords["arcTime"].values[0]) \
+                                     if "arcTime" in cmd.cmd.keywords else 4
+        sopState.gotoField.flatTime = float(cmd.cmd.keywords["flatTime"].values[0]) \
+                                      if "flatTime" in cmd.cmd.keywords else 30
+        sopState.gotoField.doHartmann = True if "hartmann" in cmd.cmd.keywords else False
+        sopState.gotoField.doGuider = True if "startGuider" in cmd.cmd.keywords else False
+        sopState.gotoField.guiderFlatTime = float(cmd.cmd.keywords["guiderFlatTime"].values[0]) \
+                                            if "guiderFlatTime" in cmd.cmd.keywords else 5
+        sopState.gotoField.guiderTime = float(cmd.cmd.keywords["guiderTime"].values[0]) \
+                                        if "guiderTime" in cmd.cmd.keywords else 5
 
-        doArc = True if arcTime > 0 else False
-        doFlat = True if flatTime > 0 else False
-        closeFFSAtStart = True if (doArc or doFlat or doHartmann or doGuider) else False
+        sopState.gotoField.doArc = True if sopState.gotoField.arcTime > 0 else False
+        sopState.gotoField.doFlat = True if sopState.gotoField.flatTime > 0 else False
 
-        if doGuider:
+        closeFFSAtStart = True if (sopState.gotoField.doArc or \
+                                   sopState.gotoField.doFlat or \
+                                   sopState.gotoField.doHartmann or \
+                                   sopState.gotoField.doGuider) else False
+        
+        if sopState.gotoField.doGuider:
             try:
                 cartridge = int(actorState.models["guider"].keyVarDict["cartridgeLoaded"][0])
 
@@ -353,26 +375,34 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
             except TypeError:
                 cmd.warn('text="No cartridge is known to be loaded; disabling guider"')
                 cartridge = -1
-                doGuider = False
+                sopState.gotoField.doGuider = False
 
-        openFFSAtEnd = openFFS or doGuider
-        doGuiderFlat = True if (doGuider and guiderFlatTime > 0) else False
+        openFFSAtEnd = sopState.gotoField.doGuider
+        doGuiderFlat = True if (sopState.gotoField.doGuider and sopState.gotoField.guiderFlatTime > 0) \
+                       else False
 
         pointingInfo = actorState.models["platedb"].keyVarDict["pointingInfo"]
         boresight_ra = pointingInfo[3]
         boresight_dec = pointingInfo[4]
+        rotang = 0.0                    # Rotator angle; should always be 0.0
 
         if True:
-            cmd.warn('text="FAKING RA DEC"')
-            boresight_ra = 240
+            boresight_ra = 5*15
             boresight_dec = 40
+            rotang = 120
+            cmd.warn('text="FAKING RA DEC:  %g, %g /rotang=%g"' %
+                     (boresight_ra, boresight_dec, rotang))
         #
         # Define the command that we use to communicate our state to e.g. STUI
         #
         slewCompleted, hartmannCompleted, flatCompleted, arcCompleted, startedGuider = [0]*5
         def informGUI(txt='text="gotoField=slew,%%d,%d, hartmann,%%d,%d, '
-                      'flat,%%d,%d, arc,%%d,%d, guider,%%d,%d"' % (doSlew, doHartmann,
-                                                                   (doFlat or doGuiderFlat), doArc, doGuider)):
+                      'flat,%%d,%d, arc,%%d,%d, guider,%%d,%d"' % (sopState.gotoField.doSlew,
+                                                                   sopState.gotoField.doHartmann,
+                                                                   (sopState.gotoField.doFlat or
+                                                                    doGuiderFlat),
+                                                                   sopState.gotoField.doArc,
+                                                                   sopState.gotoField.doGuider)):
             cmd.inform(txt % (slewCompleted, hartmannCompleted, flatCompleted, arcCompleted, startedGuider))
         #
         # Try to guess how long the slew will take
@@ -381,8 +411,8 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
             import time; print "start slew", time.ctime()
             slewDurationKey = actorState.models["tcc"].keyVarDict["slewDuration"]
             cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd,
-                                                cmdStr="track %f, %f icrs /rottype=object/rotang=0.0" % \
-                                                (boresight_ra, boresight_dec), timeLim=4,
+                                                cmdStr="track %f, %f icrs /rottype=object/rotang=%g" % \
+                                                (boresight_ra, boresight_dec, rotang), timeLim=4,
                                                 keyVars=[slewDurationKey])
             print cmdVar.getLastKeyVarData
             slewDuration = cmdVar.getLastKeyVarData(slewDurationKey)[0]
@@ -395,9 +425,10 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         
         multiCmd = MultiCommand(cmd, slewDuration + actorState.timeout)
 
-        if doSlew:
+        if sopState.gotoField.doSlew:
             if True:
-                multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState, ra=boresight_ra, dec=boresight_dec)
+                multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState,
+                                ra=boresight_ra, dec=boresight_dec, rot=rotang)
             else:
                 cmd.warn('text="RHL is skipping the slew"')
                 
@@ -405,12 +436,12 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
                 cmd.inform('text="commanding guider flat for Marvels"')
                 multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=True))
                 multiCmd.append(sopActor.GCAMERA, Msg.EXPOSE,
-                                expTime=guiderFlatTime, expType="flat", cartridge=cartridge)
+                                expTime=sopState.gotoField.guiderFlatTime, expType="flat", cartridge=cartridge)
                 doGuiderFlat = False
-            elif doGuiderFlat or doFlat:
+            elif doGuiderFlat or sopState.gotoField.doFlat:
                 multiCmd.append(sopActor.FF_LAMP  , Msg.LAMP_ON, on=True)
 
-            if doArc or doHartmann:
+            if sopState.gotoField.doArc or sopState.gotoField.doHartmann:
                 multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=True)
                 multiCmd.append(sopActor.NE_LAMP  , Msg.LAMP_ON, on=True)
                 multiCmd.append(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False)
@@ -427,7 +458,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         #
         # OK, we're there.  Time to do calibs etc.
         #
-        if doHartmann:
+        if sopState.gotoField.doHartmann:
             multiCmd = MultiCommand(cmd, actorState.timeout)
 
             multiCmd.append(sopActor.BOSS, Msg.HARTMANN)
@@ -453,7 +484,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         #
         readoutTime = 90
         pendingReadout = False          # there is no pending readout
-        if doFlat or doGuiderFlat:
+        if sopState.gotoField.doFlat or doGuiderFlat:
             multiCmd = MultiCommand(cmd, actorState.timeout)
 
             multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=True))
@@ -469,15 +500,15 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
             #
             # Now take the exposure
             #
-            multiCmd = MultiCommand(cmd, flatTime + actorState.timeout)
+            multiCmd = MultiCommand(cmd, sopState.gotoField.flatTime + actorState.timeout)
             
-            if doFlat:
+            if sopState.gotoField.doFlat:
                 pendingReadout = True
                 multiCmd.append(sopActor.BOSS, Msg.EXPOSE,
-                                expTime=flatTime, expType="flat", readout=False)
+                                expTime=sopState.gotoField.flatTime, expType="flat", readout=False)
             if doGuiderFlat:
                 multiCmd.append(sopActor.GCAMERA, Msg.EXPOSE,
-                                expTime=guiderFlatTime, expType="flat", cartridge=cartridge)
+                                expTime=sopState.gotoField.guiderFlatTime, expType="flat", cartridge=cartridge)
                 
             if not multiCmd.run():
                 if pendingReadout:
@@ -490,7 +521,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
             flatCompleted = True
             informGUI()
 
-        if doArc:
+        if sopState.gotoField.doArc:
             multiCmd = MultiCommand(cmd, actorState.timeout + (readoutTime if pendingReadout else 0))
 
             if pendingReadout:
@@ -511,8 +542,9 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
             # Now take the exposure
             #
             pendingReadout = True
-            if not MultiCommand(cmd, arcTime + actorState.timeout, sopActor.BOSS, Msg.EXPOSE,
-                                expTime=arcTime, expType="arc", readout=False).run():
+            if not MultiCommand(cmd, sopState.gotoField.arcTime + actorState.timeout,
+                                sopActor.BOSS, Msg.EXPOSE,
+                                expTime=sopState.gotoField.arcTime, expType="arc", readout=False).run():
                 cmd.fail('text="Failed to take arcs"')
                 return
 
@@ -550,13 +582,14 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         #
         # Start the guider
         #
-        if doGuider:
-            multiCmd = MultiCommand(cmd, actorState.timeout + guiderTime)
+        if sopState.gotoField.doGuider:
+            multiCmd = MultiCommand(cmd, actorState.timeout + sopState.gotoField.guiderTime)
 
             for w in ("axes", "focus", "scale"):
                 multiCmd.append(sopActor.GUIDER, Msg.ENABLE, what=w, on=False)
 
-            multiCmd.append(sopActor.GUIDER, Msg.START, on=True, expTime=guiderTime, oneExposure=True)
+            multiCmd.append(sopActor.GUIDER, Msg.START, on=True,
+                            expTime=sopState.gotoField.guiderTime, oneExposure=True)
 
             multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False))
             multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=False))
