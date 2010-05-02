@@ -1,4 +1,4 @@
-import Queue, threading
+import Queue, threading, time
 import math, numpy
 
 from sopActor import *
@@ -50,6 +50,9 @@ def lamp_main(actor, queue, lampName):
                                                     timeLim=timeLim)
                 if cmdVar.didFail:
                     msg.cmd.warn('text="Failed to turn %s lamps %s"' % (lampName, action))
+                elif hasattr(msg, "delay"):
+                    msg.cmd.inform('text="Waiting %gs for %s lamps to warm up"' % (msg.delay, lampName))
+                    time.sleep(msg.delay)
 
                 msg.replyQueue.put(Msg.LAMP_COMPLETE, cmd=msg.cmd, success=not cmdVar.didFail)
 

@@ -15,7 +15,7 @@ import sopActor
 import sopActor.myGlobals as myGlobals
 from sopActor import MultiCommand
 
-if not False:
+if False:
     oldPrecondition = sopActor.Precondition
     print "Reloading sopActor";
     reload(sopActor)
@@ -35,15 +35,30 @@ is the command actually scheduled and then run"""
         """Here is the real logic.  We're thinking of running a command to get the system into a
 desired state, but if it's already in that state no command is required; so return False"""
 
-        if self.queueName in (sopActor.FF_LAMP,
-                              sopActor.HGCD_LAMP, sopActor.NE_LAMP, sopActor.WHT_LAMP, sopActor.UV_LAMP):
-            
+        warmupTime = {                  # warmup time for lamp, in seconds
+            sopActor.FF_LAMP : 1,
+            sopActor.HGCD_LAMP : 70,
+            sopActor.NE_LAMP : 5,
+            sopActor.WHT_LAMP : 0,
+            sopActor.UV_LAMP : 0
+            };
+
+        if self.queueName in warmupTime.keys():
             assert self.msgId == Msg.LAMP_ON
 
+            isOn, timeSinceTransition = self.lampIsOn(self.queueName)
             if self.kwargs.get('on'):                    # we want to turn them on
-                return not self.lampIsOn(self.queueName) # op is required if they are not already on
+                if not isOn:
+                    timeSinceTransition = 0                              # we want the time since turn on
+                delay = warmupTime[self.queueName] - timeSinceTransition # how long until they're ready
+                if delay > 0:
+                    isOn = False
+                    self.kwargs["delay"] = int(delay)
+
+                if not isOn:    # op is required if they are not already on (or not warmed up)
+                    return True
             else:
-                return self.lampIsOn(self.queueName)
+                return isOn
         elif self.queueName in (sopActor.FFS,):
             assert self.msgId == Msg.FFS_MOVE
 
@@ -77,7 +92,7 @@ desired state, but if it's already in that state no command is required; so retu
             return None
 
     def lampIsOn(self, queueName):
-        """Return True iff some lamps are on"""
+        """Return (True iff some lamps are on, timeSinceTransition)"""
 
         if queueName == sopActor.FF_LAMP:
             status = myGlobals.actorState.models["mcp"].keyVarDict["ffLamp"]
@@ -86,12 +101,12 @@ desired state, but if it's already in that state no command is required; so retu
         elif queueName == sopActor.NE_LAMP:
             status = myGlobals.actorState.models["mcp"].keyVarDict["neLamp"]
         elif queueName == sopActor.UV_LAMP:
-            return myGlobals.actorState.models["mcp"].keyVarDict["uvLampCommandedOn"]
+            return myGlobals.actorState.models["mcp"].keyVarDict["uvLampCommandedOn"], 0
         elif queueName == sopActor.WHT_LAMP:
-            return myGlobals.actorState.models["mcp"].keyVarDict["whtLampCommandedOn"]
+            return myGlobals.actorState.models["mcp"].keyVarDict["whtLampCommandedOn"], 0
         else:
             print "Unknown lamp queue %s" % queueName
-            return False
+            return False, 0
 
         if status == None:
             raise RuntimeError, ("Unable to read %s lamp status" % queueName)
@@ -100,7 +115,7 @@ desired state, but if it's already in that state no command is required; so retu
         for i in status:
             on += i
 
-        return True if on == 4 else False
+        return (True if on == 4 else False), (time.time() - status.timestamp)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -346,6 +361,11 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         pointingInfo = actorState.models["platedb"].keyVarDict["pointingInfo"]
         boresight_ra = pointingInfo[3]
         boresight_dec = pointingInfo[4]
+
+        if True:
+            cmd.warn('text="FAKING RA DEC"')
+            boresight_ra = 240
+            boresight_dec = 40
         #
         # Define the command that we use to communicate our state to e.g. STUI
         #
@@ -382,6 +402,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
                 cmd.warn('text="RHL is skipping the slew"')
                 
             if doGuiderFlat and isMarvelsCartridge(cartridge):
+                cmd.inform('text="commanding guider flat for Marvels"')
                 multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=True))
                 multiCmd.append(sopActor.GCAMERA, Msg.EXPOSE,
                                 expTime=guiderFlatTime, expType="flat", cartridge=cartridge)
@@ -424,6 +445,9 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
 
             hartmannCompleted = True
             informGUI()
+
+            if not False:
+                cmd.fail('text="Because, just because"'); return
         #
         # Calibs
         #
@@ -665,5 +689,5 @@ def isMarvelsCartridge(cartridge):
     """Return True iff the cartridge number corresponds to a MARVELS cartridge"""
 
     print "FAKING MARVELS"
-    return True if cartridge in range(1, 12) else False
+    return True
     return True if cartridge in range(1, 10) else False
