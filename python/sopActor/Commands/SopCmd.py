@@ -331,6 +331,10 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         if doGuider:
             try:
                 cartridge = int(actorState.models["guider"].keyVarDict["cartridgeLoaded"][0])
+
+                if isMarvelsCartridge(cartridge) and cartridge >= 10:
+                    cmd.warn('text="RHL is lying about this being a Marvels cartridge"')
+
             except TypeError:
                 cmd.warn('text="No cartridge is known to be loaded; disabling guider"')
                 cartridge = -1
@@ -342,11 +346,6 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         pointingInfo = actorState.models["platedb"].keyVarDict["pointingInfo"]
         boresight_ra = pointingInfo[3]
         boresight_dec = pointingInfo[4]
-
-        if False:
-            cmd.warn('text="FAKING RA DEC"')
-            boresight_ra = 16*15
-            boresight_dec = 50
         #
         # Define the command that we use to communicate our state to e.g. STUI
         #
@@ -377,11 +376,16 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         multiCmd = MultiCommand(cmd, slewDuration + actorState.timeout)
 
         if doSlew:
-            multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState, ra=boresight_ra, dec=boresight_dec)
+            if True:
+                multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState, ra=boresight_ra, dec=boresight_dec)
+            else:
+                cmd.warn('text="RHL is skipping the slew"')
+                
             if doGuiderFlat and isMarvelsCartridge(cartridge):
                 multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=True))
                 multiCmd.append(sopActor.GCAMERA, Msg.EXPOSE,
                                 expTime=guiderFlatTime, expType="flat", cartridge=cartridge)
+                doGuiderFlat = False
             elif doGuiderFlat or doFlat:
                 multiCmd.append(sopActor.FF_LAMP  , Msg.LAMP_ON, on=True)
 
@@ -452,6 +456,10 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
                                 expTime=guiderFlatTime, expType="flat", cartridge=cartridge)
                 
             if not multiCmd.run():
+                if pendingReadout:
+                    MultiCommand(cmd, actorState.timeout + readoutTime,
+                                 sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True).run()
+                
                 cmd.fail('text="Failed to take flats"')
                 return
 
@@ -510,6 +518,9 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
             multiCmd.append(sopActor.FFS, Msg.FFS_MOVE, open=True)
 
         if not multiCmd.run():
+            if readoutMultiCmd:
+                readoutMultiCmd.finish()
+
             cmd.fail('text="Failed to prepare to guide"')
             return
         #
@@ -654,5 +665,5 @@ def isMarvelsCartridge(cartridge):
     """Return True iff the cartridge number corresponds to a MARVELS cartridge"""
 
     print "FAKING MARVELS"
-    return True if cartridge in range(1, 11) else False
+    return True if cartridge in range(1, 12) else False
     return True if cartridge in range(1, 10) else False
