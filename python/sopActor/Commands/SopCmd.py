@@ -15,20 +15,20 @@ import sopActor
 import sopActor.myGlobals as myGlobals
 from sopActor import MultiCommand
 
-if False:
-    oldPostcondition = sopActor.Postcondition
+if not False:
+    oldPrecondition = sopActor.Precondition
     print "Reloading sopActor";
     reload(sopActor)
-    sopActor.Postcondition = oldPostcondition
+    sopActor.Precondition = oldPrecondition
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-class SopPostcondition(Postcondition):
+class SopPrecondition(Precondition):
     """This class is used to pass preconditions for a command to MultiCmd.  Only if required() returns True
 is the command actually scheduled and then run"""
     
     def __init__(self, queueName, msgId=None, timeout=None, **kwargs):
-        Postcondition.__init__(self, queueName, msgId, timeout, **kwargs)
+        Precondition.__init__(self, queueName, msgId, timeout, **kwargs)
         self.queueName = queueName
 
     def required(self):
@@ -133,6 +133,7 @@ class SopCmd(object):
                                         keys.Key("keepQueues", help="Restart thread queues"),
                                         keys.Key("openFFS", help="Open flat field screen"),
                                         keys.Key("startGuider", help="Start the guider"),
+                                        keys.Key("noSlew", help="Don't slew to field"),
                                         keys.Key("sp1", help="Select SP1"),
                                         keys.Key("sp2", help="Select SP2"),
                                         keys.Key("geek", help="Show things that only some of us love"),
@@ -157,7 +158,7 @@ class SopCmd(object):
             ("lampsOff", "", self.lampsOff),
             ("ping", "", self.ping),
             ("restart", "[<threads>] [keepQueues]", self.restart),
-            ("gotoField", "[<arcTime>] [<flatTime>] [<guiderFlatTime>] [hartmann] [openFFS] [startGuider]",
+            ("gotoField", "[<arcTime>] [<flatTime>] [<guiderFlatTime>] [hartmann] [openFFS] [startGuider] [noSlew]",
              self.gotoField),
             ("gotoInstrumentChange", "", self.gotoInstrumentChange),
             ("setScale", "<delta>|<scale>", self.setScale),
@@ -168,7 +169,7 @@ class SopCmd(object):
     # Declare systems that can be bypassed
     #
     if not Bypass.get():
-        for ss in ("ffs", "ff_lamp", "hgcd_lamp", "ne_lamp", "uv_lamp", "wht_lamp", "boss", "gcamera", "tcc"):
+        for ss in ("ffs", "ff_lamp", "hgcd_lamp", "ne_lamp", "uv_lamp", "wht_lamp", "boss", "gcamera"):
             Bypass.set(ss, False, define=True)
     #
     # Define commands' callbacks
@@ -313,6 +314,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         
         actorState = myGlobals.actorState
 
+        doSlew = True if "noSlew" not in cmd.cmd.keywords else False
         arcTime = float(cmd.cmd.keywords["arcTime"].values[0]) if "arcTime" in cmd.cmd.keywords else 4
         flatTime = float(cmd.cmd.keywords["flatTime"].values[0]) if "flatTime" in cmd.cmd.keywords else 30
         doHartmann = True if "hartmann" in cmd.cmd.keywords else False
@@ -321,7 +323,6 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         guiderFlatTime = float(cmd.cmd.keywords["guiderFlatTime"].values[0]) \
                          if "guiderFlatTime" in cmd.cmd.keywords else 5
         guiderTime = float(cmd.cmd.keywords["guiderTime"].values[0]) if "guiderTime" in cmd.cmd.keywords else 5
-        openFFSAtEnd = openFFS or doGuider
 
         doArc = True if arcTime > 0 else False
         doFlat = True if flatTime > 0 else False
@@ -330,13 +331,12 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         if doGuider:
             try:
                 cartridge = int(actorState.models["guider"].keyVarDict["cartridgeLoaded"][0])
-                if False:
-                    if isMarvelsCartridge(cartridge):
-                        flatTime = 0                # no need to take a BOSS flat
             except TypeError:
                 cmd.warn('text="No cartridge is known to be loaded; disabling guider"')
+                cartridge = -1
                 doGuider = False
 
+        openFFSAtEnd = openFFS or doGuider
         doGuiderFlat = True if (doGuider and guiderFlatTime > 0) else False
 
         pointingInfo = actorState.models["platedb"].keyVarDict["pointingInfo"]
@@ -352,7 +352,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         #
         slewCompleted, hartmannCompleted, flatCompleted, arcCompleted, startedGuider = [0]*5
         def informGUI(txt='text="gotoField=slew,%%d,%d, hartmann,%%d,%d, '
-                      'flat,%%d,%d, arc,%%d,%d, guider,%%d,%d"' % (1, doHartmann,
+                      'flat,%%d,%d, arc,%%d,%d, guider,%%d,%d"' % (doSlew, doHartmann,
                                                                    (doFlat or doGuiderFlat), doArc, doGuider)):
             cmd.inform(txt % (slewCompleted, hartmannCompleted, flatCompleted, arcCompleted, startedGuider))
         #
@@ -376,27 +376,29 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         
         multiCmd = MultiCommand(cmd, slewDuration + actorState.timeout)
 
-        if True:
+        if doSlew:
             multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState, ra=boresight_ra, dec=boresight_dec)
-        else:
-            cmd.warn('text="RHL skipping slew"')
+            if doGuiderFlat and isMarvelsCartridge(cartridge):
+                multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=True))
+                multiCmd.append(sopActor.GCAMERA, Msg.EXPOSE,
+                                expTime=guiderFlatTime, expType="flat", cartridge=cartridge)
+            elif doGuiderFlat or doFlat:
+                multiCmd.append(sopActor.FF_LAMP  , Msg.LAMP_ON, on=True)
 
-        if doFlat or doGuiderFlat:
-            multiCmd.append(SopPostcondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=True))
-        if doArc or doHartmann:
-            multiCmd.append(SopPostcondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=True))
-            multiCmd.append(SopPostcondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=True))
-            multiCmd.append(SopPostcondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
-            multiCmd.append(SopPostcondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
-        if closeFFSAtStart:
-            multiCmd.append(SopPostcondition(sopActor.FFS      , Msg.FFS_MOVE, open=False))
+            if doArc or doHartmann:
+                multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=True)
+                multiCmd.append(sopActor.NE_LAMP  , Msg.LAMP_ON, on=True)
+                multiCmd.append(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False)
+                multiCmd.append(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False)
+            if closeFFSAtStart:
+                multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=False))
 
-        if not multiCmd.run():
-            cmd.fail('text="Failed to close screens, warm up lamps, and slew to field"')
-            return
+            if not multiCmd.run():
+                cmd.fail('text="Failed to close screens, warm up lamps, and slew to field"')
+                return
 
-        slewCompleted = True
-        informGUI()
+            slewCompleted = True
+            informGUI()
         #
         # OK, we're there.  Time to do calibs etc.
         #
@@ -405,12 +407,12 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
 
             multiCmd.append(sopActor.BOSS, Msg.HARTMANN)
 
-            multiCmd.append(SopPostcondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False))
-            multiCmd.append(SopPostcondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=True))
-            multiCmd.append(SopPostcondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=True))
-            multiCmd.append(SopPostcondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
-            multiCmd.append(SopPostcondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
-            multiCmd.append(SopPostcondition(sopActor.FFS      , Msg.FFS_MOVE, open=False))
+            multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False))
+            multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=True))
+            multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=True))
+            multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
+            multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
+            multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=False))
 
             if not multiCmd.run():
                 cmd.fail('text="Failed to do Hartmann sequence"')
@@ -426,12 +428,12 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         if doFlat or doGuiderFlat:
             multiCmd = MultiCommand(cmd, actorState.timeout)
 
-            multiCmd.append(SopPostcondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=True))
-            multiCmd.append(SopPostcondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=False))
-            multiCmd.append(SopPostcondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=False))
-            multiCmd.append(SopPostcondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
-            multiCmd.append(SopPostcondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
-            multiCmd.append(SopPostcondition(sopActor.FFS      , Msg.FFS_MOVE, open=False))
+            multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=True))
+            multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=False))
+            multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=False))
+            multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
+            multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
+            multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=False))
 
             if not multiCmd.run():
                 cmd.fail('text="Failed to prepare for flats"')
@@ -463,12 +465,12 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
                 multiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
                 pendingReadout = False
                 
-            multiCmd.append(SopPostcondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False))
-            multiCmd.append(SopPostcondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=True))
-            multiCmd.append(SopPostcondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=True))
-            multiCmd.append(SopPostcondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
-            multiCmd.append(SopPostcondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
-            multiCmd.append(SopPostcondition(sopActor.FFS      , Msg.FFS_MOVE, open=False))
+            multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False))
+            multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=True))
+            multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=True))
+            multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
+            multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
+            multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=False))
 
             if not multiCmd.run():
                 cmd.fail('text="Failed to prepare for arcs"')
@@ -499,11 +501,11 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
 
         multiCmd = MultiCommand(cmd, actorState.timeout + (readoutTime if pendingReadout else 0))
 
-        multiCmd.append(SopPostcondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False))
-        multiCmd.append(SopPostcondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=False))
-        multiCmd.append(SopPostcondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=False))
-        multiCmd.append(SopPostcondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
-        multiCmd.append(SopPostcondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
+        multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False))
+        multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=False))
+        multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=False))
+        multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
+        multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
         if openFFSAtEnd:
             multiCmd.append(sopActor.FFS, Msg.FFS_MOVE, open=True)
 
@@ -521,12 +523,12 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
 
             multiCmd.append(sopActor.GUIDER, Msg.START, on=True, expTime=guiderTime, oneExposure=True)
 
-            multiCmd.append(SopPostcondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False))
-            multiCmd.append(SopPostcondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=False))
-            multiCmd.append(SopPostcondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=False))
-            multiCmd.append(SopPostcondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
-            multiCmd.append(SopPostcondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
-            multiCmd.append(SopPostcondition(sopActor.FFS      , Msg.FFS_MOVE, open=True))
+            multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False))
+            multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=False))
+            multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=False))
+            multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
+            multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
+            multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=True))
 
             if not multiCmd.run():
                 cmd.fail('text="Failed to start guiding"')
@@ -641,7 +643,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         bypassState = []
         for name, state in Bypass.get():
             bypassState.append("%s,%s" % (name, "True" if state else "False"))
-        cmd.inform("bypassed=" + ", ".join(bypassState))
+        cmd.inform("bypassed=" + ", ".join(sorted(bypassState)))
 
         if getStatus.run():
             cmd.finish()
@@ -651,4 +653,6 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
 def isMarvelsCartridge(cartridge):
     """Return True iff the cartridge number corresponds to a MARVELS cartridge"""
 
+    print "FAKING MARVELS"
+    return True if cartridge in range(1, 11) else False
     return True if cartridge in range(1, 10) else False

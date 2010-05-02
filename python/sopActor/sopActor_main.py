@@ -64,7 +64,7 @@ class Sop(actorcore.Actor.Actor):
         #
         # Load other actor's models so we can send them commands
         #
-        for actor in ["boss", "guider", "platedb", "mcp", "tcc"]:
+        for actor in ["boss", "guider", "platedb", "mcp", "sop", "tcc"]:
             actorState.models[actor] = opscore.actor.model.Model(actor)
         #
         # Start listening to the TCC's keywords that announce that it's done a move or halt

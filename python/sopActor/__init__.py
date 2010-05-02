@@ -146,9 +146,9 @@ class Bypass(object):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-class Postcondition(object):
-    """A class to capture a condition that should be passed to a MultiCmd;  we require that it be satisfied
-at the end of the MultiCmd
+class Precondition(object):
+    """A class to capture a precondition for a MultiCmd;  we require that it be satisfied
+before the non-Precondition actions are begun
 """
 
     def __init__(self, queue, msgId=None, timeout=None, **kwargs):
@@ -173,15 +173,15 @@ class MultiCommand(object):
         if args:
             self.append(*args, **kwargs)
 
-    def append(self, queueName, msgId=None, timeout=None, **kwargs):
-        if isinstance(queueName, Postcondition):
+    def append(self, queueName, msgId=None, timeout=None, isPrecondition=False, **kwargs):
+        if isinstance(queueName, Precondition):
             assert msgId is None
             
             pre = queueName
             if not pre.required():
                 return
 
-            return self.append(pre.queueName, pre.msgId, pre.timeout, **pre.kwargs)
+            return self.append(pre.queueName, pre.msgId, pre.timeout, isPrecondition=True, **pre.kwargs)
 
         assert msgId is not None
 
@@ -189,11 +189,10 @@ class MultiCommand(object):
             self.timeout = timeout
             
         try:
-            self.commands.append((myGlobals.actorState.queues[queueName],
+            self.commands.append((myGlobals.actorState.queues[queueName], isPrecondition,
                                   Msg(msgId, cmd=self.cmd, replyQueue=self._replyQueue, **kwargs)))
         except Exception, e:
             print "RHL", e
-            #import pdb; pdb.set_trace() 
 
     def run(self):
         """Actually submit that set of commands and wait for them to reply. Return status"""
@@ -203,11 +202,21 @@ class MultiCommand(object):
 
     def start(self):
         """Actually submit that set of commands"""
-        
-        for queue, msg in self.commands:
-            queue.put(msg)
 
-    def finish(self):
+        nPre = 0
+        for queue, isPrecondition, msg in self.commands:
+            if isPrecondition:
+                nPre += 1
+                queue.put(msg)
+
+        if nPre:
+            self.finish(runningPreconditions=True)
+
+        for queue, isPrecondition, msg in self.commands:
+            if not isPrecondition:
+                queue.put(msg)
+
+    def finish(self, runningPreconditions=False):
         """Wait for set of commands to reply. Return status"""
 
         seen = {}
@@ -215,7 +224,11 @@ class MultiCommand(object):
             seen[tname.name] = False
 
         failed = False
-        for i in range(len(self.commands)): # check for all commanded subsystems to report status
+        #import pdb; pdb.set_trace() 
+        for queue, isPrecondition, msg in self.commands:
+            if runningPreconditions != isPrecondition:
+                continue
+
             try:
                 msg = self._replyQueue.get(timeout=self.timeout)
                 seen[msg.senderName] = True
@@ -224,7 +237,7 @@ class MultiCommand(object):
                     failed = True
             except Queue.Empty:
                 responsive = [re.sub(r"(-\d+)?$", "", k) for k in seen.keys() if seen[k]]
-                cmdNames = [str(cmd[0]) for cmd in self.commands]
+                cmdNames = [str(cmd[0]) for cmd in self.commands if cmd[1] == runningPreconditions]
                 nonResponsive = [cmd for cmd in cmdNames if cmd not in responsive]
 
                 self.cmd.warn('text="%d tasks failed to respond: %s"' % (
@@ -233,4 +246,4 @@ class MultiCommand(object):
 
         return not failed
 
-__all__ = ["MASTER", "Msg", "Postcondition", "Bypass"]
+__all__ = ["MASTER", "Msg", "Precondition", "Bypass"]

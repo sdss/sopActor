@@ -24,15 +24,20 @@ def main(actor, queues):
                 return
 
             elif msg.type == Msg.EXPOSE:
-                msg.cmd.respond("text=\"starting exposure\"")
+                if msg.readout:
+                    msg.cmd.respond("text=\"starting exposure readout\"")
+                else:
+                    msg.cmd.respond("text=\"starting %s exposure\"" % msg.expType)
 
                 if msg.expTime > 0:
                     expTimeCmd = ("itime=%g" % msg.expTime)
                     expTypeCmd = msg.expType
+                    readoutCmd = "" if msg.readout else "noreadout"
                 else:
                     expTimeCmd = expTypeCmd = ""
-                    
-                readoutCmd = "" if msg.readout else "noreadout"
+                    readoutCmd = "readout"
+                    if not msg.readout:
+                        msg.cmd.warn('text="Saw msg.readout == False but msg.expTime == %g"' % msg.expTime)
 
                 timeLim = msg.expTime + 180.0  # seconds
                 timeLim += 100

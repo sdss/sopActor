@@ -24,7 +24,7 @@ def main(actor, queues):
                 return
 
             elif msg.type == Msg.EXPOSE:
-                msg.cmd.respond('text="starting exposure"')
+                msg.cmd.respond('text="starting gcamera exposure"')
 
                 timeLim = msg.expTime + 180.0  # seconds
                 cmdVar = actorState.actor.cmdr.call(actor="gcamera", forUserCmd=msg.cmd,
