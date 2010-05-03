@@ -481,7 +481,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         sopState.gotoField.dec = pointingInfo[4]
         sopState.gotoField.rotang = 0.0                    # Rotator angle; should always be 0.0
 
-        if True:
+        if False:
             sopState.gotoField.ra = 17*15
             sopState.gotoField.dec = 40
             sopState.gotoField.rotang = 120
