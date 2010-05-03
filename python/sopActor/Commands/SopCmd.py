@@ -144,19 +144,19 @@ class SopCmd(object):
             if "narc" in cmd.cmd.keywords:
                 nArcDoneOld = sopState.doCalibs.nArcDone
                 sopState.doCalibs.nArc = int(cmd.cmd.keywords["narc"].values[0])
-                sopState.doCalibs.nArcLeft += (sopState.doCalibs.nArc - nArcDoneOld)
+                sopState.doCalibs.nArcLeft = sopState.doCalibs.nArc - nArcDoneOld
             if "nbias" in cmd.cmd.keywords:
                 nBiasDoneOld = sopState.doCalibs.nBiasDone
                 sopState.doCalibs.nBias = int(cmd.cmd.keywords["nbias"].values[0])
-                sopState.doCalibs.nBiasLeft += (sopState.doCalibs.nBias - nBiasDoneOld)
+                sopState.doCalibs.nBiasLeft = sopState.doCalibs.nBias - nBiasDoneOld
             if "ndark" in cmd.cmd.keywords:
                 nDarkDoneOld = sopState.doCalibs.nDarkDone
                 sopState.doCalibs.nDark = int(cmd.cmd.keywords["ndark"].values[0])
-                sopState.doCalibs.nDarkLeft += (sopState.doCalibs.nDark - nDarkDoneOld)
+                sopState.doCalibs.nDarkLeft = sopState.doCalibs.nDark - nDarkDoneOld
             if "nflat" in cmd.cmd.keywords:
                 nFlatDoneOld = sopState.doCalibs.nFlatDone
                 sopState.doCalibs.nFlat = int(cmd.cmd.keywords["nflat"].values[0])
-                sopState.doCalibs.nFlatLeft += (sopState.doCalibs.nFlat - nFlatDoneOld)
+                sopState.doCalibs.nFlatLeft = sopState.doCalibs.nFlat - nFlatDoneOld
 
             if "arcTime" in cmd.cmd.keywords:
                 sopState.doCalibs.arcTime = float(cmd.cmd.keywords["arcTime"].values[0])
@@ -255,7 +255,7 @@ class SopCmd(object):
             if "nexp" in cmd.cmd.keywords:
                 nExpDoneOld = sopState.doScience.nExpDone
                 sopState.doScience.nExp = int(cmd.cmd.keywords["nexp"].values[0])
-                sopState.doScience.nExpLeft += (sopState.doScience.nExp - nExpDoneOld)
+                sopState.doScience.nExpLeft = sopState.doScience.nExp - nExpDoneOld
 
             if "expTime" in cmd.cmd.keywords:
                 sopState.doScience.expTime = float(cmd.cmd.keywords["expTime"].values[0])
