@@ -50,11 +50,30 @@ def lamp_main(actor, queue, lampName):
                                                     timeLim=timeLim)
                 if cmdVar.didFail:
                     msg.cmd.warn('text="Failed to turn %s lamps %s"' % (lampName, action))
+                    msg.replyQueue.put(Msg.LAMP_COMPLETE, cmd=msg.cmd, success=False)
                 elif hasattr(msg, "delay"):
-                    msg.cmd.inform('text="Waiting %gs for %s lamps to warm up"' % (msg.delay, lampName))
-                    time.sleep(msg.delay)
+                    if msg.delay > 0:
+                        msg.cmd.inform('text="Waiting %gs for %s lamps to warm up"' % (msg.delay, lampName))
 
-                msg.replyQueue.put(Msg.LAMP_COMPLETE, cmd=msg.cmd, success=not cmdVar.didFail)
+                    endTime=time.time() + msg.delay
+                    queue.put(Msg.WAIT_UNTIL, cmd=msg.cmd, replyQueue=msg.replyQueue, endTime=endTime)
+                else:
+                    msg.replyQueue.put(Msg.LAMP_COMPLETE, cmd=msg.cmd, success=True)
+
+            elif msg.type == Msg.WAIT_UNTIL: # used to delay while the lamps warm up
+                timeToGo = int(endTime - time.time())
+                
+                if timeToGo <= 0:
+                    msg.replyQueue.put(Msg.LAMP_COMPLETE, cmd=msg.cmd, success=True)
+                elif actorState.aborting:
+                    msg.cmd.warn('text="Aborting warmup for %s lamps"' % (lampName))
+                    msg.replyQueue.put(Msg.LAMP_COMPLETE, cmd=msg.cmd, success=False)
+                else:
+                    if timeToGo%5 == 0:
+                        msg.cmd.inform('text="Warming up %s lamps; %ds left"' % (lampName, timeToGo))
+                        
+                    time.sleep(1)
+                    queue.put(Msg.WAIT_UNTIL, cmd=msg.cmd, replyQueue=msg.replyQueue, endTime=endTime)
 
             elif msg.type == Msg.STATUS:
                 msg.cmd.inform('text="%s thread"' % threadName)

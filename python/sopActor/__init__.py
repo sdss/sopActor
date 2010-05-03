@@ -3,6 +3,18 @@ import re, threading
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
+# Survey names; use classes so that the unique IDs are automatically generated
+#
+try:
+    APOGEE
+except NameError:
+    class APOGEE(): pass
+    class BOSS(): pass
+    class MARVELS(): pass
+    class UNKNOWN(): pass
+    
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#
 # Queue names; use classes so that the unique IDs are automatically generated
 #
 try:
@@ -34,7 +46,7 @@ except NameError:
         NORMAL = 6
 
         # Command types; use classes so that the unique IDs are automatically generated
-        class DO_CALIB(): pass
+        class DO_CALIBS(): pass
         class DITHERED_FLAT(): pass
         class HARTMANN(): pass
         class DO_SCIENCE(): pass
@@ -43,6 +55,7 @@ except NameError:
         class ENABLE(): pass
         class FFS_MOVE(): pass
         class FFS_COMPLETE(): pass
+        class GOTO_FIELD(): pass
         class START(): pass
         class LAMP_ON(): pass
         class LAMP_COMPLETE(): pass
@@ -51,6 +64,7 @@ except NameError:
         class EXPOSURE_FINISHED(): pass
         class REPLY(): pass
         class SLEW(): pass
+        class WAIT_UNTIL(): pass
 
         def __init__(self, type, cmd, **data):
             self.type = type
@@ -169,6 +183,7 @@ class MultiCommand(object):
         self._replyQueue = Queue("(replyQueue)", 0)
         self.timeout = timeout
         self.commands = []
+        self.status = True
         
         if args:
             self.append(*args, **kwargs)
@@ -210,7 +225,14 @@ class MultiCommand(object):
                 queue.put(msg)
 
         if nPre:
-            self.finish(runningPreconditions=True)
+            if not self.finish(runningPreconditions=True):
+                self.commands = []
+                self.status = False
+
+        if myGlobals.actorState.aborting: # don't schedule those commands
+            if not myGlobals.actorState.ignoreAborting: # override for e.g. status command
+                self.commands = []
+                self.status = False
 
         for queue, isPrecondition, msg in self.commands:
             if not isPrecondition:
@@ -224,7 +246,6 @@ class MultiCommand(object):
             seen[tname.name] = False
 
         failed = False
-        #import pdb; pdb.set_trace() 
         for queue, isPrecondition, msg in self.commands:
             if runningPreconditions != isPrecondition:
                 continue
@@ -244,6 +265,6 @@ class MultiCommand(object):
                     len(nonResponsive), " ".join(nonResponsive)))
                 return False
 
-        return not failed
+        return not failed and self.status
 
 __all__ = ["MASTER", "Msg", "Precondition", "Bypass"]

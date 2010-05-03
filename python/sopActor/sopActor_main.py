@@ -37,12 +37,13 @@ class State(object):
     def __init__(self, actor):
         self.actor = actor
         self.dispatcher = self.actor.cmdr.dispatcher
-        self.reactor = self.dispatcher.reactor
         self.models = {}
         self.restartCmd = None
+        self.aborting = False
+        self.ignoreAborting = False
 
     def __str__(self):
-        msg = "%s %s %s" % (self.actor, self.actor.cmdr.dispatcher, self.dispatcher.reactor)
+        msg = "%s %s" % (self.actor, self.actor.cmdr.dispatcher)
 
         return msg
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -84,6 +85,18 @@ class Sop(actorcore.Actor.Actor):
         # Handle the hated ini file
         #
         import ConfigParser
+
+        # read the warmupTimes and convert e.g. "Ne" to sopActor.NE_LAMP
+        warmupList = self.config.get('lamps', "warmupTime").split()
+        sopActor.myGlobals.warmupTime = {}
+        for i in range(0, len(warmupList), 2):
+            k, v = warmupList[i:i+2]
+            sopActor.myGlobals.warmupTime[{"ff" : sopActor.FF_LAMP,
+                                           "hgcd" : sopActor.HGCD_LAMP,
+                                           "ne" : sopActor.NE_LAMP,
+                                           "wht" : sopActor.WHT_LAMP,
+                                           "uv" : sopActor.UV_LAMP
+                                       }[k.lower()]] = float(v)
         #
         # Finally start the reactor
         #
@@ -101,11 +114,6 @@ class Sop(actorcore.Actor.Actor):
         #
         self.cmdr.dispatcher.executeCmd(opscore.actor.keyvar.CmdVar
                                         (actor='hub', cmdStr='startNubs %s' % (self.name), timeLim=5.0))
-        #
-        # Schedule an update.
-        #
-        #reactor.callLater(int(self.config.get (self.name, 'updateInterval')), self.periodicStatus)
-
         
     @staticmethod
     def startThreads(actorState, cmd=None, restartQueues=False, restart=False, restartThreads=None):

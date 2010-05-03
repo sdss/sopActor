@@ -24,17 +24,19 @@ def main(actor, queues):
                 return
 
             elif msg.type == Msg.EXPOSE:
-                if msg.readout:
+                if msg.readout and msg.expTime <= 0:
                     msg.cmd.respond("text=\"starting exposure readout\"")
                 else:
-                    msg.cmd.respond("text=\"starting %s exposure\"" % msg.expType)
+                    msg.cmd.respond("text=\"starting %s%s exposure\"" % (
+                        ((("%gs " % msg.expTime) if msg.expTime > 0 else ""), msg.expType)))
 
-                if msg.expTime > 0:
-                    expTimeCmd = ("itime=%g" % msg.expTime)
+                expTimeCmd = expTypeCmd = ""
+                if msg.expTime >= 0:
+                    if msg.expType != "bias":
+                        expTimeCmd = ("itime=%g" % msg.expTime)
                     expTypeCmd = msg.expType
                     readoutCmd = "" if msg.readout else "noreadout"
                 else:
-                    expTimeCmd = expTypeCmd = ""
                     readoutCmd = "readout"
                     if not msg.readout:
                         msg.cmd.warn('text="Saw msg.readout == False but msg.expTime == %g"' % msg.expTime)
@@ -59,11 +61,10 @@ def main(actor, queues):
             elif msg.type == Msg.HARTMANN:
                 msg.cmd.respond("text=\"starting Hartmann sequence\"")
 
-                timeLim = 10            # XXX Get this from Craig
-                if False:               # really take data
-                    import time
-                    cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=msg.cmd,
-                                                        cmdStr="newHartmann",
+                if True:
+                    timeLim = 150
+                    cmdVar = actorState.actor.cmdr.call(actor="sos", forUserCmd=msg.cmd,
+                                                        cmdStr="doHartmann",
                                                         keyVars=[], timeLim=timeLim)
                 else:
                     msg.cmd.inform('text="Faking Hartmann sequence"')

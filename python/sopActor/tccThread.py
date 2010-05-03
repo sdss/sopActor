@@ -43,7 +43,8 @@ def main(actor, queues):
                         continue
                     
                     import time; time.sleep(1)
-                    queues[sopActor.TCC].put(Msg.SLEW, cmd=msg.cmd, waitForSlewEnd=True)
+                    queues[sopActor.TCC].put(Msg.SLEW, cmd=msg.cmd,
+                                             replyQueue=msg.replyQueue, waitForSlewEnd=True)
 
                     continue
 

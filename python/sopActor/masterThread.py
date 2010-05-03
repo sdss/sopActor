@@ -1,11 +1,108 @@
 import Queue, threading
-import math, numpy
+import math, time
 
 from sopActor import *
-import sopActor.myGlobals
+import sopActor
+import sopActor.myGlobals as myGlobals
+#from SopCmd import status
 from opscore.utility.qstr import qstr
 from opscore.utility.tback import tback
 from sopActor import MultiCommand
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+readoutTime = 90                        # How long we should wait while reading the detectors
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+class SopPrecondition(Precondition):
+    """This class is used to pass preconditions for a command to MultiCmd.  Only if required() returns True
+is the command actually scheduled and then run"""
+    
+    def __init__(self, queueName, msgId=None, timeout=None, **kwargs):
+        Precondition.__init__(self, queueName, msgId, timeout, **kwargs)
+        self.queueName = queueName
+
+    def required(self):
+        """Here is the real logic.  We're thinking of running a command to get the system into a
+desired state, but if it's already in that state no command is required; so return False"""
+
+        if self.queueName in myGlobals.warmupTime.keys():
+            assert self.msgId == Msg.LAMP_ON
+
+            isOn, timeSinceTransition = self.lampIsOn(self.queueName)
+            if self.kwargs.get('on'):                    # we want to turn them on
+                if not isOn:
+                    timeSinceTransition = 0                              # we want the time since turn on
+                warmupTime = myGlobals.warmupTime[self.queueName]
+                delay = warmupTime - timeSinceTransition # how long until they're ready
+                if delay > 0:
+                    isOn = False
+                    self.kwargs["delay"] = int(delay)
+
+                if not isOn:    # op is required if they are not already on (or not warmed up)
+                    return True
+            else:
+                return isOn
+        elif self.queueName in (sopActor.FFS,):
+            assert self.msgId == Msg.FFS_MOVE
+
+            if self.kwargs.get('open'): # we want to open them
+                return not self.ffsAreOpen() # op is required if they are not already open
+            else:
+                return self.ffsAreOpen()
+
+        return True
+    #
+    # Commands to get state from e.g. the MCP
+    #
+    def ffsAreOpen(self):
+        """Return True if flat field petals are open; False if they are close, and None if indeterminate"""
+
+        ffsStatus = myGlobals.actorState.models["mcp"].keyVarDict["ffsStatus"]
+
+        open, closed = 0, 0
+        for s in ffsStatus:
+            if s == None:
+                raise RuntimeError, "Unable to read FFS status"
+
+            open += int(s[0])
+            closed += int(s[1])
+
+        if open == 8:
+            return True
+        elif closed == 8:
+            return False
+        else:
+            return None
+
+    def lampIsOn(self, queueName):
+        """Return (True iff some lamps are on, timeSinceTransition)"""
+
+        if queueName == sopActor.FF_LAMP:
+            status = myGlobals.actorState.models["mcp"].keyVarDict["ffLamp"]
+        elif queueName == sopActor.HGCD_LAMP:
+            status = myGlobals.actorState.models["mcp"].keyVarDict["hgCdLamp"]
+        elif queueName == sopActor.NE_LAMP:
+            status = myGlobals.actorState.models["mcp"].keyVarDict["neLamp"]
+        elif queueName == sopActor.UV_LAMP:
+            return myGlobals.actorState.models["mcp"].keyVarDict["uvLampCommandedOn"], 0
+        elif queueName == sopActor.WHT_LAMP:
+            return myGlobals.actorState.models["mcp"].keyVarDict["whtLampCommandedOn"], 0
+        else:
+            print "Unknown lamp queue %s" % queueName
+            return False, 0
+
+        if status == None:
+            raise RuntimeError, ("Unable to read %s lamp status" % queueName)
+
+        on = 0
+        for i in status:
+            on += i
+
+        return (True if on == 4 else False), (time.time() - status.timestamp)
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def doLamps(cmd, actorState, FF=False, Ne=False, HgCd=False, WHT=False, UV=False,
             openFFS=None, openHartmann=None):
@@ -37,7 +134,7 @@ def main(actor, queues):
     """Main loop for master thread"""
 
     threadName = "master"
-    timeout = sopActor.myGlobals.actorState.timeout
+    timeout = myGlobals.actorState.timeout
     overhead = 150                      # overhead per exposure, minimum; seconds
 
     while True:
@@ -50,169 +147,484 @@ def main(actor, queues):
 
                 return
 
-            elif msg.type == Msg.DO_CALIB:
-                #import pdb; pdb.set_trace()
-
+            elif msg.type == Msg.DO_CALIBS:
                 cmd = msg.cmd
                 actorState = msg.actorState
-
-                narc = msg.narc
-                nbias = msg.nbias
-                ndark = msg.ndark
-                nflat = msg.nflat
-                arcTime = msg.arcTime
-                darkTime = msg.darkTime
-                flatTime = msg.flatTime
-                guiderFlatTime = msg.guiderFlatTime
-                inEnclosure = msg.inEnclosure
-                startGuider = msg.startGuider
+                cmdState = msg.cmdState
+                cartridge = msg.cartridge
+                survey = msg.survey
                 #
-                # Close the petals
+                # Tell sop that we've accepted the command
                 #
-                success = True
-
-                if not inEnclosure and nflat + narc > 0:
-                    if not MultiCommand(cmd, timeout, sopActor.FFS, Msg.FFS_MOVE, open=False).run():
-                        cmd.warn('text="Failed to close the flat field screen"')
-                        msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
-                        continue
+                msg.replyQueue.put(Msg.REPLY, cmd=cmd, success=True)
                 #
-                # Biases
+                # Define the command that we use to communicate our state to e.g. STUI
                 #
-                if nbias + ndark > 0:
-                    if not doLamps(cmd, actorState):
-                        cmd.warn('text="Failed to prepare for bias/dark exposures"')
-                        msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
-                        continue
+                def status(cmd):
+                    if cmd:
+                        actorState.actor.commandSets["SopCmd"].status(cmd, threads=False, finish=False)
+                #
+                # Take the data
+                #
+                ffsInitiallyOpen = SopPrecondition(None).ffsAreOpen()
 
-                    for n in range(nbias):
-                        cmd.inform('text="Taking a bias exposure"')
+                pendingReadout = False
 
-                        if not MultiCommand(cmd, overhead, sopActor.BOSS, Msg.EXPOSE,
-                                            expTime=0.0, expType="bias", readout=True).run():
-                            cmd.warn('text="Failed to take bias"')
-                            success = False
+                failMsg = ""            # message to use if we've failed
+                while cmdState.nBiasLeft > 0 or cmdState.nDarkLeft > 0 or \
+                          cmdState.nFlatLeft > 0 or cmdState.nArcLeft > 0:
+                    
+                    status(cmdState.cmd)
+
+                    if cmdState.nBiasLeft > 0:
+                        expTime, expType = 0.0, "bias"
+                    elif cmdState.nDarkLeft > 0:
+                        expTime, expType = cmdState.darkTime, "dark"
+                    elif cmdState.nFlatLeft > 0:
+                        expTime, expType = cmdState.flatTime, "flat"
+                    elif cmdState.nArcLeft > 0:
+                        expTime, expType = cmdState.arcTime, "arc"
+                    else:
+                        failMsg = "Impossible condition; complain to RHL"
+                        break
+
+                    if pendingReadout:
+                        multiCmd = MultiCommand(cmd, actorState.timeout + readoutTime)
+
+                        multiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
+                        pendingReadout = False
+
+                        multiCmd.append(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False)
+                        multiCmd.append(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False)
+
+                        if expType in ("arc"):
+                            multiCmd.append(sopActor.FFS      , Msg.FFS_MOVE, open=False)
+                            multiCmd.append(sopActor.FF_LAMP  , Msg.LAMP_ON,  on=False)
+                            multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON,  on=True)
+                            multiCmd.append(sopActor.NE_LAMP  , Msg.LAMP_ON,  on=True)
+                        elif expType in ("bias", "dark"):
+                            multiCmd.append(sopActor.FF_LAMP  , Msg.LAMP_ON,  on=False)
+                            multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON,  on=False)
+                            multiCmd.append(sopActor.NE_LAMP  , Msg.LAMP_ON,  on=False)
+                        elif expType in ("flat"):
+                            multiCmd.append(sopActor.FFS      , Msg.FFS_MOVE, open=False)
+                            multiCmd.append(sopActor.FF_LAMP  , Msg.LAMP_ON,  on=True)
+                            multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON,  on=False)
+                            multiCmd.append(sopActor.NE_LAMP  , Msg.LAMP_ON,  on=False)
+                        else:
+                            failMsg = "Impossible condition; complain to RHL"
                             break
 
-                        cmd.inform('text="bias exposure finished"')
-
-                        if not success:
-                            msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
-                            continue
-
-                    for n in range(ndark):
-                        cmd.inform('text="Taking a %gs dark exposure"' % darkTime)
-
-                        if not MultiCommand(cmd, darkTime + overhead, sopActor.BOSS, Msg.EXPOSE,
-                                            expTime=darkTime, expType="dark", readout=True).run():
-                            cmd.warn('text="Failed to take dark"') 
-                            success = False
+                        if not multiCmd.run():
+                            failMsg = "Failed to prepare for %s" % expType
                             break
-
-                        cmd.inform('text="bias exposure finished"')
-
-                    if not success:
-                        msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
-                        continue
-                #
-                # Flats
-                #
-                if nflat > 0:
-                    if not doLamps(cmd, actorState, FF=True):
-                        cmd.warn('text="Failed to prepare for flat exposure"')
-                        msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
-                        continue
-
-                    for n in range(nflat):
-                        doFlat = MultiCommand(cmd, flatTime + guiderFlatTime + overhead)
-
-                        if flatTime > 0:
-                            cmd.inform('text="Taking a %gs flat exposure"' % (flatTime))
-
-                            doFlat.append(sopActor.BOSS, Msg.EXPOSE, expTime=flatTime, expType="flat",
-                                          readout=True, timeout=flatTime + 180)
-
-                        if guiderFlatTime > 0 and msg.cartridge > 0:
-                            cmd.inform('text="Taking a %gs guider flat exposure"' % (guiderFlatTime))
-                            doFlat.append(sopActor.GCAMERA, Msg.EXPOSE,
-                                          expTime=guiderFlatTime, expType="flat", cartridge=msg.cartridge,
-                                          readout=True, timeout=guiderFlatTime + 15)
-                                         
-
-                        if not doFlat.run():
-                            cmd.warn('text="Failed to take flat field"')
-                            success = False
-                            break
-
-                        cmd.inform('text="flat exposure finished"')
-
-                    if not success:
-                        msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
-                        continue
-                #
-                # Arcs
-                #
-                if narc > 0:
-                    if not doLamps(cmd, actorState, Ne=True, HgCd=True):
-                        cmd.warn('text="Failed to prepare for arc exposure"')
-                        msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
-                        continue
-
-                    for n in range(narc):
-                        cmd.inform('text="Taking a %gs arc exposure"' % (arcTime))
-                        if not MultiCommand(cmd, arcTime + overhead,
-                                            sopActor.BOSS, Msg.EXPOSE,
-                                            expTime=arcTime, expType="arc", readout=True).run():
-                            cmd.warn("text=\"Failed to take arc\"")
-                            failed = True
-                            break
+                    #
+                    # Now take the exposure
+                    #
+                    timeout = expTime + actorState.timeout
+                    if expType in ("bias", "dark"):
+                        timeout += readoutTime
                         
-                    if not success:
-                        msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
+                    multiCmd = MultiCommand(cmd, timeout)
+
+                    multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
+
+                    if expType == "arc":
+                        pendingReadout = True
+                        multiCmd.append(sopActor.BOSS, Msg.EXPOSE,
+                                        expTime=expTime, expType=expType, readout=False)
+
+                        multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=False))
+                        multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON,  on=False))
+                        multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON,  on=True))
+                        multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON,  on=True))
+                    elif expType in ("bias", "dark"):
+                        pendingReadout = False
+                        multiCmd.append(sopActor.BOSS, Msg.EXPOSE,
+                                        expTime=expTime, expType=expType, readout=True)
+
+                        multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False))
+                        multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=False))
+                        multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=False))
+                    elif expType == "flat":
+                        if cmdState.flatTime > 0:
+                            pendingReadout = True
+                            multiCmd.append(sopActor.BOSS, Msg.EXPOSE,
+                                            expTime=expTime, expType=expType, readout=False)
+
+                        if cmdState.guiderFlatTime > 0 and cmdState.nArcDone == 0:
+                            cmd.inform('text="Taking a %gs guider flat exposure"' % (cmdState.guiderFlatTime))
+                            multiCmd.append(sopActor.GCAMERA, Msg.EXPOSE,
+                                            expTime=cmdState.guiderFlatTime, expType="flat",
+                                            cartridge=cartridge)
+
+                        multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=False))
+                        multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON,  on=True))
+                        multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON,  on=False))
+                        multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON,  on=False))
+                    else:
+                        failMsg = "Impossible condition; complain to RHL"
+                        break
+
+                    cmd.inform('text="Taking %s %s exposure"' %
+                               (("an" if expType[0] in ("a", "e", "i", "o", "u") else "a"), expType))
+                    if not multiCmd.run():
+                        if pendingReadout:
+                            MultiCommand(cmd, actorState.timeout + readoutTime,
+                                         sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True).run()
+
+                        failMsg = "Failed to take %s exposure" % expType
+                        break
+
+                    if expType == "bias":
+                        cmdState.nBiasDone += 1
+                        cmdState.nBiasLeft -= 1
+                    elif expType == "dark":
+                        cmdState.nDarkDone += 1
+                        cmdState.nDarkLeft -= 1
+                    elif expType == "flat":
+                        cmdState.nFlatDone += 1
+                        cmdState.nFlatLeft -= 1
+                    elif expType == "arc":
+                        cmdState.nArcDone += 1
+                        cmdState.nArcLeft -= 1
+                    else:
+                        failMsg = "Impossible condition; complain to RHL"
+                        break
+                #
+                # Did we break out of that loop?
+                #
+                if failMsg:
+                    if pendingReadout:
+                        if not MultiCommand(cmd, actorState.timeout + readoutTime,
+                                            sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True).run():
+                            cmd.warn('text="%s"' % failMsg)
+                        cmd.fail('text="Failed to readout last exposure"')
+                    else:
+                        cmd.fail('text="%s"' % failMsg)
+
                         continue
                 #
-                # We're done.  Return telescope to desired state
+                # Readout any pending data and return telescope to initial state
                 #
-                if not doLamps(cmd, actorState, openFFS=None if inEnclosure else True):
-                    cmd.warn('text="Failed to turn lamps off"')
-                    msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
+                multiCmd = MultiCommand(cmd, actorState.timeout + (readoutTime if pendingReadout else 0))
+
+                if pendingReadout:
+                    multiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
+                    pendingReadout = False
+
+                multiCmd.append(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False)
+                multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=False)
+                multiCmd.append(sopActor.NE_LAMP  , Msg.LAMP_ON, on=False)
+                multiCmd.append(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False)
+                multiCmd.append(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False)
+
+                multiCmd.append(sopActor.FFS, Msg.FFS_MOVE, open=ffsInitiallyOpen)
+
+                if not multiCmd.run():
+                    cmd.fail('text="Failed to restore telescope to pristine state"')
                     continue
 
-                if startGuider:
-                    # Try to start the guider; ignore any responses on the queue
-                    
-                    msg.cmd.warn('text="Starting guider"')
-                    actorState.actor.cmdr.cmdq(actor="guider", forUserCmd=cmd, cmdStr=("on"))
-
                 msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=True)
+                #
+                # We're done
+                #
+                if actorState.aborting:
+                    cmd.fail('text="doCalibs was aborted')
+                else:
+                    cmd.finish('text="Your calibration data are ready, sir')
 
             elif msg.type == Msg.DO_SCIENCE:
-                #import pdb; pdb.set_trace()
-
                 cmd = msg.cmd
                 actorState = msg.actorState
-
-                expTime = msg.expTime
+                cmdState = msg.cmdState
+                cartridge = msg.cartridge
+                survey = msg.survey
                 #
-                # Open the petals
+                # Tell sop that we've accepted the command
                 #
-                if not doLamps(cmd, actorState, openFFS=True):
-                    cmd.warn('text="Failed to open the flat field screen"')
-                    msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
+                msg.replyQueue.put(Msg.REPLY, cmd=cmd, success=True)
+                #
+                # Define the command that we use to communicate our state to e.g. STUI
+                #
+                def status(cmd):
+                    if cmd:
+                        actorState.actor.commandSets["SopCmd"].status(cmd, threads=False, finish=False)
+
+                failMsg = ""            # message to use if we've failed
+                while cmdState.nExpLeft > 0:
+                    status(cmdState.cmd)
+
+                    expTime = cmdState.expTime
+
+                    multiCmd = MultiCommand(cmd, expTime + readoutTime + actorState.timeout)
+
+                    multiCmd.append(sopActor.BOSS, Msg.EXPOSE,
+                                    expTime=expTime, expType="science", readout=True)
+                    
+                    multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=True))
+                    multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON,  on=False))
+                    multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON,  on=False))
+                    multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON,  on=False))
+                    multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON,  on=False))
+                    multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON,  on=False))
+
+                    cmd.inform('text="Taking a science exposure"')
+
+                    if not multiCmd.run():
+                        failMsg = "Failed to take science exposure"
+                        break
+
+                    cmdState.nExpDone += 1
+                    cmdState.nExpLeft -= 1
+                #
+                # Did we break out of that loop?
+                #
+                if failMsg:
+                    cmd.fail('text="%s"' % failMsg)
                     continue
+                #
+                # We're done
+                #
+                if actorState.aborting:
+                    cmd.fail('text="doScience was aborted')
+                else:
+                    cmd.finish('text="Your Nobel Prize is a little closer, sir')
 
-                cmd.inform('text="Taking a science exposure"')
+            elif msg.type == Msg.GOTO_FIELD:
+                cmd = msg.cmd
+                actorState = msg.actorState
+                cmdState = msg.cmdState
+                cartridge = msg.cartridge
+                survey = msg.survey
+                #
+                # Tell sop that we've accepted the command
+                #
+                msg.replyQueue.put(Msg.REPLY, cmd=cmd, success=True)
+                #
+                # Define the command that we use to communicate our state to e.g. STUI
+                #
+                def status(cmd):
+                    if cmd:
+                        actorState.actor.commandSets["SopCmd"].status(cmd, threads=False, finish=False)
+                #
+                # Slew to field
+                #
+                slewDuration = 180
 
-                if not MultiCommand(cmd, overhead + expTime, sopActor.BOSS, Msg.EXPOSE,
-                                    expTime=expTime, expType="science", readout=True).run():
-                    cmd.warn('text="Failed to take science exposure"')
-                    msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
+                status(cmdState.cmd)
+
+                if cmdState.doSlew:
+                    multiCmd = MultiCommand(cmd, slewDuration + actorState.timeout)
+
+                    if True:
+                        multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState,
+                                        ra=cmdState.ra, dec=cmdState.dec, rot=cmdState.rotang)
+                    else:
+                        cmd.warn('text="RHL is skipping the slew"')
+
+                    # eval doGuiderFlat here in case cmdState changed
+                    doGuiderFlat = True if (cmdState.doGuider and cmdState.guiderFlatTime > 0) else False
+                    if doGuiderFlat and (cmdState.nFlatLeft == 0 and survey == sopActor.MARVELS):
+                        cmd.inform('text="commanding guider flat for Marvels"')
+                        multiCmd.append(SopPrecondition(sopActor.FFS,     Msg.FFS_MOVE, open=False))
+                        multiCmd.append(SopPrecondition(sopActor.FF_LAMP, Msg.LAMP_ON, on=True))
+                        multiCmd.append(sopActor.GCAMERA, Msg.EXPOSE,
+                                        expTime=cmdState.guiderFlatTime, expType="flat",
+                                        cartridge=cartridge)
+                        doGuiderFlat = False
+
+                    if doGuiderFlat or cmdState.nFlatLeft > 0:
+                        multiCmd.append(sopActor.FF_LAMP  , Msg.LAMP_ON, on=True)
+
+                    if cmdState.nArcLeft > 0 or cmdState.doHartmann:
+                        multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=True)
+                        multiCmd.append(sopActor.NE_LAMP  , Msg.LAMP_ON, on=True)
+                        multiCmd.append(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False)
+                        multiCmd.append(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False)
+
+                    if (cmdState.nArcLeft > 0 or cmdState.nFlatLeft > 0 or
+                        cmdState.doHartmann or cmdState.doGuider):
+                        multiCmd.append(sopActor.FFS, Msg.FFS_MOVE, open=False)
+
+                    if not multiCmd.run():
+                        cmd.fail('text="Failed to close screens, warm up lamps, and slew to field"')
+                        continue
+
+                    status(cmdState.cmd)
+                #
+                # OK, we're there. 
+                #
+                if cmdState.doHartmann:
+                    hartmannDelay = 180
+                    multiCmd = MultiCommand(cmd, actorState.timeout + hartmannDelay)
+
+                    multiCmd.append(sopActor.BOSS, Msg.HARTMANN)
+
+                    multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False))
+                    # N.b. not a precondition on HgCd as we don't want to wait for warmup (we'll wait for Ne)
+                    multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=True)
+                    multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=True))
+                    multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=False))
+
+                    if not multiCmd.run():
+                        cmd.fail('text="Failed to do Hartmann sequence"')
+                        continue
+
+                    status(cmdState.cmd)
+                #
+                # Calibs.  Arcs first
+                #
+                pendingReadout = False
+
+                if cmdState.nArcLeft > 0:
+                    multiCmd = MultiCommand(cmd, actorState.timeout)
+
+                    multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=True))
+                    multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=True))
+                    multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=False))
+
+                    if not multiCmd.run():
+                        cmd.fail('text="Failed to prepare for arcs"')
+                        continue
+                    #
+                    # Now take the exposure
+                    #
+                    if cmdState.nArcLeft > 0:  # not aborted since we last checked
+                        if MultiCommand(cmd, cmdState.arcTime + actorState.timeout,
+                                        sopActor.BOSS, Msg.EXPOSE,
+                                        expTime=cmdState.arcTime, expType="arc", readout=False).run():
+                            pendingReadout = True
+                        else:
+                            cmd.fail('text="Failed to take arcs"')
+                            continue
+
+                    cmdState.nArcLeft -= 1
+                    cmdState.nArcDone += 1
+
+                    status(cmdState.cmd)
+                #
+                # Now the flats
+                #
+                multiCmd = MultiCommand(cmd, actorState.timeout + (readoutTime if pendingReadout else 0))
+
+                if pendingReadout:
+                    multiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
+                    pendingReadout = False
+
+                doGuiderFlat = True if (cmdState.doGuider and cmdState.guiderFlatTime > 0) else False
+                if cmdState.nFlatLeft > 0 or doGuiderFlat:
+                    multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=True))
+                    multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=False))
+
+                if not multiCmd.run():
+                    cmd.fail('text="Failed to prepare for flats"')
                     continue
+                #
+                # Now take the exposure
+                #
+                if cmdState.nFlatLeft > 0 or doGuiderFlat:
+                    multiCmd = MultiCommand(cmd, cmdState.flatTime + actorState.timeout)
 
-                cmd.inform('text="science exposure finished"')
+                    if cmdState.nFlatLeft > 0:
+                        pendingReadout = True
+                        multiCmd.append(sopActor.BOSS, Msg.EXPOSE,
+                                        expTime=cmdState.flatTime, expType="flat", readout=False)
+                    if cmdState.doGuider and cmdState.guiderFlatTime > 0:
+                        multiCmd.append(sopActor.GCAMERA, Msg.EXPOSE,
+                                        expTime=cmdState.guiderFlatTime, expType="flat", cartridge=cartridge)
 
-                msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=True)
+                    if not multiCmd.run():
+                        if pendingReadout:
+                            MultiCommand(cmd, actorState.timeout + readoutTime,
+                                         sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True).run()
 
+                        cmd.fail('text="Failed to take flats"')
+                        continue
+
+                    cmdState.nFlatLeft -= 1
+                    cmdState.nFlatDone += 1
+
+                    status(cmdState.cmd)
+                #
+                # Readout any pending data and prepare to guide
+                #
+                if pendingReadout:
+                    readoutMultiCmd = MultiCommand(cmd, readoutTime + actorState.timeout)
+
+                    readoutMultiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
+                    pendingReadout = False
+
+                    readoutMultiCmd.start()
+                else:
+                    readoutMultiCmd = None
+
+                multiCmd = MultiCommand(cmd, actorState.timeout + (readoutTime if pendingReadout else 0))
+
+                multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False))
+                multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=False))
+                multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=False))
+                multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
+                multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
+
+                if cmdState.doGuider:
+                    multiCmd.append(sopActor.FFS, Msg.FFS_MOVE, open=True)
+
+                if not multiCmd.run():
+                    if readoutMultiCmd:
+                        readoutMultiCmd.finish()
+
+                    cmd.fail('text="Failed to prepare to guide"')
+                    continue
+                #
+                # Start the guider
+                #
+                if cmdState.doGuider:
+                    multiCmd = MultiCommand(cmd, actorState.timeout + cmdState.guiderTime)
+
+                    for w in ("axes", "focus", "scale"):
+                        multiCmd.append(sopActor.GUIDER, Msg.ENABLE, what=w, on=False)
+
+                    multiCmd.append(sopActor.GUIDER, Msg.START, on=True,
+                                    expTime=cmdState.guiderTime, oneExposure=True)
+
+                    multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=True))
+
+                    if not multiCmd.run():
+                        cmd.fail('text="Failed to start guiding"')
+                        continue
+
+                    startedGuider = True
+                    status(cmdState.cmd)
+                #
+                # Catch the last readout's completion
+                #
+                if readoutMultiCmd and not readoutMultiCmd.finish():
+                    cmd.fail('text="Failed to readout last exposure"')
+                    continue
+                #
+                # We're done
+                #
+                if actorState.aborting:
+                    cmd.fail('text="gotoField was aborted')
+                else:
+                    cmd.finish('text="on field')
+                
             elif msg.type == Msg.HARTMANN:
                 """Take two arc exposures with the left then the right Hartmann screens in"""
                 cmd = msg.cmd
