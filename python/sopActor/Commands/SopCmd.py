@@ -481,8 +481,8 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
                                         if "guiderTime" in cmd.cmd.keywords else 5
 
         if "noCalibs" in cmd.cmd.keywords:
-            sopState.gotoFields.arcTime = 0
-            sopState.gotoFields.flatTime = 0
+            sopState.gotoField.arcTime = 0
+            sopState.gotoField.flatTime = 0
 
         sopState.gotoField.nArc = 1 if sopState.gotoField.arcTime > 0 else 0
         sopState.gotoField.nFlat = 1 if sopState.gotoField.flatTime > 0 else 0
