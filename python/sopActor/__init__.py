@@ -1,5 +1,5 @@
 import Queue as _Queue
-import re, threading
+import re, time, threading
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
@@ -69,7 +69,9 @@ except NameError:
         def __init__(self, type, cmd, **data):
             self.type = type
             self.cmd = cmd
-            self.priority = Msg.NORMAL      # may be overridden by **data
+            self.priority = Msg.NORMAL
+
+            self.duration = 0           # how long this command is expected to take (may be overridden by data)
             #
             # convert data[] into attributes
             #
@@ -130,7 +132,7 @@ class Bypass(object):
     """
     Provide bypasses for subsystems
 
-    A failure code from a bypassed subsystem will not cause a MultiCmd to fail
+    A failure code from a bypassed subsystem will not cause a MultiCommand to fail
     """
     _bypassed = {}
 
@@ -161,7 +163,7 @@ class Bypass(object):
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 class Precondition(object):
-    """A class to capture a precondition for a MultiCmd;  we require that it be satisfied
+    """A class to capture a precondition for a MultiCommand;  we require that it be satisfied
 before the non-Precondition actions are begun
 """
 
@@ -188,6 +190,10 @@ class MultiCommand(object):
         if args:
             self.append(*args, **kwargs)
 
+    def setMsgDuration(self, queueName, msg):
+        """Set msg's expected duration in seconds"""
+        pass
+
     def append(self, queueName, msgId=None, timeout=None, isPrecondition=False, **kwargs):
         if isinstance(queueName, Precondition):
             assert msgId is None
@@ -204,10 +210,13 @@ class MultiCommand(object):
             self.timeout = timeout
             
         try:
-            self.commands.append((myGlobals.actorState.queues[queueName], isPrecondition,
-                                  Msg(msgId, cmd=self.cmd, replyQueue=self._replyQueue, **kwargs)))
+            msg = Msg(msgId, cmd=self.cmd, replyQueue=self._replyQueue, **kwargs)
+            self.setMsgDuration(queueName, msg)
+
+            self.commands.append((myGlobals.actorState.queues[queueName], isPrecondition, msg))
+            
         except Exception, e:
-            print "RHL", e
+            print "RHL appending to MultiCommand queue:", e
 
     def run(self):
         """Actually submit that set of commands and wait for them to reply. Return status"""
@@ -219,12 +228,18 @@ class MultiCommand(object):
         """Actually submit that set of commands"""
 
         nPre = 0
+        duration = 0                    # guess at duration
         for queue, isPrecondition, msg in self.commands:
             if isPrecondition:
                 nPre += 1
+                if msg.duration > duration:
+                    duration = msg.duration
+
                 queue.put(msg)
 
         if nPre:
+            self.cmd.inform('text="expectedDuration=%d expectedEnd=%d"' % (duration, time.time() + duration))
+        
             if not self.finish(runningPreconditions=True):
                 self.commands = []
                 self.status = False
@@ -234,9 +249,15 @@ class MultiCommand(object):
                 self.commands = []
                 self.status = False
 
+        duration = 0
         for queue, isPrecondition, msg in self.commands:
             if not isPrecondition:
+                if msg.duration > duration:
+                    duration = msg.duration
+
                 queue.put(msg)
+
+        self.cmd.inform('text="expectedDuration=%d"' % duration)
 
     def finish(self, runningPreconditions=False):
         """Wait for set of commands to reply. Return status"""

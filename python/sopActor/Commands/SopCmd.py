@@ -17,9 +17,11 @@ from sopActor import MultiCommand
 
 if not False:
     oldPrecondition = sopActor.Precondition
+    oldMultiCommand = sopActor.MultiCommand
     print "Reloading sopActor";
     reload(sopActor)
     sopActor.Precondition = oldPrecondition
+    sopActor.MultiCommand = oldMultiCommand
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -46,6 +48,7 @@ except:
 try:
     fakeMarvels                         # force this to be interpreted as a Marvels cartridge
 except:
+    fakeBoss = False
     fakeMarvels = False
 
 class SopCmd(object):
@@ -169,6 +172,15 @@ class SopCmd(object):
 
             self.status(cmd, threads=False, finish=True)
             return
+        #
+        # Lookup the current cartridge
+        #
+        try:
+            cartridge = int(actorState.models["guider"].keyVarDict["cartridgeLoaded"][0])
+        except TypeError:
+            cartridge = -1
+
+        survey = classifyCartridge(cmd, cartridge)
 
         sopState.doCalibs.cmd = None
 
@@ -181,11 +193,11 @@ class SopCmd(object):
         sopState.doCalibs.nFlat = int(cmd.cmd.keywords["nflat"].values[0]) \
                                   if "nflat" in cmd.cmd.keywords else 0
         sopState.doCalibs.arcTime = float(cmd.cmd.keywords["arcTime"].values[0]) \
-                                    if "arcTime" in cmd.cmd.keywords else 4
+                                    if "arcTime" in cmd.cmd.keywords else getDefaultArcTime(survey)
         sopState.doCalibs.darkTime = float(cmd.cmd.keywords["darkTime"].values[0]) \
                                      if "darkTime" in cmd.cmd.keywords else 0
         sopState.doCalibs.flatTime = float(cmd.cmd.keywords["flatTime"].values[0]) \
-                                     if "flatTime" in cmd.cmd.keywords else 30
+                                     if "flatTime" in cmd.cmd.keywords else getDefaultFlatTime(survey)
         sopState.doCalibs.guiderFlatTime = float(cmd.cmd.keywords["guiderFlatTime"].values[0]) \
                                            if "guiderFlatTime" in cmd.cmd.keywords else 0
 
@@ -204,15 +216,6 @@ class SopCmd(object):
         sopState.doCalibs.nBiasLeft = sopState.doCalibs.nBias; sopState.doCalibs.nBiasDone = 0
         sopState.doCalibs.nDarkLeft = sopState.doCalibs.nDark; sopState.doCalibs.nDarkDone = 0
         sopState.doCalibs.nFlatLeft = sopState.doCalibs.nFlat; sopState.doCalibs.nFlatDone = 0
-        #
-        # Lookup the current cartridge if we're taking guider flats
-        #
-        try:
-            cartridge = int(actorState.models["guider"].keyVarDict["cartridgeLoaded"][0])
-        except TypeError:
-            cartridge = -1
-                
-        survey = classifyCartridge(cartridge)
 
         if sopState.doCalibs.nFlat > 0 and sopState.doCalibs.guiderFlatTime > 0:
             if cartridge < 0:
@@ -286,7 +289,7 @@ class SopCmd(object):
             cmd.warn('text="No cartridge is known to be loaded"')
             cartridge = -1
                 
-        survey = classifyCartridge(cartridge)
+        survey = classifyCartridge(cmd, cartridge)
 
         if not MultiCommand(cmd, 2,
                             sopActor.MASTER, Msg.DO_SCIENCE, actorState=actorState, cartridge=cartridge,
@@ -322,7 +325,12 @@ class SopCmd(object):
         subSystem = cmd.cmd.keywords["subSystem"].values[0]        
         doBypass = False if "clear" in cmd.cmd.keywords else True
 
-        if subSystem == "science":
+        if subSystem == "planets":
+            global fakeBoss
+            fakeBoss = doBypass
+            cmd.finish('text="%s"' % ("I'm studying some very faint fuzzies" if fakeBoss else ""))
+            return
+        elif subSystem == "science":
             global fakeMarvels
             fakeMarvels = doBypass
             cmd.finish('text="%s"' % ("Ah, a Marvels night" if fakeMarvels else ""))
@@ -362,7 +370,7 @@ class SopCmd(object):
 
 If the flat field screens are initially open they are closed, and the Ne/HgCd lamps are turned on.
 You may specify using only one spectrograph with sp1 or sp2; the default is both.
-The exposure time is set by expTime (default: 4s)
+The exposure time is set by expTime
 
 When the sequence is finished the Hartmann screens are moved out of the beam, the lamps turned off, and the
 flat field screens returned to their initial state.
@@ -370,7 +378,8 @@ flat field screens returned to their initial state.
         actorState = myGlobals.actorState
         actorState.aborting = False
 
-        expTime = float(cmd.cmd.keywords["expTime"].values[0]) if "expTime" in cmd.cmd.keywords else 4
+        expTime = float(cmd.cmd.keywords["expTime"].values[0]) \
+                  if "expTime" in cmd.cmd.keywords else getDefaultArcTime(sopActor.BOSS)
         sp1 = "sp1" in cmd.cmd.keywords
         sp2 = "sp2" in cmd.cmd.keywords
         if not sp1 and not sp2:
@@ -442,16 +451,26 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
 
             self.status(cmd, threads=False, finish=True)
             return
+        #
+        # Lookup the current cartridge
+        #
+        try:
+            cartridge = int(actorState.models["guider"].keyVarDict["cartridgeLoaded"][0])
+        except TypeError:
+            cartridge = -1
+
+        survey = classifyCartridge(cmd, cartridge)
 
         sopState.gotoField.cmd = None
 
         sopState.gotoField.doSlew = True if "noSlew" not in cmd.cmd.keywords else False
         sopState.gotoField.doGuider = True if "noGuider" not in cmd.cmd.keywords else False
-        sopState.gotoField.doHartmann = True if "noHartmann" not in cmd.cmd.keywords else False
+        sopState.gotoField.doHartmann = True if (survey == sopActor.BOSS and
+                                                 "noHartmann" not in cmd.cmd.keywords) else False
         sopState.gotoField.arcTime = float(cmd.cmd.keywords["arcTime"].values[0]) \
-                                     if "arcTime" in cmd.cmd.keywords else 4
+                                     if "arcTime" in cmd.cmd.keywords else getDefaultArcTime(survey)
         sopState.gotoField.flatTime = float(cmd.cmd.keywords["flatTime"].values[0]) \
-                                      if "flatTime" in cmd.cmd.keywords else 30
+                                      if "flatTime" in cmd.cmd.keywords else getDefaultFlatTime(survey)
         sopState.gotoField.guiderFlatTime = float(cmd.cmd.keywords["guiderFlatTime"].values[0]) \
                                             if "guiderFlatTime" in cmd.cmd.keywords else 0.5
         sopState.gotoField.guiderTime = float(cmd.cmd.keywords["guiderTime"].values[0]) \
@@ -459,18 +478,15 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
 
         sopState.gotoField.nArc = 1 if sopState.gotoField.arcTime > 0 else 0
         sopState.gotoField.nFlat = 1 if sopState.gotoField.flatTime > 0 else 0
+
+        if survey == sopActor.UNKNOWN:
+            cmd.warn('text="No cartridge is known to be loaded; disabling guider"')
+            sopState.gotoField.doGuider = False
         #
         # How many exposures we have left/have done
         #
         sopState.gotoField.nArcLeft = sopState.gotoField.nArc; sopState.gotoField.nArcDone = 0
         sopState.gotoField.nFlatLeft = sopState.gotoField.nFlat; sopState.gotoField.nFlatDone = 0
-
-        try:
-            cartridge = int(actorState.models["guider"].keyVarDict["cartridgeLoaded"][0])
-        except TypeError:
-            cmd.warn('text="No cartridge is known to be loaded; disabling guider"')
-            cartridge = -1
-            sopState.gotoField.doGuider = False
 
         pointingInfo = actorState.models["platedb"].keyVarDict["pointingInfo"]
         sopState.gotoField.ra = pointingInfo[3]
@@ -484,8 +500,6 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
             cmd.warn('text="FAKING RA DEC:  %g, %g /rotang=%g"' % (sopState.gotoField.ra,
                                                                    sopState.gotoField.dec,
                                                                    sopState.gotoField.rotang))
-
-        survey = classifyCartridge(cartridge)
 
         if not MultiCommand(cmd, 2,
                             sopActor.MASTER, Msg.GOTO_FIELD, actorState=actorState, cartridge=cartridge,
@@ -666,10 +680,23 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def classifyCartridge(cartridge):
+def getDefaultArcTime(survey):
+    """Get the default arc time for this survey"""
+    return 4 if survey == sopActor.BOSS else 0
+
+def getDefaultFlatTime(survey):
+    """Get the default flat time for this survey"""
+    return 30 if survey == sopActor.BOSS else 0
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def classifyCartridge(cmd, cartridge):
     """Return the survey type corresponding to this cartridge"""
 
-    if fakeMarvels:
+    if fakeBoss:
+        cmd.warn('text="We are lying that this being a Boss cartridge"')
+        return sopActor.BOSS
+    elif fakeMarvels:
         cmd.warn('text="We are lying about this being a Marvels cartridge"')
         return sopActor.MARVELS
     else:
