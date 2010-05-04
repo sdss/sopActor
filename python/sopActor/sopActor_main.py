@@ -25,7 +25,7 @@ import sopActor.myGlobals
 #
 # Import sdss3logging before logging if you want to use it
 #
-if False:
+if True:
     import opscore.utility.sdss3logging as sdss3logging
 import logging
 

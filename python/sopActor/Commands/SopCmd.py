@@ -73,10 +73,10 @@ class SopCmd(object):
                                         keys.Key("fiberId", types.Int(), help="A fiber ID"),
                                         keys.Key("flatTime", types.Float(), help="Exposure time for flats"),
                                         keys.Key("guiderFlatTime", types.Float(), help="Exposure time for guider flats"),
-                                        keys.Key("hartmann", types.Bool("no", "yes"), help="Take a Hartmann sequence"),
                                         keys.Key("keepQueues", help="Restart thread queues"),
-                                        keys.Key("guider",  types.Bool("no", "yes"), help="Start the guider"),
                                         keys.Key("noSlew", help="Don't slew to field"),
+                                        keys.Key("noHartmann", help="Don't make Hartmann corrections"),
+                                        keys.Key("noGuider", help="Don't start the guider"),
                                         keys.Key("sp1", help="Select SP1"),
                                         keys.Key("sp2", help="Select SP2"),
                                         keys.Key("geek", help="Show things that only some of us love"),
@@ -101,7 +101,7 @@ class SopCmd(object):
             ("lampsOff", "", self.lampsOff),
             ("ping", "", self.ping),
             ("restart", "[<threads>] [keepQueues]", self.restart),
-            ("gotoField", "[<arcTime>] [<flatTime>] [<guiderFlatTime>] [<hartmann>] [<guider>] [noSlew] [abort]",
+            ("gotoField", "[<arcTime>] [<flatTime>] [<guiderFlatTime>] [noSlew] [noHartmann] [noGuider] [abort]",
              self.gotoField),
             ("gotoInstrumentChange", "", self.gotoInstrumentChange),
             ("setScale", "<delta>|<scale>", self.setScale),
@@ -417,8 +417,10 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
 
         if sopState.gotoField.cmd and sopState.gotoField.cmd.isAlive():
             # Modify running gotoField command
-            if "noSlew" in cmd.cmd.keywords:
-                sopState.gotoField.doSlew = True
+            sopState.gotoField.doSlew = True if "noSlew" not in cmd.cmd.keywords else False
+            sopState.gotoField.doGuider = True if "noGuider" not in cmd.cmd.keywords else False
+            sopState.gotoField.doHartmann = True if "noHartmann" not in cmd.cmd.keywords else False
+
             if "arcTime" in cmd.cmd.keywords:
                 if sopState.gotoField.nArcDone > 0:
                     cmd.warn('text="Arcs are taken; it\'s too late to modify arcTime"')
@@ -433,10 +435,6 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
                     sopState.gotoField.flatTime = float(cmd.cmd.keywords["flatTime"].values[0])
                     sopState.gotoField.nFlat = 1 if sopState.gotoField.flatTime > 0 else 0
                     sopState.gotoField.nFlatLeft = sopState.gotoField.nFlat
-            if "hartmann" in cmd.cmd.keywords:
-                sopState.gotoField.doHartmann = cmd.cmd.keywords["hartmann"].values[0]
-            if "guider" in cmd.cmd.keywords:
-                sopState.gotoField.doGuider = cmd.cmd.keywords["guider"].values[0]
             if "guiderFlatTime" in cmd.cmd.keywords:
                 sopState.gotoField.guiderFlatTime = float(cmd.cmd.keywords["guiderFlatTime"].values[0])
             if "guiderTime" in cmd.cmd.keywords:
@@ -448,14 +446,12 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         sopState.gotoField.cmd = None
 
         sopState.gotoField.doSlew = True if "noSlew" not in cmd.cmd.keywords else False
+        sopState.gotoField.doGuider = True if "noGuider" not in cmd.cmd.keywords else False
+        sopState.gotoField.doHartmann = True if "noHartmann" not in cmd.cmd.keywords else False
         sopState.gotoField.arcTime = float(cmd.cmd.keywords["arcTime"].values[0]) \
                                      if "arcTime" in cmd.cmd.keywords else 4
         sopState.gotoField.flatTime = float(cmd.cmd.keywords["flatTime"].values[0]) \
                                       if "flatTime" in cmd.cmd.keywords else 30
-        sopState.gotoField.doHartmann = cmd.cmd.keywords["hartmann"].values[0] \
-                                        if "hartmann" in cmd.cmd.keywords else True
-        sopState.gotoField.doGuider = cmd.cmd.keywords["guider"].values[0] \
-                                      if "guider" in cmd.cmd.keywords else True
         sopState.gotoField.guiderFlatTime = float(cmd.cmd.keywords["guiderFlatTime"].values[0]) \
                                             if "guiderFlatTime" in cmd.cmd.keywords else 0.5
         sopState.gotoField.guiderTime = float(cmd.cmd.keywords["guiderTime"].values[0]) \
