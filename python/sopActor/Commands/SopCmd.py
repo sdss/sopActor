@@ -18,7 +18,7 @@ from sopActor import MultiCommand
 if not False:
     oldPrecondition = sopActor.Precondition
     oldMultiCommand = sopActor.MultiCommand
-    print "Reloading sopActor";
+    print "Reloading sopActor"
     reload(sopActor)
     sopActor.Precondition = oldPrecondition
     sopActor.MultiCommand = oldMultiCommand
@@ -182,6 +182,9 @@ class SopCmd(object):
             cartridge = -1
 
         survey = classifyCartridge(cmd, cartridge)
+        if survey != sopActor.BOSS:
+            cmd.warn('text="current cartridge is not for BOSS; continuing with calibs anyhow."')
+            survey = sopActor.BOSS
 
         sopState.doCalibs.cmd = None
 
@@ -226,7 +229,7 @@ class SopCmd(object):
         if survey == sopActor.MARVELS:
             sopState.doCalibs.flatTime = 0                # no need to take a BOSS flat
 
-        if not MultiCommand(cmd, 2,
+        if not MultiCommand(cmd, 2, None,
                             sopActor.MASTER, Msg.DO_CALIBS, actorState=actorState, cartridge=cartridge,
                             survey=survey, cmdState=sopState.doCalibs).run():
             cmd.fail('text="Failed to issue doCalibs"')
@@ -292,7 +295,7 @@ class SopCmd(object):
                 
         survey = classifyCartridge(cmd, cartridge)
 
-        if not MultiCommand(cmd, 2,
+        if not MultiCommand(cmd, 2, None,
                             sopActor.MASTER, Msg.DO_SCIENCE, actorState=actorState, cartridge=cartridge,
                             survey=survey, cmdState=sopState.doScience).run():
             cmd.fail('text="Failed to issue doScience"')
@@ -306,7 +309,7 @@ class SopCmd(object):
         actorState = myGlobals.actorState
         actorState.aborting = False
 
-        multiCmd = MultiCommand(cmd, actorState.timeout)
+        multiCmd = MultiCommand(cmd, actorState.timeout, None)
 
         multiCmd.append(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False)
         multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=False)
@@ -509,7 +512,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
                                                                    sopState.gotoField.dec,
                                                                    sopState.gotoField.rotang))
 
-        if not MultiCommand(cmd, 2,
+        if not MultiCommand(cmd, 2, None,
                             sopActor.MASTER, Msg.GOTO_FIELD, actorState=actorState, cartridge=cartridge,
                             survey=survey, cmdState=sopState.gotoField).run():
             cmd.fail('text="Failed to issue gotoField"')
@@ -528,7 +531,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         #
         slewDuration = 180
 
-        multiCmd = MultiCommand(cmd, slewDuration + actorState.timeout)
+        multiCmd = MultiCommand(cmd, slewDuration + actorState.timeout, None)
 
         multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState, az=121, alt=90, rot=0)
 
@@ -669,7 +672,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         if threads:
             try:
                 actorState.ignoreAborting = True
-                getStatus = MultiCommand(cmd, timeout=5.0)
+                getStatus = MultiCommand(cmd, 5.0, None)
 
                 for tid in actorState.threads.keys():
                     getStatus.append(tid, Msg.STATUS)

@@ -180,10 +180,11 @@ before the non-Precondition actions are begun
 class MultiCommand(object):
     """Process a set of commands, waiting for the last to complete"""
     
-    def __init__(self, cmd, timeout, *args, **kwargs):
+    def __init__(self, cmd, timeout, label, *args, **kwargs):
         self.cmd = cmd
         self._replyQueue = Queue("(replyQueue)", 0)
         self.timeout = timeout
+        self.label = label
         self.commands = []
         self.status = True
         
@@ -204,6 +205,8 @@ class MultiCommand(object):
 
             return self.append(pre.queueName, pre.msgId, pre.timeout, isPrecondition=True, **pre.kwargs)
 
+        if msgId is None:
+            import pdb; pdb.set_trace()
         assert msgId is not None
 
         if timeout is not None and timeout > self.timeout:
@@ -227,6 +230,7 @@ class MultiCommand(object):
     def start(self):
         """Actually submit that set of commands"""
 
+        self.cmd.inform("text='starting multicommand stage=%s'" % (self.label if self.label else "unlabeled"))
         nPre = 0
         duration = 0                    # guess at duration
         for queue, isPrecondition, msg in self.commands:
@@ -257,6 +261,7 @@ class MultiCommand(object):
 
                 queue.put(msg)
 
+        self.cmd.inform("text='started multicommand stage=%s'" % (self.label if self.label else "unlabeled"))
         self.cmd.inform('text="expectedDuration=%d"' % duration)
 
     def finish(self, runningPreconditions=False):
@@ -286,6 +291,7 @@ class MultiCommand(object):
                     len(nonResponsive), " ".join(nonResponsive)))
                 return False
 
+        self.cmd.inform("text='finished multicommand stage=%s'" % (self.label if self.label else "unlabeled"))
         return not failed and self.status
 
 __all__ = ["MASTER", "Msg", "Precondition", "Bypass"]

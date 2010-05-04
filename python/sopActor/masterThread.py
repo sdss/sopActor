@@ -110,8 +110,8 @@ readoutDuration = 90                    # read the chips
 class SopMultiCommand(MultiCommand):
     """A MultiCommand for sop that knows about how long sop commands take to execute"""
     
-    def __init__(self, cmd, timeout, *args, **kwargs):
-        MultiCommand.__init__(self, cmd, timeout, *args, **kwargs)
+    def __init__(self, cmd, timeout, label, *args, **kwargs):
+        MultiCommand.__init__(self, cmd, timeout, label, *args, **kwargs)
         pass
 
     def setMsgDuration(self, queueName, msg):
@@ -140,7 +140,7 @@ def doLamps(cmd, actorState, FF=False, Ne=False, HgCd=False, WHT=False, UV=False
             openFFS=None, openHartmann=None):
     """Turn all the lamps on/off"""
 
-    multiCmd = SopMultiCommand(cmd, actorState.timeout)
+    multiCmd = SopMultiCommand(cmd, actorState.timeout, None)
 
     multiCmd.append(sopActor.FF_LAMP  , Msg.LAMP_ON, on=FF)
     multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=Ne)
@@ -221,7 +221,8 @@ def main(actor, queues):
                         break
 
                     if pendingReadout:
-                        multiCmd = SopMultiCommand(cmd, actorState.timeout + readoutDuration)
+                        multiCmd = SopMultiCommand(cmd, actorState.timeout + readoutDuration, 
+                                                   "doCalibs.pendingReadout")
 
                         multiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
                         pendingReadout = False
@@ -248,7 +249,7 @@ def main(actor, queues):
                     if expType in ("bias", "dark"):
                         timeout += readoutDuration
                         
-                    multiCmd = SopMultiCommand(cmd, timeout)
+                    multiCmd = SopMultiCommand(cmd, timeout, "doCalibs.expose")
 
                     multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
                     multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
@@ -294,8 +295,8 @@ def main(actor, queues):
                                (("an" if expType[0] in ("a", "e", "i", "o", "u") else "a"), expType))
                     if not multiCmd.run():
                         if pendingReadout:
-                            SopMultiCommand(cmd, actorState.timeout + readoutDuration,
-                                         sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True).run()
+                            SopMultiCommand(cmd, actorState.timeout + readoutDuration, "doCalibs.readout",
+                                            sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True).run()
 
                         failMsg = "Failed to take %s exposure" % expType
                         break
@@ -320,8 +321,9 @@ def main(actor, queues):
                 #
                 if failMsg:
                     if pendingReadout:
-                        if not SopMultiCommand(cmd, actorState.timeout + readoutDuration,
-                                            sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True).run():
+                        if not SopMultiCommand(cmd, actorState.timeout + readoutDuration, 
+                                               "doCalibs.readoutCleanup",
+                                               sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True).run():
                             cmd.warn('text="%s"' % failMsg)
                         cmd.fail('text="Failed to readout last exposure"')
                     else:
@@ -332,7 +334,8 @@ def main(actor, queues):
                 # Readout any pending data and return telescope to initial state
                 #
                 multiCmd = SopMultiCommand(cmd,
-                                           actorState.timeout + (readoutDuration if pendingReadout else 0))
+                                           actorState.timeout + (readoutDuration if pendingReadout else 0),
+                                           "doCalibs.readoutFinish")
 
                 if pendingReadout:
                     multiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
@@ -383,7 +386,8 @@ def main(actor, queues):
                     expTime = cmdState.expTime
 
                     multiCmd = SopMultiCommand(cmd,
-                                               flushDuration + expTime + readoutDuration + actorState.timeout)
+                                               flushDuration + expTime + readoutDuration + actorState.timeout,
+                                               "doScience")
 
                     multiCmd.append(sopActor.BOSS, Msg.EXPOSE,
                                     expTime=expTime, expType="science", readout=True)
@@ -441,7 +445,7 @@ def main(actor, queues):
                 status(cmdState.cmd)
 
                 if cmdState.doSlew:
-                    multiCmd = SopMultiCommand(cmd, slewTimeout + actorState.timeout)
+                    multiCmd = SopMultiCommand(cmd, slewTimeout + actorState.timeout, "gotoField.slew")
 
                     if True:
                         multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState,
@@ -483,7 +487,7 @@ def main(actor, queues):
                 #
                 if cmdState.doHartmann:
                     hartmannDelay = 180
-                    multiCmd = SopMultiCommand(cmd, actorState.timeout + hartmannDelay)
+                    multiCmd = SopMultiCommand(cmd, actorState.timeout + hartmannDelay, "gotoField.hartmann")
 
                     multiCmd.append(sopActor.BOSS, Msg.HARTMANN)
 
@@ -506,7 +510,7 @@ def main(actor, queues):
                 pendingReadout = False
 
                 if cmdState.nArcLeft > 0:
-                    multiCmd = SopMultiCommand(cmd, actorState.timeout)
+                    multiCmd = SopMultiCommand(cmd, actorState.timeout, "gotoField.calibs.arcs")
 
                     multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False))
                     multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=True))
@@ -522,9 +526,10 @@ def main(actor, queues):
                     # Now take the exposure
                     #
                     if cmdState.nArcLeft > 0:  # not aborted since we last checked
-                        if SopMultiCommand(cmd, cmdState.arcTime + actorState.timeout,
-                                        sopActor.BOSS, Msg.EXPOSE,
-                                        expTime=cmdState.arcTime, expType="arc", readout=False).run():
+                        if SopMultiCommand(cmd, cmdState.arcTime + actorState.timeout,  
+                                           "gotoField.calibs.arcExposure",
+                                           sopActor.BOSS, Msg.EXPOSE,
+                                           expTime=cmdState.arcTime, expType="arc", readout=False,).run():
                             pendingReadout = True
                         else:
                             cmd.fail('text="Failed to take arcs"')
@@ -538,7 +543,8 @@ def main(actor, queues):
                 # Now the flats
                 #
                 multiCmd = SopMultiCommand(cmd,
-                                           actorState.timeout + (readoutDuration if pendingReadout else 0))
+                                           actorState.timeout + (readoutDuration if pendingReadout else 0),
+                                           "gotoField.calibs.flats")
 
                 if pendingReadout:
                     multiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
@@ -560,7 +566,8 @@ def main(actor, queues):
                 # Now take the exposure
                 #
                 if cmdState.nFlatLeft > 0 or doGuiderFlat:
-                    multiCmd = SopMultiCommand(cmd, cmdState.flatTime + actorState.timeout)
+                    multiCmd = SopMultiCommand(cmd, cmdState.flatTime + actorState.timeout,
+                                               "gotoField.calibs.flatExposure")
 
                     if cmdState.nFlatLeft > 0:
                         pendingReadout = True
@@ -573,7 +580,8 @@ def main(actor, queues):
                     if not multiCmd.run():
                         if pendingReadout:
                             SopMultiCommand(cmd, actorState.timeout + readoutDuration,
-                                         sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True).run()
+                                            "gotoField.calibs.flatReadout",
+                                            sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True).run()
 
                         cmd.fail('text="Failed to take flats"')
                         continue
@@ -586,7 +594,8 @@ def main(actor, queues):
                 # Readout any pending data and prepare to guide
                 #
                 if pendingReadout:
-                    readoutMultiCmd = SopMultiCommand(cmd, readoutDuration + actorState.timeout)
+                    readoutMultiCmd = SopMultiCommand(cmd, readoutDuration + actorState.timeout,
+                                                      "gotoField.calibs.flatReadout")
 
                     readoutMultiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
                     pendingReadout = False
@@ -596,7 +605,8 @@ def main(actor, queues):
                     readoutMultiCmd = None
 
                 multiCmd = SopMultiCommand(cmd,
-                                           actorState.timeout + (readoutDuration if pendingReadout else 0))
+                                           actorState.timeout + (readoutDuration if pendingReadout else 0),
+                                           "gotoField.guide.prep")
 
                 multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False))
                 multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=False))
@@ -617,7 +627,8 @@ def main(actor, queues):
                 # Start the guider
                 #
                 if cmdState.doGuider:
-                    multiCmd = SopMultiCommand(cmd, actorState.timeout + cmdState.guiderTime)
+                    multiCmd = SopMultiCommand(cmd, actorState.timeout + cmdState.guiderTime,
+                                               "gotoField.guide.start")
 
                     for w in ("axes", "focus", "scale"):
                         multiCmd.append(sopActor.GUIDER, Msg.ENABLE, what=w, on=False)
