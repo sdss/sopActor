@@ -80,6 +80,7 @@ class SopCmd(object):
                                         keys.Key("noSlew", help="Don't slew to field"),
                                         keys.Key("noHartmann", help="Don't make Hartmann corrections"),
                                         keys.Key("noGuider", help="Don't start the guider"),
+                                        keys.Key("noCalibs", help="Don't run the calibration step"),
                                         keys.Key("sp1", help="Select SP1"),
                                         keys.Key("sp2", help="Select SP2"),
                                         keys.Key("geek", help="Show things that only some of us love"),
@@ -104,7 +105,7 @@ class SopCmd(object):
             ("lampsOff", "", self.lampsOff),
             ("ping", "", self.ping),
             ("restart", "[<threads>] [keepQueues]", self.restart),
-            ("gotoField", "[<arcTime>] [<flatTime>] [<guiderFlatTime>] [noSlew] [noHartmann] [noGuider] [abort]",
+            ("gotoField", "[<arcTime>] [<flatTime>] [<guiderFlatTime>] [noSlew] [noHartmann] [noCalibs] [noGuider] [abort]",
              self.gotoField),
             ("gotoInstrumentChange", "", self.gotoInstrumentChange),
             ("setScale", "<delta>|<scale>", self.setScale),
@@ -430,6 +431,9 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
             sopState.gotoField.doGuider = True if "noGuider" not in cmd.cmd.keywords else False
             sopState.gotoField.doHartmann = True if "noHartmann" not in cmd.cmd.keywords else False
 
+            if "noCalibs" in cmd.cmd.keywords:
+                if sopState.gotoField.nArcDone > 0 or sopState.gotoField.nFlatDone > 0:
+                    cmd.warn('text="Some cals have been taken; it\'s too late to disable them."')
             if "arcTime" in cmd.cmd.keywords:
                 if sopState.gotoField.nArcDone > 0:
                     cmd.warn('text="Arcs are taken; it\'s too late to modify arcTime"')
@@ -475,6 +479,10 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
                                             if "guiderFlatTime" in cmd.cmd.keywords else 0.5
         sopState.gotoField.guiderTime = float(cmd.cmd.keywords["guiderTime"].values[0]) \
                                         if "guiderTime" in cmd.cmd.keywords else 5
+
+        if "noCalibs" in cmd.cmd.keywords:
+            sopState.gotoFields.arcTime = 0
+            sopState.gotoFields.flatTime = 0
 
         sopState.gotoField.nArc = 1 if sopState.gotoField.arcTime > 0 else 0
         sopState.gotoField.nFlat = 1 if sopState.gotoField.flatTime > 0 else 0
@@ -697,7 +705,7 @@ def classifyCartridge(cmd, cartridge):
         cmd.warn('text="We are lying that this being a Boss cartridge"')
         return sopActor.BOSS
     elif fakeMarvels:
-        cmd.warn('text="We are lying about this being a Marvels cartridge"')
+        #cmd.warn('text="We are lying about this being a Marvels cartridge"')
         return sopActor.MARVELS
     else:
         if cartridge <= 0:
