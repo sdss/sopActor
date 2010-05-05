@@ -140,7 +140,7 @@ def doLamps(cmd, actorState, FF=False, Ne=False, HgCd=False, WHT=False, UV=False
             openFFS=None, openHartmann=None):
     """Turn all the lamps on/off"""
 
-    multiCmd = SopMultiCommand(cmd, actorState.timeout, None)
+    multiCmd = SopMultiCommand(cmd, actorState.timeout, ".doLamps")
 
     multiCmd.append(sopActor.FF_LAMP  , Msg.LAMP_ON, on=FF)
     multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=Ne)
@@ -595,7 +595,7 @@ def main(actor, queues):
                 #
                 if pendingReadout:
                     readoutMultiCmd = SopMultiCommand(cmd, readoutDuration + actorState.timeout,
-                                                      "gotoField.calibs.flatReadout")
+                                                      "gotoField.calibs.lastFlatReadout")
 
                     readoutMultiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
                     pendingReadout = False

@@ -230,7 +230,8 @@ class MultiCommand(object):
     def start(self):
         """Actually submit that set of commands"""
 
-        self.cmd.inform("text='starting multicommand stage=%s'" % (self.label if self.label else "unlabeled"))
+        if self.label:
+            self.cmd.inform("text='starting multicommand stage=%s'" % (self.label if self.label else "unlabeled"))
         nPre = 0
         duration = 0                    # guess at duration
         for queue, isPrecondition, msg in self.commands:
@@ -261,7 +262,8 @@ class MultiCommand(object):
 
                 queue.put(msg)
 
-        self.cmd.inform("text='started multicommand stage=%s'" % (self.label if self.label else "unlabeled"))
+        if self.label:
+            self.cmd.inform("text='started multicommand stage=%s'" % (self.label if self.label else "unlabeled"))
         self.cmd.inform('text="expectedDuration=%d"' % duration)
 
     def finish(self, runningPreconditions=False):
@@ -291,7 +293,8 @@ class MultiCommand(object):
                     len(nonResponsive), " ".join(nonResponsive)))
                 return False
 
-        self.cmd.inform("text='finished multicommand stage=%s'" % (self.label if self.label else "unlabeled"))
+        if self.label:
+            self.cmd.inform("text='finished multicommand stage=%s'" % (self.label if self.label else "unlabeled"))
         return not failed and self.status
 
 __all__ = ["MASTER", "Msg", "Precondition", "Bypass"]
