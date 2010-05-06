@@ -232,9 +232,9 @@ def main(actor, queues):
 
                         if expType in ("arc"):
                             multiCmd.append(sopActor.FFS      , Msg.FFS_MOVE, open=False)
-                            multiCmd.append(sopActor.FF_LAMP  , Msg.LAMP_ON,  on=True)
-                            multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON,  on=False)
-                            multiCmd.append(sopActor.NE_LAMP  , Msg.LAMP_ON,  on=False)
+                            multiCmd.append(sopActor.FF_LAMP  , Msg.LAMP_ON,  on=False)
+                            multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON,  on=True)
+                            multiCmd.append(sopActor.NE_LAMP  , Msg.LAMP_ON,  on=True)
                         else:
                             failMsg = "Impossible condition; complain to RHL"
                             break
@@ -430,13 +430,17 @@ def main(actor, queues):
                 #
                 # Tell sop that we've accepted the command
                 #
+                cmdState.setCommandState('active')
                 msg.replyQueue.put(Msg.REPLY, cmd=cmd, success=True)
                 #
                 # Define the command that we use to communicate our state to e.g. STUI
                 #
-                def status(cmd):
+                def status(cmd, newState=None):
+                    if newState:
+                        cmdState.setCommandState(newState)
                     if cmd:
-                        actorState.actor.commandSets["SopCmd"].status(cmd, threads=False, finish=False)
+                        actorState.actor.commandSets["SopCmd"].status(cmd, threads=False, finish=False,
+                                                                      oneCommand="gotoField")
                 #
                 # Slew to field
                 #
@@ -446,6 +450,7 @@ def main(actor, queues):
 
                 if cmdState.doSlew:
                     multiCmd = SopMultiCommand(cmd, slewTimeout + actorState.timeout, "gotoField.slew")
+                    cmdState.setStageState("slew", "active")
 
                     if True:
                         multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState,
@@ -478,15 +483,19 @@ def main(actor, queues):
                         multiCmd.append(sopActor.FFS, Msg.FFS_MOVE, open=False)
 
                     if not multiCmd.run():
+                        cmdState.setStageState("slew", "failed")
                         cmd.fail('text="Failed to close screens, warm up lamps, and slew to field"')
                         continue
 
+                    # Umm is cmd == cmdState.cmd? If so, the .fail above will cause trouble.
+                    cmdState.setStageState("slew", "done")
                     status(cmdState.cmd)
                 #
                 # OK, we're there. 
                 #
                 if cmdState.doHartmann:
                     hartmannDelay = 180
+                    cmdState.setStageState("hartmann", "active")
                     multiCmd = SopMultiCommand(cmd, actorState.timeout + hartmannDelay, "gotoField.hartmann")
 
                     multiCmd.append(sopActor.BOSS, Msg.HARTMANN)
@@ -500,15 +509,22 @@ def main(actor, queues):
                     multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=False))
 
                     if not multiCmd.run():
+                        cmdState.setStageState("hartmann", "failed")
                         cmd.fail('text="Failed to do Hartmann sequence"')
                         continue
 
+                    cmdState.setStageState("hartmann", "done")
                     status(cmdState.cmd)
                 #
                 # Calibs.  Arcs first
                 #
                 pendingReadout = False
-
+                doingCalibs = False
+                if (cmdState.nArcLeft > 0 or cmdState.nFlatLeft > 0) and \
+                       cmdState.nArcDone == 0 and cmdState.nFlatDone == 0:
+                    cmdState.setStageState("calibs", "active")
+                    doingCalibs = True
+                    
                 if cmdState.nArcLeft > 0:
                     multiCmd = SopMultiCommand(cmd, actorState.timeout, "gotoField.calibs.arcs")
 
@@ -532,6 +548,7 @@ def main(actor, queues):
                                            expTime=cmdState.arcTime, expType="arc", readout=False,).run():
                             pendingReadout = True
                         else:
+                            cmdState.setStageState("calibs", "failed")
                             cmd.fail('text="Failed to take arcs"')
                             continue
 
@@ -539,13 +556,13 @@ def main(actor, queues):
                     cmdState.nArcDone += 1
 
                     status(cmdState.cmd)
+
                 #
                 # Now the flats
                 #
                 multiCmd = SopMultiCommand(cmd,
                                            actorState.timeout + (readoutDuration if pendingReadout else 0),
                                            "gotoField.calibs.flats")
-
                 if pendingReadout:
                     multiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
                     pendingReadout = False
@@ -560,6 +577,7 @@ def main(actor, queues):
                     multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=False))
 
                 if not multiCmd.run():
+                    cmdState.setStageState("calibs", "failed")
                     cmd.fail('text="Failed to prepare for flats"')
                     continue
                 #
@@ -583,6 +601,7 @@ def main(actor, queues):
                                             "gotoField.calibs.flatReadout",
                                             sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True).run()
 
+                        cmdState.setStageState("calibs", "failed")
                         cmd.fail('text="Failed to take flats"')
                         continue
 
@@ -602,6 +621,9 @@ def main(actor, queues):
 
                     readoutMultiCmd.start()
                 else:
+                    if doingCalibs:
+                        cmdState.setStageState("calibs", "done")
+
                     readoutMultiCmd = None
 
                 multiCmd = SopMultiCommand(cmd,
@@ -627,6 +649,7 @@ def main(actor, queues):
                 # Start the guider
                 #
                 if cmdState.doGuider:
+                    cmdState.setStageState("guider", "active")
                     multiCmd = SopMultiCommand(cmd, actorState.timeout + cmdState.guiderTime,
                                                "gotoField.guide.start")
 
@@ -644,23 +667,31 @@ def main(actor, queues):
                     multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=True))
 
                     if not multiCmd.run():
+                        cmdState.setStageState("guider", "failed")
                         cmd.fail('text="Failed to start guiding"')
                         continue
 
                     startedGuider = True
+                    cmdState.setStageState("guider", "done")
                     status(cmdState.cmd)
                 #
                 # Catch the last readout's completion
                 #
-                if readoutMultiCmd and not readoutMultiCmd.finish():
-                    cmd.fail('text="Failed to readout last exposure"')
-                    continue
+                if readoutMultiCmd:
+                    if not readoutMultiCmd.finish():
+                        cmdState.setStageState("calibs", "failed")
+                        cmd.fail('text="Failed to readout last exposure"')
+                        continue
+                    else:
+                        cmdState.setStageState("calibs", "done")
                 #
                 # We're done
                 #
                 if actorState.aborting:
+                    cmdState.setCommandState('failed')
                     cmd.fail('text="gotoField was aborted')
                 else:
+                    cmdState.setCommandState('done')
                     cmd.finish('text="on field')
                 
             elif msg.type == Msg.HARTMANN:

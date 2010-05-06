@@ -205,8 +205,6 @@ class MultiCommand(object):
 
             return self.append(pre.queueName, pre.msgId, pre.timeout, isPrecondition=True, **pre.kwargs)
 
-        if msgId is None:
-            import pdb; pdb.set_trace()
         assert msgId is not None
 
         if timeout is not None and timeout > self.timeout:
@@ -231,7 +229,7 @@ class MultiCommand(object):
         """Actually submit that set of commands"""
 
         if self.label:
-            self.cmd.inform("text='starting multicommand stage=%s'" % (self.label if self.label else "unlabeled"))
+            self.cmd.inform('stageState="%s","starting",0.0,0.0' % (self.label))
         nPre = 0
         duration = 0                    # guess at duration
         for queue, isPrecondition, msg in self.commands:
@@ -263,7 +261,7 @@ class MultiCommand(object):
                 queue.put(msg)
 
         if self.label:
-            self.cmd.inform("text='started multicommand stage=%s'" % (self.label if self.label else "unlabeled"))
+            self.cmd.inform('stageState="%s","started",%0.1f,0.0' % (self.label, duration))
         self.cmd.inform('text="expectedDuration=%d"' % duration)
 
     def finish(self, runningPreconditions=False):
@@ -291,10 +289,15 @@ class MultiCommand(object):
 
                 self.cmd.warn('text="%d tasks failed to respond: %s"' % (
                     len(nonResponsive), " ".join(nonResponsive)))
-                return False
+                failed = True
+                break
 
         if self.label:
-            self.cmd.inform("text='finished multicommand stage=%s'" % (self.label if self.label else "unlabeled"))
+            if failed or not self.status:
+                state = "failed"
+            else:
+                state = "done" if not runningPreconditions else "prepped"
+            self.cmd.inform('stageState="%s","%s",0.0,0.0' % (self.label, state))
         return not failed and self.status
 
 __all__ = ["MASTER", "Msg", "Precondition", "Bypass"]
