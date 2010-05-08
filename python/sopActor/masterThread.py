@@ -248,7 +248,12 @@ def main(actor, queues):
                     timeout = flushDuration + expTime + actorState.timeout
                     if expType in ("bias", "dark"):
                         timeout += readoutDuration
-                        
+
+                    # We need to let MultiCommand entries adjust the command timeout, or have the preconditions
+                    # take a separate timeout. In the meanwhile fudge the longest case.
+                    if expType == "arc":
+                        timeout += myGlobals.warmupTime[sopActor.HGCD_LAMP]
+
                     multiCmd = SopMultiCommand(cmd, timeout, "doCalibs.expose")
 
                     multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
@@ -502,6 +507,7 @@ def main(actor, queues):
 
                     multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False))
                     # N.b. not a precondition on HgCd as we don't want to wait for warmup (we'll wait for Ne)
+                    # Yeah, but we would like to turn the HgCd on ASAP...
                     multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=True)
                     multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=True))
                     multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
@@ -526,7 +532,9 @@ def main(actor, queues):
                     doingCalibs = True
                     
                 if cmdState.nArcLeft > 0:
-                    multiCmd = SopMultiCommand(cmd, actorState.timeout, "gotoField.calibs.arcs")
+                    timeout = actorState.timeout + myGlobals.warmupTime[sopActor.HGCD_LAMP]
+
+                    multiCmd = SopMultiCommand(cmd, timeout, "gotoField.calibs.arcs")
 
                     multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False))
                     multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=True))
