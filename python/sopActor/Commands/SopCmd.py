@@ -465,7 +465,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
             if sopState.gotoField.cmd and sopState.gotoField.cmd.isAlive():
                 actorState.aborting = True
 
-                cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd, cmdStr="track /stop")
+                cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd, cmdStr="axis stop")
                 if cmdVar.didFail:
                     cmd.warn('text="Failed to abort slew"')
 
