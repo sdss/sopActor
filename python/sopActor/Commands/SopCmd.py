@@ -114,7 +114,7 @@ class SopCmd(object):
         #
         # Declare keys that we're going to use
         #
-        self.keys = keys.KeysDictionary("sop_sop", (1, 1),
+        self.keys = keys.KeysDictionary("sop_sop", (1, 2),
                                         keys.Key("abort", help="Abort a command"),
                                         keys.Key("clear", help="Clear a flag"),
                                         keys.Key("narc", types.Int(), help="Number of arcs to take"),
@@ -144,6 +144,7 @@ class SopCmd(object):
                                         keys.Key("scale", types.Float(), help="Current scale from \"tcc show scale\""),
                                         keys.Key("delta", types.Float(), help="Delta scale (percent)"),
                                         keys.Key("absolute", help="Set scale to provided value"),
+                                        keys.Key("test", help="Assert that the exposures are not expected to be meaningful"),
                                         )
         #
         # Declare commands
@@ -151,7 +152,7 @@ class SopCmd(object):
         self.vocab = [
             ("bypass", "<subSystem> [clear]", self.bypass),
             ("doCalibs",
-             "[<narc>] [<nbias>] [<ndark>] [<nflat>] [<arcTime>] [<darkTime>] [<flatTime>] [<guiderFlatTime>]",
+             "[<narc>] [<nbias>] [<ndark>] [<nflat>] [<arcTime>] [<darkTime>] [<flatTime>] [<guiderFlatTime>] [test]",
              self.doCalibs),
             ("doScience", "[<expTime>] [<nexp>]", self.doScience),
             ("ditheredFlat", "[sp1] [sp2] [<expTime>] [<nStep>] [<nTick>]", self.ditheredFlat),
@@ -171,13 +172,28 @@ class SopCmd(object):
     # Declare systems that can be bypassed
     #
     if not Bypass.get():
-        for ss in ("ffs", "ff_lamp", "hgcd_lamp", "ne_lamp", "uv_lamp", "wht_lamp", "boss", "gcamera"):
+        for ss in ("ffs", "ff_lamp", "hgcd_lamp", "ne_lamp", "uv_lamp", "wht_lamp", "boss", "gcamera", "axes"):
             Bypass.set(ss, False, define=True)
     #
     # Define commands' callbacks
     #
     def doCalibs(self, cmd):
-        """Take a set of calibration frames"""
+        """ Take a set of calibration frames. 
+
+        CmdArgs:
+          nbias=N     - the number of biases to take. Taken first. [0]
+          ndark=N     - the number of darks to take. Taken after any biases. [0]
+          nflat=N     - the number of flats to take. Taken after any darks or biases. [0]
+          narc=N      - the number of arcs to take. Taken after any flats, darks, or biases. [0]
+
+          darkTime=S  - override the default dark exposure time. Default depends on survey.
+          flatTime=S  - override the default flat exposure time. Default depends on survey.
+          arcTime=S   - override the default arc exposure time. Default depends on survey.
+          guiderFlatTime=S   - override the default guider flat exposure time. 
+
+          test        ? If set, the boss exposure QUALITY cards will be "test"
+
+          """
 
         actorState = myGlobals.actorState
         actorState.aborting = False
@@ -226,6 +242,8 @@ class SopCmd(object):
             if "guiderFlatTime" in cmd.cmd.keywords:
                 sopState.doCalibs.guiderFlatTime = float(cmd.cmd.keywords["guiderFlatTime"].values[0])
 
+            sopState.doCalibs.testExposures = "test" in cmd.cmd.keywords
+
             self.status(cmd, threads=False, finish=True)
             return
         #
@@ -259,13 +277,14 @@ class SopCmd(object):
                                      if "flatTime" in cmd.cmd.keywords else getDefaultFlatTime(survey)
         sopState.doCalibs.guiderFlatTime = float(cmd.cmd.keywords["guiderFlatTime"].values[0]) \
                                            if "guiderFlatTime" in cmd.cmd.keywords else 0
+        sopState.doCalibs.testExposures = "test" in cmd.cmd.keywords
 
         if sopState.doCalibs.nArc + sopState.doCalibs.nBias + \
                sopState.doCalibs.nDark + sopState.doCalibs.nFlat == 0:
             cmd.fail('text="You must take at least one arc, bias, dark, or flat exposure"')
             return
 
-        if sopState.doCalibs.nDark and sopState.doCalibs.darkTime < 0:
+        if sopState.doCalibs.nDark and sopState.doCalibs.darkTime <= 0:
             cmd.fail('text="Please decide on a value for darkTime"')
             return
         #
