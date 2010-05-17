@@ -465,24 +465,23 @@ def main(actor, queues):
 
                     # eval doGuiderFlat here in case cmdState changed
                     doGuiderFlat = True if (cmdState.doGuider and cmdState.guiderFlatTime > 0) else False
+
                     if doGuiderFlat and survey == sopActor.MARVELS:
                         cmd.inform('text="commanding guider flat for Marvels"')
-                        multiCmd.append(SopPrecondition(sopActor.FFS,     Msg.FFS_MOVE, open=False))
                         multiCmd.append(SopPrecondition(sopActor.FF_LAMP, Msg.LAMP_ON, on=True))
+                        multiCmd.append(SopPrecondition(sopActor.FFS,     Msg.FFS_MOVE, open=False))
                         multiCmd.append(sopActor.GCAMERA, Msg.EXPOSE,
                                         expTime=cmdState.guiderFlatTime, expType="flat",
                                         cartridge=cartridge)
                         doGuiderFlat = False
+                    elif (cmdState.nArcLeft > 0 or cmdState.nFlatLeft > 0 cmdState.doHartmann):
+                        multiCmd.append(sopActor.FFS,     Msg.FFS_MOVE, open=False)
 
                     if cmdState.nArcLeft > 0 or cmdState.doHartmann:
                         multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=True)
                         multiCmd.append(sopActor.NE_LAMP  , Msg.LAMP_ON, on=True)
                         multiCmd.append(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False)
                         multiCmd.append(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False)
-
-                    if (cmdState.nArcLeft > 0 or cmdState.nFlatLeft > 0 or
-                        cmdState.doHartmann or cmdState.doGuider):
-                        multiCmd.append(sopActor.FFS, Msg.FFS_MOVE, open=False)
 
                     if not multiCmd.run():
                         cmdState.setStageState("slew", "failed")
