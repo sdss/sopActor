@@ -465,7 +465,7 @@ def main(actor, queues):
 
                     # eval doGuiderFlat here in case cmdState changed
                     doGuiderFlat = True if (cmdState.doGuider and cmdState.guiderFlatTime > 0) else False
-                    if doGuiderFlat and (cmdState.nFlatLeft == 0 and survey == sopActor.MARVELS):
+                    if doGuiderFlat and survey == sopActor.MARVELS:
                         cmd.inform('text="commanding guider flat for Marvels"')
                         multiCmd.append(SopPrecondition(sopActor.FFS,     Msg.FFS_MOVE, open=False))
                         multiCmd.append(SopPrecondition(sopActor.FF_LAMP, Msg.LAMP_ON, on=True))
@@ -473,9 +473,6 @@ def main(actor, queues):
                                         expTime=cmdState.guiderFlatTime, expType="flat",
                                         cartridge=cartridge)
                         doGuiderFlat = False
-
-                    if doGuiderFlat or cmdState.nFlatLeft > 0:
-                        multiCmd.append(sopActor.FF_LAMP  , Msg.LAMP_ON, on=True)
 
                     if cmdState.nArcLeft > 0 or cmdState.doHartmann:
                         multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=True)
