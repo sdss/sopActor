@@ -474,7 +474,7 @@ def main(actor, queues):
                                         expTime=cmdState.guiderFlatTime, expType="flat",
                                         cartridge=cartridge)
                         doGuiderFlat = False
-                    elif (cmdState.nArcLeft > 0 or cmdState.nFlatLeft > 0 cmdState.doHartmann):
+                    elif (cmdState.nArcLeft > 0 or cmdState.nFlatLeft > 0 or cmdState.doHartmann):
                         multiCmd.append(sopActor.FFS,     Msg.FFS_MOVE, open=False)
 
                     if cmdState.nArcLeft > 0 or cmdState.doHartmann:

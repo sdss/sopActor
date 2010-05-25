@@ -29,21 +29,23 @@ class SopState(object):
     """The state of SOP"""
 
     class state(object):
+        validStageStates = ('starting', 'prepping', 'running', 'done', 'failed', 'aborted')
+
         """A class that's intended to hold state data"""
-        def __init__(self, name):
+        def __init__(self, name, allStages):
             self.name = name
             self.cmd = None
             self.cmdState = "idle"
-            self.allStages = [self.name]
-            self.stages = {self.name:"idle"}
+            self.allStages = allStages
+            self.stages = dict(zip(self.allStages, ["idle"] * len(self.allStages)))
             
-        def setupCommand(self, name, cmd, allStages, activeStages):
+        def setupCommand(self, name, cmd, activeStages):
             self.name = name
             self.cmd = cmd
-            self.allStages = allStages
             self.activeStages = activeStages
             for s in allStages:
                 self.stages[s] = "pending" if s in activeStages else "inactive"
+            self.genCommandKeys()
 
         def setCommandState(self, state, genKeys=True):
             self.cmdState = state
@@ -53,6 +55,7 @@ class SopState(object):
 
         def setStageState(self, name, stageState, genKeys=True):
             assert name in self.activeStages
+            assert stageState in state.validStageStates
             self.stages[name] = stageState
 
             if genKeys:
@@ -63,7 +66,8 @@ class SopState(object):
             for s in self.allStages:
                 if not self.stages[s] in ("pending", "done", "failed"):
                     self.stages[s] = "aborted"
-            
+            self.genCmdStateKeys()
+
         def setActiveStages(self, stages, genKeys=True):
             raise NotImplementedError()
             for s in stages:
@@ -72,9 +76,9 @@ class SopState(object):
         def genCmdStateKeys(self, cmd=None):
             if not cmd:
                 cmd = self.cmd
-            cmd.inform("commandState=%s,%s,%s" % (qstr(self.name), qstr(self.cmdState),
-                                                  ",".join([qstr(self.stages[sname]) \
-                                                            for sname in self.allStages])))
+            cmd.inform("%sState=%s,%s" % (self.name, qstr(self.cmdState),
+                                          ",".join([qstr(self.stages[sname]) \
+                                                        for sname in self.allStages])))
             
         def genCommandKeys(self, cmd=None):
             """ Return a list of the keywords describing our command. """
@@ -82,15 +86,18 @@ class SopState(object):
             if not cmd:
                 cmd = self.cmd
 
-            cmd.inform("commandStages=%s,%s" % (qstr(self.name),
-                                                ",".join([qstr(sname) \
-                                                          for sname in self.allStages])))
+            cmd.inform("%sStages=%s" % (self.name,
+                                        ",".join([qstr(sname) \
+                                                      for sname in self.allStages])))
             self.genCmdStateKeys(cmd=cmd)
             
     def __init__(self):
-        self.gotoField = SopState.state('gotoField')
-        self.doCalibs = SopState.state('doCalibs')
-        self.doScience = SopState.state('doScience')
+        self.gotoField = SopState.state('gotoField', 
+                                        ["slew", "hartmann", "calibs", "guider"])
+        self.doCalibs = SopState.state('doCalibs',
+                                       [])
+        self.doScience = SopState.state('doScience',
+                                        [])
         
 sopState = SopState()
 try:
@@ -145,6 +152,7 @@ class SopCmd(object):
                                         keys.Key("delta", types.Float(), help="Delta scale (percent)"),
                                         keys.Key("absolute", help="Set scale to provided value"),
                                         keys.Key("test", help="Assert that the exposures are not expected to be meaningful"),
+                                        keys.Key("keepOffsets", help="When slewing, do not clear accumulated offsets"),
                                         )
         #
         # Declare commands
@@ -154,14 +162,13 @@ class SopCmd(object):
             ("doCalibs",
              "[<narc>] [<nbias>] [<ndark>] [<nflat>] [<arcTime>] [<darkTime>] [<flatTime>] [<guiderFlatTime>] [test]",
              self.doCalibs),
-            ("doScience", "[<expTime>] [<nexp>]", self.doScience),
+            ("doScience", "[<expTime>] [<nexp>] [test]", self.doScience),
             ("ditheredFlat", "[sp1] [sp2] [<expTime>] [<nStep>] [<nTick>]", self.ditheredFlat),
-            ("fk5InFiber", "<fiberId>", self.fk5InFiber),
             ("hartmann", "[sp1] [sp2] [<expTime>]", self.hartmann),
             ("lampsOff", "", self.lampsOff),
             ("ping", "", self.ping),
             ("restart", "[<threads>] [keepQueues]", self.restart),
-            ("gotoField", "[<arcTime>] [<flatTime>] [<guiderFlatTime>] [noSlew] [noHartmann] [noCalibs] [noGuider] [abort]",
+            ("gotoField", "[<arcTime>] [<flatTime>] [<guiderFlatTime>] [noSlew] [noHartmann] [noCalibs] [noGuider] [abort] [keepOffsets]",
              self.gotoField),
             ("gotoInstrumentChange", "", self.gotoInstrumentChange),
             ("setScale", "<delta>|<scale>", self.setScale),
@@ -466,11 +473,6 @@ flat field screens returned to their initial state.
         actorState.queues[sopActor.MASTER].put(Msg.HARTMANN, cmd, replyQueue=actorState.queues[sopActor.MASTER],
                                                actorState=actorState, expTime=expTime, sp1=sp1, sp2=sp2)
 
-    def fk5InFiber(self, cmd):
-        fiberId = int(cmd.cmd.keywords["fiberId"].values[0])
-
-        cmd.finish('text="fiber=%d"' % fiberId)
-
     def gotoField(self, cmd):
         """Slew to the current cartridge/pointing
 
@@ -534,6 +536,11 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
                 sopState.gotoField.guiderFlatTime = float(cmd.cmd.keywords["guiderFlatTime"].values[0])
             if "guiderTime" in cmd.cmd.keywords:
                 sopState.gotoField.guiderTime = float(cmd.cmd.keywords["guiderTime"].values[0])
+
+            sopState.gotoField.setStageState("slew", sopState.gotoField.doSlew)
+            sopState.gotoField.setStageState("hartmann", sopState.gotoField.doHartmann)
+            sopState.gotoField.setStageState("calibs", (sopState.gotoField.nArc > 0 or sopState.gotoField.nFlat > 0))
+            sopState.gotoField.setStageState("guider", sopState.gotoField.doGuider)
 
             self.status(cmd, threads=False, finish=True, oneCommand="gotoField")
             return
@@ -599,7 +606,6 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
             activeStages.append("calibs")
         if sopState.gotoField.doGuider: activeStages.append("guider")
         sopState.gotoField.setupCommand("gotoField", cmd,
-                                        ["slew", "hartmann", "calibs", "guider"],
                                         activeStages)
         if not MultiCommand(cmd, 2, None,
                             sopActor.MASTER, Msg.GOTO_FIELD, actorState=actorState, cartridge=cartridge,
@@ -699,10 +705,14 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
             for t in threading.enumerate():
                 cmd.inform('text="%s"' % t)
 
-        bypassState = []
+        bypassStates = []
+        bypassNames = []
         for name, state in Bypass.get():
-            bypassState.append("%s,%s" % (name, "True" if state else "False"))
-        cmd.inform("bypassed=" + ", ".join(sorted(bypassState)))
+            bypassNames.append(qstr(name))
+            bypassStates.append("1" if state else "0")
+        cmd.inform("bypassNames=" + ", ".join(sorted(bypassNames)))
+        cmd.inform("bypassed=" + ", ".join(sorted(bypassStates)))
+
         #
         # doCalibs
         #
@@ -749,13 +759,14 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
             if not oneCommand or oneCommand == 'gotoField':
                 msg = []
 
-                msg.append("slew=%s" % ("yes" if sopState.gotoField.doSlew else "no"))
-                msg.append("hartmann=%s" % ("yes" if sopState.gotoField.doHartmann else "no"))
+                #msg.append("slew=%s" % ("yes" if sopState.gotoField.doSlew else "no"))
+                #msg.append("hartmann=%s" % ("yes" if sopState.gotoField.doHartmann else "no"))
+                #msg.append("guider=%s" % ("yes" if sopState.gotoField.doGuider else "no"))
+
                 msg.append("nArc=%d,%d" % (sopState.gotoField.nArcDone, sopState.gotoField.nArc))
                 msg.append("arcTime=%g" % sopState.gotoField.arcTime)
                 msg.append("nFlat=%d,%d" % (sopState.gotoField.nFlatDone, sopState.gotoField.nFlat))
                 msg.append("flatTime=%g" % sopState.gotoField.flatTime)
-                msg.append("guider=%s" % ("yes" if sopState.gotoField.doGuider else "no"))
                 msg.append("guiderExpTime=%g" % sopState.gotoField.guiderTime)
                 msg.append("guiderFlatTime=%g" % sopState.gotoField.guiderFlatTime)
                 
