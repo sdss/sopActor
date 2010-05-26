@@ -542,8 +542,8 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
             if "guiderTime" in cmd.cmd.keywords:
                 sopState.gotoField.guiderTime = float(cmd.cmd.keywords["guiderTime"].values[0])
 
-            sopState.gotoField.setActiveStages(sopState.gotoField.doSlew,
-                                               sopState.gotoField.doHartmann
+            sopState.gotoField.setStageState("slew", "pending" if sopState.gotoField.doSlew else "off")
+            sopState.gotoField.setStageState("hartmann", "pending" if sopState.gotoField.doHartmann else "off")
             sopState.gotoField.setStageState("calibs", "pending" if (sopState.gotoField.nArc > 0 or sopState.gotoField.nFlat > 0) else "off")
             sopState.gotoField.setStageState("guider", "pending" if sopState.gotoField.doGuider else "off")
 
