@@ -1,3 +1,6 @@
+from sopActor import Bypass
+
+import logging
 import re
 
 class TCCState(object):
@@ -9,6 +12,9 @@ class TCCState(object):
     halted = False
     moved = False
     slewing = False
+    badStat = False
+
+    axisBadStatusMask = 0
 
     def __init__(self, tccModel):
         """Register keywords that we need to pay attention to"""
@@ -17,12 +23,25 @@ class TCCState(object):
         tccModel.keyVarDict["inst"].addCallback(self.listenToInst, callNow=False)
         tccModel.keyVarDict["slewEnd"].addCallback(self.listenToSlewEnd, callNow=False)
         tccModel.keyVarDict["tccStatus"].addCallback(self.listenToTccStatus, callNow=False)
+
+        tccModel.keyVarDict["axisBadStatusMask"].addCallback(self.listenToBadStatusMask, callNow=True)
+
+        tccModel.keyVarDict["azStat"].addCallback(self.listenToAxisStat, callNow=False)
+        tccModel.keyVarDict["altStat"].addCallback(self.listenToAxisStat, callNow=False)
+        tccModel.keyVarDict["rotStat"].addCallback(self.listenToAxisStat, callNow=False)
         
     @staticmethod
     def listenToInst(keyVar):
         inst = keyVar[0]
         if inst != TCCState.instName:
             TCCState.instName = inst
+
+    @staticmethod
+    def listenToBadStatusMask(keyVar):
+        mask = keyVar[0]
+        TCCState.axisBadStatusMask = mask
+
+        logging.info('set axisBadStatusMask to %08x' % (mask))
 
     @staticmethod
     def listenToMoveItems(keyVar):
@@ -102,7 +121,6 @@ class TCCState(object):
         TCCState.halted = False
         TCCState.moved = False
         TCCState.slewing = False
-        
 
     @staticmethod
     def listenToTccStatus(keyVar):
@@ -114,3 +132,22 @@ class TCCState(object):
         if axisStat is not None and 'H' in axisStat:
             TCCState.goToNewField = False
             TCCState.halted = True
+
+    @staticmethod
+    def listenToAxisStat(keyVar):
+        """ Figure out if the axes are active by examining the TCC's <Axis>Stat keys.
+        """
+
+        axisStat = keyVar.valueList[3]
+
+        if axisStat is not None:
+            if not (axisStat & TCCState.axisBadStatusMask) or Bypass.get(name="axes"):
+                logging.info("ignoring some axis failure (%s: %08x) %s" % (keyVar.name, axisStat, Bypass.get(name="axes")))
+                TCCState.badStat = False
+            else:
+                logging.info("noting some axis failure (%s: %08x) %s" % (keyVar.name, axisStat, Bypass.get(name="axes")))
+                TCCState.badStat = True
+                TCCState.goToNewField = False
+                TCCState.halted = True
+                TCCState.slewing = False
+

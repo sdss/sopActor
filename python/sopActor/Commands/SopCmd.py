@@ -38,24 +38,28 @@ class SopState(object):
             self.cmdState = "idle"
             self.allStages = allStages
             self.stages = dict(zip(self.allStages, ["idle"] * len(self.allStages)))
-            
+            self.stateText="OK"
+
         def setupCommand(self, name, cmd, activeStages):
             self.name = name
             self.cmd = cmd
+            self.stateText="OK"
             self.activeStages = activeStages
-            for s in allStages:
-                self.stages[s] = "pending" if s in activeStages else "inactive"
+            for s in self.allStages:
+                self.stages[s] = "pending" if s in activeStages else "off"
             self.genCommandKeys()
 
-        def setCommandState(self, state, genKeys=True):
+        def setCommandState(self, state, genKeys=True, stateText=None):
             self.cmdState = state
+            if stateText:
+                self.stateText=stateText
 
             if genKeys:
                 self.genCmdStateKeys()
 
         def setStageState(self, name, stageState, genKeys=True):
             assert name in self.activeStages
-            assert stageState in state.validStageStates
+            assert stageState in self.validStageStates, "state %s is unknown" % (stageState)
             self.stages[name] = stageState
 
             if genKeys:
@@ -76,9 +80,10 @@ class SopState(object):
         def genCmdStateKeys(self, cmd=None):
             if not cmd:
                 cmd = self.cmd
-            cmd.inform("%sState=%s,%s" % (self.name, qstr(self.cmdState),
-                                          ",".join([qstr(self.stages[sname]) \
-                                                        for sname in self.allStages])))
+            cmd.inform("%sState=%s,%s,%s" % (self.name, qstr(self.cmdState),
+                                             ",".join([qstr(self.stages[sname]) \
+                                                           for sname in self.allStages]),
+                                             qstr(self.stateText)))
             
         def genCommandKeys(self, cmd=None):
             """ Return a list of the keywords describing our command. """
@@ -95,9 +100,9 @@ class SopState(object):
         self.gotoField = SopState.state('gotoField', 
                                         ["slew", "hartmann", "calibs", "guider"])
         self.doCalibs = SopState.state('doCalibs',
-                                       [])
+                                       ["doCalibs"])
         self.doScience = SopState.state('doScience',
-                                        [])
+                                        ["doScience"])
         
 sopState = SopState()
 try:
@@ -138,6 +143,7 @@ class SopCmd(object):
                                         keys.Key("fiberId", types.Int(), help="A fiber ID"),
                                         keys.Key("flatTime", types.Float(), help="Exposure time for flats"),
                                         keys.Key("guiderFlatTime", types.Float(), help="Exposure time for guider flats"),
+                                        keys.Key("guiderExpTime", types.Float(), help="Exposure time for guider exposures"),
                                         keys.Key("keepQueues", help="Restart thread queues"),
                                         keys.Key("noSlew", help="Don't slew to field"),
                                         keys.Key("noHartmann", help="Don't make Hartmann corrections"),
@@ -168,7 +174,7 @@ class SopCmd(object):
             ("lampsOff", "", self.lampsOff),
             ("ping", "", self.ping),
             ("restart", "[<threads>] [keepQueues]", self.restart),
-            ("gotoField", "[<arcTime>] [<flatTime>] [<guiderFlatTime>] [noSlew] [noHartmann] [noCalibs] [noGuider] [abort] [keepOffsets]",
+            ("gotoField", "[<arcTime>] [<flatTime>] [<guiderFlatTime>] [<guiderExpTime>] [noSlew] [noHartmann] [noCalibs] [noGuider] [abort] [keepOffsets]",
              self.gotoField),
             ("gotoInstrumentChange", "", self.gotoInstrumentChange),
             ("setScale", "<delta>|<scale>", self.setScale),
@@ -251,7 +257,7 @@ class SopCmd(object):
 
             sopState.doCalibs.testExposures = "test" in cmd.cmd.keywords
 
-            self.status(cmd, threads=False, finish=True)
+            self.status(cmd, threads=False, finish=True, oneCommand='doCalibs')
             return
         #
         # Lookup the current cartridge
@@ -310,14 +316,14 @@ class SopCmd(object):
         if survey == sopActor.MARVELS:
             sopState.doCalibs.flatTime = 0                # no need to take a BOSS flat
 
+        sopState.doCalibs.setupCommand("doCalibs", cmd,
+                                       ["doCalibs"])
         if not MultiCommand(cmd, 2, None,
                             sopActor.MASTER, Msg.DO_CALIBS, actorState=actorState, cartridge=cartridge,
                             survey=survey, cmdState=sopState.doCalibs).run():
             cmd.fail('text="Failed to issue doCalibs"')
 
-        sopState.doCalibs.cmd = cmd
-
-        self.status(cmd, threads=False, finish=False)
+        # self.status(cmd, threads=False, finish=False, oneCommand="doCalibs")
 
     def doScience(self, cmd):
         """Take a set of science frames"""
@@ -332,7 +338,7 @@ class SopCmd(object):
 
                 sopState.doScience.nExp = sopState.doScience.nExpLeft = sopState.doScience.nExpDone = 0
 
-                self.status(cmd, threads=False, finish=True)
+                self.status(cmd, threads=False, finish=True, oneCommand='doScience')
             else:
                 cmd.fail('text="No doScience command is active"')
 
@@ -348,7 +354,7 @@ class SopCmd(object):
             if "expTime" in cmd.cmd.keywords:
                 sopState.doScience.expTime = float(cmd.cmd.keywords["expTime"].values[0])
 
-            self.status(cmd, threads=False, finish=True)
+            self.status(cmd, threads=False, finish=True, oneCommand='doScience')
             return
 
         sopState.doScience.cmd = None
@@ -376,14 +382,13 @@ class SopCmd(object):
                 
         survey = classifyCartridge(cmd, cartridge)
 
+        sopState.doScience.setupCommand("doScience", cmd,
+                                        ["doScience"])
         if not MultiCommand(cmd, 2, None,
                             sopActor.MASTER, Msg.DO_SCIENCE, actorState=actorState, cartridge=cartridge,
                             survey=survey, cmdState=sopState.doScience).run():
             cmd.fail('text="Failed to issue doScience"')
 
-        sopState.doScience.cmd = cmd
-
-        self.status(cmd, threads=False, finish=False)
     def lampsOff(self, cmd, finish=True):
         """Turn all the lamps off"""
 
@@ -500,7 +505,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
                 sopState.gotoField.abortStages()
                 
                 cmd.warn('text="gotoField will abort when it finishes its current activities; be patient"')
-                self.status(cmd, threads=False, finish=True)
+                self.status(cmd, threads=False, finish=True, oneCommand='gotoField')
             else:
                 cmd.fail('text="No gotoField command is active"')
 
@@ -537,10 +542,10 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
             if "guiderTime" in cmd.cmd.keywords:
                 sopState.gotoField.guiderTime = float(cmd.cmd.keywords["guiderTime"].values[0])
 
-            sopState.gotoField.setStageState("slew", sopState.gotoField.doSlew)
-            sopState.gotoField.setStageState("hartmann", sopState.gotoField.doHartmann)
-            sopState.gotoField.setStageState("calibs", (sopState.gotoField.nArc > 0 or sopState.gotoField.nFlat > 0))
-            sopState.gotoField.setStageState("guider", sopState.gotoField.doGuider)
+            sopState.gotoField.setActiveStages(sopState.gotoField.doSlew,
+                                               sopState.gotoField.doHartmann
+            sopState.gotoField.setStageState("calibs", "pending" if (sopState.gotoField.nArc > 0 or sopState.gotoField.nFlat > 0) else "off")
+            sopState.gotoField.setStageState("guider", "pending" if sopState.gotoField.doGuider else "off")
 
             self.status(cmd, threads=False, finish=True, oneCommand="gotoField")
             return
@@ -612,7 +617,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
                             survey=survey, cmdState=sopState.gotoField).run():
             cmd.fail('text="Failed to issue gotoField"')
 
-        self.status(cmd, threads=False, finish=False, oneCommand="gotoField")
+        # self.status(cmd, threads=False, finish=False, oneCommand="gotoField")
             
     def gotoInstrumentChange(self, cmd):
         """Go to the instrument change position"""
@@ -696,7 +701,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
             cmd.finish('text="scale change completed"')
 
     def status(self, cmd, threads=False, finish=True, oneCommand=None):
-        """Return sop status.  If threads is true report on SOP's threads; if finish complete the command"""
+        """ Return sop status.  If threads is true report on SOP's threads; if finish complete the command"""
 
         actorState = myGlobals.actorState
 
@@ -710,37 +715,34 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         for name, state in Bypass.get():
             bypassNames.append(qstr(name))
             bypassStates.append("1" if state else "0")
-        cmd.inform("bypassNames=" + ", ".join(sorted(bypassNames)))
-        cmd.inform("bypassed=" + ", ".join(sorted(bypassStates)))
+        cmd.inform("bypassNames=" + ", ".join(bypassNames))
+        cmd.inform("bypassed=" + ", ".join(bypassStates))
 
         #
         # doCalibs
         #
+        sopState.doCalibs.genCommandKeys(cmd=cmd)
         if sopState.doCalibs.cmd and sopState.doCalibs.cmd.isAlive():
-            cmd.inform('text="doCalibs=active"')
-
             if not oneCommand or oneCommand == 'doCalibs':
                 msg = []
 
                 msg.append("nBias=%d,%d" % (sopState.doCalibs.nBiasDone, sopState.doCalibs.nBias))
                 msg.append("nDark=%d,%d" % (sopState.doCalibs.nDarkDone, sopState.doCalibs.nDark))
-                msg.append("darkTime=%g" % sopState.doCalibs.darkTime)
                 msg.append("nFlat=%d,%d" % (sopState.doCalibs.nFlatDone, sopState.doCalibs.nFlat))
-                msg.append("flatTime=%g" % sopState.doCalibs.flatTime)
-                msg.append("guiderFlatTime=%g" % sopState.doCalibs.guiderFlatTime)
                 msg.append("nArc=%d,%d" % (sopState.doCalibs.nArcDone, sopState.doCalibs.nArc))
-                msg.append("arcTime=%g" % sopState.doCalibs.arcTime)
+
+                msg.append("darkTime=%g,%g" % (sopState.doCalibs.darkTime, 900))
+                msg.append("flatTime=%g,%g" % (sopState.doCalibs.flatTime, 4))
+                msg.append("arcTime=%g,%g" % (sopState.doCalibs.arcTime, 30))
+                msg.append("guiderFlatTime=%g,%g" % (sopState.doCalibs.guiderFlatTime, 0.5))
 
                 cmd.inform("; ".join(["doCalibs_"+m for m in msg]))
-        else:
-            cmd.inform('text="doCalibs=inactive"')
                 
         #
         # doScience
         #
+        sopState.doScience.genCommandKeys(cmd=cmd)
         if sopState.doScience.cmd and sopState.doScience.cmd.isAlive():
-            cmd.inform('text="doScience=active"')
-
             if not oneCommand or oneCommand == 'doScience':
                 msg = []
 
@@ -749,8 +751,6 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
             
                 cmd.inform("; ".join(["doScience_"+m for m in msg]))
 
-        else:
-            cmd.inform('text="doScience=inactive"')
         #
         # gotoField
         #
@@ -763,12 +763,13 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
                 #msg.append("hartmann=%s" % ("yes" if sopState.gotoField.doHartmann else "no"))
                 #msg.append("guider=%s" % ("yes" if sopState.gotoField.doGuider else "no"))
 
-                msg.append("nArc=%d,%d" % (sopState.gotoField.nArcDone, sopState.gotoField.nArc))
-                msg.append("arcTime=%g" % sopState.gotoField.arcTime)
-                msg.append("nFlat=%d,%d" % (sopState.gotoField.nFlatDone, sopState.gotoField.nFlat))
-                msg.append("flatTime=%g" % sopState.gotoField.flatTime)
-                msg.append("guiderExpTime=%g" % sopState.gotoField.guiderTime)
-                msg.append("guiderFlatTime=%g" % sopState.gotoField.guiderFlatTime)
+                #msg.append("nArc=%d,%d" % (sopState.gotoField.nArcDone, sopState.gotoField.nArc))
+                #msg.append("nFlat=%d,%d" % (sopState.gotoField.nFlatDone, sopState.gotoField.nFlat))
+
+                msg.append("arcTime=%g,%g" % (sopState.gotoField.arcTime, 30))
+                msg.append("flatTime=%g,%g" % (sopState.gotoField.flatTime, 4))
+                msg.append("guiderExpTime=%g,%g" % (sopState.gotoField.guiderTime, 10))
+                msg.append("guiderFlatTime=%g,%g" % (sopState.gotoField.guiderFlatTime, 0.5))
                 
                 cmd.inform("; ".join(["gotoField_"+m for m in msg]))
 
@@ -808,10 +809,10 @@ def classifyCartridge(cmd, cartridge):
     """Return the survey type corresponding to this cartridge"""
 
     if fakeBoss:
-        cmd.warn('text="We are lying that this being a Boss cartridge"')
+        cmd.warn('text="We are lying about this being a Boss cartridge"')
         return sopActor.BOSS
     elif fakeMarvels:
-        #cmd.warn('text="We are lying about this being a Marvels cartridge"')
+        cmd.warn('text="We are lying about this being a Marvels cartridge"')
         return sopActor.MARVELS
     else:
         if cartridge <= 0:

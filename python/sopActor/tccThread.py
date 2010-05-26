@@ -37,7 +37,14 @@ def main(actor, queues):
                 except AttributeError, e:
                     startSlew = True
                     
+                if tccState.badStat:
+                    cmd.warn('text="in slew with badStat=%s halted=%s slewing=%s"' % \
+                                 (tccState.badStat, tccState.halted, tccState.slewing))
+                    msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
+                    continue
+
                 if not startSlew:
+                    cmd.warn('text="in slew with halted=%s slewing=%s"' % (tccState.halted, tccState.slewing))
                     if not tccState.slewing:
                         msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=not tccState.halted)
                         continue
@@ -52,7 +59,7 @@ def main(actor, queues):
                     cmd.inform('text="slewing to (%.04f, %.04f, %g)"' % (msg.ra, msg.dec, msg.rot))
                     
                     cmdVar = msg.actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd,
-                                                            cmdStr="track %f, %f icrs /rottype=object/rotang=%g" % \
+                                                            cmdStr="track %f, %f icrs /rottype=object/rotang=%g/rotwrap=mid" % \
                                                             (msg.ra, msg.dec, msg.rot))
                 except AttributeError:
                     cmd.inform('text="slewing to (az, alt, rot) == (%.04f, %.04f, %0.4f)"' % (msg.az, msg.alt, msg.rot))
