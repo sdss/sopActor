@@ -24,8 +24,7 @@ class TCCState(object):
         tccModel.keyVarDict["slewEnd"].addCallback(self.listenToSlewEnd, callNow=False)
         tccModel.keyVarDict["tccStatus"].addCallback(self.listenToTccStatus, callNow=False)
 
-        tccModel.keyVarDict["axisBadStatusMask"].addCallback(self.listenToBadStatusMask, callNow=True)
-
+        tccModel.keyVarDict["axisBadStatusMask"].addCallback(self.listenToBadStatusMask, callNow=False)
         tccModel.keyVarDict["azStat"].addCallback(self.listenToAxisStat, callNow=False)
         tccModel.keyVarDict["altStat"].addCallback(self.listenToAxisStat, callNow=False)
         tccModel.keyVarDict["rotStat"].addCallback(self.listenToAxisStat, callNow=False)
@@ -142,7 +141,6 @@ class TCCState(object):
 
         if axisStat is not None:
             if not (axisStat & TCCState.axisBadStatusMask) or Bypass.get(name="axes"):
-                logging.info("ignoring some axis failure (%s: %08x) %s" % (keyVar.name, axisStat, Bypass.get(name="axes")))
                 TCCState.badStat = False
             else:
                 logging.info("noting some axis failure (%s: %08x) %s" % (keyVar.name, axisStat, Bypass.get(name="axes")))
