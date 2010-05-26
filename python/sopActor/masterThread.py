@@ -185,9 +185,11 @@ def main(actor, queues):
                 cmdState = msg.cmdState
                 cartridge = msg.cartridge
                 survey = msg.survey
+
                 #
                 # Tell sop that we've accepted the command
                 #
+                cmdState.setCommandState('running')
                 msg.replyQueue.put(Msg.REPLY, cmd=cmd, success=True)
                 #
                 # Define the command that we use to communicate our state to e.g. STUI
@@ -330,8 +332,10 @@ def main(actor, queues):
                                                "doCalibs.readoutCleanup",
                                                sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True).run():
                             cmd.warn('text="%s"' % failMsg)
+                            cmdState.setCommandState('failed', stateText=failMsg)
                         cmd.fail('text="Failed to readout last exposure"')
                     else:
+                        cmdState.setCommandState('failed', stateText=failMsg)
                         cmd.fail('text="%s"' % failMsg)
 
                         continue
@@ -355,6 +359,7 @@ def main(actor, queues):
                 multiCmd.append(sopActor.FFS, Msg.FFS_MOVE, open=ffsInitiallyOpen)
 
                 if not multiCmd.run():
+                    cmdState.setCommandState('failed', stateText="telescope is in unknown state")
                     cmd.fail('text="Failed to restore telescope to pristine state"')
                     continue
 
@@ -363,8 +368,10 @@ def main(actor, queues):
                 # We're done
                 #
                 if actorState.aborting:
+                    cmdState.setCommandState('aborted')
                     cmd.fail('text="doCalibs was aborted')
                 else:
+                    cmdState.setCommandState('done')
                     cmd.finish('text="Your calibration data are ready, sir')
 
             elif msg.type == Msg.DO_SCIENCE:
@@ -376,6 +383,7 @@ def main(actor, queues):
                 #
                 # Tell sop that we've accepted the command
                 #
+                cmdState.setCommandState('running')
                 msg.replyQueue.put(Msg.REPLY, cmd=cmd, success=True)
                 #
                 # Define the command that we use to communicate our state to e.g. STUI
@@ -416,14 +424,17 @@ def main(actor, queues):
                 # Did we break out of that loop?
                 #
                 if failMsg:
+                    cmdState.setCommandState('failed', stateText=failMsg)
                     cmd.fail('text="%s"' % failMsg)
                     continue
                 #
                 # We're done
                 #
                 if actorState.aborting:
+                    cmdState.setCommandState('aborted')
                     cmd.fail('text="doScience was aborted')
                 else:
+                    cmdState.setCommandState('done')
                     cmd.finish('text="Your Nobel Prize is a little closer, sir')
 
             elif msg.type == Msg.GOTO_FIELD:
@@ -435,7 +446,7 @@ def main(actor, queues):
                 #
                 # Tell sop that we've accepted the command
                 #
-                cmdState.setCommandState('active')
+                cmdState.setCommandState('running')
                 msg.replyQueue.put(Msg.REPLY, cmd=cmd, success=True)
                 #
                 # Define the command that we use to communicate our state to e.g. STUI
@@ -453,18 +464,18 @@ def main(actor, queues):
 
                 status(cmdState.cmd)
 
+                # eval doGuiderFlat here in case cmdState changed
+                doGuiderFlat = True if (cmdState.doGuider and cmdState.guiderFlatTime > 0) else False
+
                 if cmdState.doSlew:
                     multiCmd = SopMultiCommand(cmd, slewTimeout + actorState.timeout, "gotoField.slew")
-                    cmdState.setStageState("slew", "active")
+                    cmdState.setStageState("slew", "running")
 
                     if True:
                         multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState,
                                         ra=cmdState.ra, dec=cmdState.dec, rot=cmdState.rotang)
                     else:
                         cmd.warn('text="RHL is skipping the slew"')
-
-                    # eval doGuiderFlat here in case cmdState changed
-                    doGuiderFlat = True if (cmdState.doGuider and cmdState.guiderFlatTime > 0) else False
 
                     if doGuiderFlat and survey == sopActor.MARVELS:
                         cmd.inform('text="commanding guider flat for Marvels"')
@@ -485,6 +496,9 @@ def main(actor, queues):
 
                     if not multiCmd.run():
                         cmdState.setStageState("slew", "failed")
+                        if actorState.tccState.badStat:
+                            cmd.warn('text="Some axis status is bad!!! Cannot slew!"')
+                        cmdState.setCommandState('failed', stateText="Some axis status is bad!")
                         cmd.fail('text="Failed to close screens, warm up lamps, and slew to field"')
                         continue
 
@@ -496,7 +510,7 @@ def main(actor, queues):
                 #
                 if cmdState.doHartmann:
                     hartmannDelay = 180
-                    cmdState.setStageState("hartmann", "active")
+                    cmdState.setStageState("hartmann", "running")
                     multiCmd = SopMultiCommand(cmd, actorState.timeout + hartmannDelay, "gotoField.hartmann")
 
                     multiCmd.append(sopActor.BOSS, Msg.HARTMANN)
@@ -512,6 +526,7 @@ def main(actor, queues):
 
                     if not multiCmd.run():
                         cmdState.setStageState("hartmann", "failed")
+                        cmdState.setCommandState('failed', stateText="failed to take hartmann sequence")
                         cmd.fail('text="Failed to do Hartmann sequence"')
                         continue
 
@@ -524,7 +539,7 @@ def main(actor, queues):
                 doingCalibs = False
                 if (cmdState.nArcLeft > 0 or cmdState.nFlatLeft > 0) and \
                        cmdState.nArcDone == 0 and cmdState.nFlatDone == 0:
-                    cmdState.setStageState("calibs", "active")
+                    cmdState.setStageState("calibs", "running")
                     doingCalibs = True
                     
                 if cmdState.nArcLeft > 0:
@@ -541,6 +556,7 @@ def main(actor, queues):
 
                     if not multiCmd.run():
                         cmd.fail('text="Failed to prepare for arcs"')
+                        cmdState.setCommandState('failed', stateText="failed to prepare for arcs")
                         continue
                     #
                     # Now take the exposure
@@ -554,6 +570,7 @@ def main(actor, queues):
                         else:
                             cmdState.setStageState("calibs", "failed")
                             cmd.fail('text="Failed to take arcs"')
+                            cmdState.setCommandState('failed', stateText="failed to take arcs")
                             continue
 
                     cmdState.nArcLeft -= 1
@@ -571,7 +588,7 @@ def main(actor, queues):
                     multiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
                     pendingReadout = False
 
-                doGuiderFlat = True if (cmdState.doGuider and cmdState.guiderFlatTime > 0) else False
+                doGuiderFlat = True if (doGuiderFlat and cmdState.doGuider and cmdState.guiderFlatTime > 0) else False
                 if cmdState.nFlatLeft > 0 or doGuiderFlat:
                     multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=True))
                     multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=False))
@@ -582,6 +599,7 @@ def main(actor, queues):
 
                 if not multiCmd.run():
                     cmdState.setStageState("calibs", "failed")
+                    cmdState.setCommandState('failed', stateText="failed to prepare flats")
                     cmd.fail('text="Failed to prepare for flats"')
                     continue
                 #
@@ -606,6 +624,7 @@ def main(actor, queues):
                                             sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True).run()
 
                         cmdState.setStageState("calibs", "failed")
+                        cmdState.setCommandState('failed', stateText="failed to take flats")
                         cmd.fail('text="Failed to take flats"')
                         continue
 
@@ -647,13 +666,14 @@ def main(actor, queues):
                     if readoutMultiCmd:
                         readoutMultiCmd.finish()
 
+                    cmdState.setCommandState('failed', stateText="failed to prepare to guide")
                     cmd.fail('text="Failed to prepare to guide"')
                     continue
                 #
                 # Start the guider
                 #
                 if cmdState.doGuider:
-                    cmdState.setStageState("guider", "active")
+                    cmdState.setStageState("guider", "running")
                     multiCmd = SopMultiCommand(cmd, actorState.timeout + cmdState.guiderTime,
                                                "gotoField.guide.start")
 
