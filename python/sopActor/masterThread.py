@@ -162,6 +162,9 @@ def doLamps(cmd, actorState, FF=False, Ne=False, HgCd=False, WHT=False, UV=False
     
     return multiCmd.run()
 
+#
+# Define the command that we use to communicate our state to e.g. STUI
+#
 def main(actor, queues):
     """Main loop for master thread"""
 
@@ -169,6 +172,13 @@ def main(actor, queues):
     timeout = myGlobals.actorState.timeout
     overhead = 150                      # overhead per exposure, minimum; seconds
 
+    
+    def status(cmd, newState=None, oneCommand=""):
+        if newState:
+            cmdState.setCommandState(newState)
+        if cmd:
+            actorState.actor.commandSets["SopCmd"].status(cmd, threads=False, finish=False,
+                                                          oneCommand=oneCommand)
     while True:
         try:
             msg = queues[MASTER].get(timeout=timeout)
@@ -191,12 +201,7 @@ def main(actor, queues):
                 #
                 cmdState.setCommandState('running')
                 msg.replyQueue.put(Msg.REPLY, cmd=cmd, success=True)
-                #
-                # Define the command that we use to communicate our state to e.g. STUI
-                #
-                def status(cmd):
-                    if cmd:
-                        actorState.actor.commandSets["SopCmd"].status(cmd, threads=False, finish=False)
+
                 #
                 # Take the data
                 #
@@ -208,7 +213,7 @@ def main(actor, queues):
                 while cmdState.nBiasLeft > 0 or cmdState.nDarkLeft > 0 or \
                           cmdState.nFlatLeft > 0 or cmdState.nArcLeft > 0:
                     
-                    status(cmdState.cmd)
+                    status(cmdState.cmd, oneCommand="doCalibs")
 
                     if cmdState.nBiasLeft > 0:
                         expTime, expType = 0.0, "bias"
@@ -385,16 +390,10 @@ def main(actor, queues):
                 #
                 cmdState.setCommandState('running')
                 msg.replyQueue.put(Msg.REPLY, cmd=cmd, success=True)
-                #
-                # Define the command that we use to communicate our state to e.g. STUI
-                #
-                def status(cmd):
-                    if cmd:
-                        actorState.actor.commandSets["SopCmd"].status(cmd, threads=False, finish=False)
 
                 failMsg = ""            # message to use if we've failed
                 while cmdState.nExpLeft > 0:
-                    status(cmdState.cmd)
+                    status(cmdState.cmd, oneCommand="doScience")
 
                     expTime = cmdState.expTime
 
@@ -449,20 +448,11 @@ def main(actor, queues):
                 cmdState.setCommandState('running')
                 msg.replyQueue.put(Msg.REPLY, cmd=cmd, success=True)
                 #
-                # Define the command that we use to communicate our state to e.g. STUI
-                #
-                def status(cmd, newState=None):
-                    if newState:
-                        cmdState.setCommandState(newState)
-                    if cmd:
-                        actorState.actor.commandSets["SopCmd"].status(cmd, threads=False, finish=False,
-                                                                      oneCommand="gotoField")
-                #
                 # Slew to field
                 #
                 slewTimeout = 180
 
-                status(cmdState.cmd)
+                status(cmdState.cmd, oneCommand="gotoField")
 
                 # eval doGuiderFlat here in case cmdState changed
                 doGuiderFlat = True if (cmdState.doGuider and cmdState.guiderFlatTime > 0) else False
@@ -473,7 +463,8 @@ def main(actor, queues):
 
                     if True:
                         multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState,
-                                        ra=cmdState.ra, dec=cmdState.dec, rot=cmdState.rotang)
+                                        ra=cmdState.ra, dec=cmdState.dec, rot=cmdState.rotang,
+                                        keepOffsets=cmdState.keepOffsets)
                     else:
                         cmd.warn('text="RHL is skipping the slew"')
 
@@ -504,7 +495,7 @@ def main(actor, queues):
 
                     # Umm is cmd == cmdState.cmd? If so, the .fail above will cause trouble.
                     cmdState.setStageState("slew", "done")
-                    status(cmdState.cmd)
+                    status(cmdState.cmd, oneCommand="gotoField")
                 #
                 # OK, we're there. 
                 #
@@ -531,7 +522,7 @@ def main(actor, queues):
                         continue
 
                     cmdState.setStageState("hartmann", "done")
-                    status(cmdState.cmd)
+                    status(cmdState.cmd, oneCommand="gotoField")
                 #
                 # Calibs.  Arcs first
                 #
@@ -576,7 +567,7 @@ def main(actor, queues):
                     cmdState.nArcLeft -= 1
                     cmdState.nArcDone += 1
 
-                    status(cmdState.cmd)
+                    status(cmdState.cmd, oneCommand="gotoField")
 
                 #
                 # Now the flats
@@ -631,7 +622,7 @@ def main(actor, queues):
                     cmdState.nFlatLeft -= 1
                     cmdState.nFlatDone += 1
 
-                    status(cmdState.cmd)
+                    status(cmdState.cmd, oneCommand="gotoField")
                 #
                 # Readout any pending data and prepare to guide
                 #
@@ -697,7 +688,7 @@ def main(actor, queues):
 
                     startedGuider = True
                     cmdState.setStageState("guider", "done")
-                    status(cmdState.cmd)
+                    status(cmdState.cmd, oneCommand="gotoField")
                 #
                 # Catch the last readout's completion
                 #
