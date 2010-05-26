@@ -7,6 +7,7 @@ import Queue, threading
 import opscore.actor.model
 import opscore.actor.keyvar
 
+import actorcore
 import actorcore.Actor
 import actorcore.CmdrConnection
 
@@ -56,10 +57,6 @@ class Sop(actorcore.Actor.Actor):
         self.logger.setLevel(debugLevel)
         #self.logger.propagate = True
 
-        self.cmdr = actorcore.CmdrConnection.Cmdr(name, self)
-        self.cmdr.connectionMade = self.connectionMade
-        self.cmdr.connect()
-
         sopActor.myGlobals.actorState = State(self)
         actorState = sopActor.myGlobals.actorState
         #
@@ -84,8 +81,6 @@ class Sop(actorcore.Actor.Actor):
         #
         # Handle the hated ini file
         #
-        import ConfigParser
-
         # read the warmupTimes and convert e.g. "Ne" to sopActor.NE_LAMP
         warmupList = self.config.get('lamps', "warmupTime").split()
         sopActor.myGlobals.warmupTime = {}
@@ -105,16 +100,6 @@ class Sop(actorcore.Actor.Actor):
     def periodicStatus(self):
         pass
 
-    def connectionMade(self):
-        '''Runs this after connection is made to the hub'''
-        
-        self.bcast.warn('sop is connected.')
-        #
-        # Request that tron connect to us.
-        #
-        self.cmdr.dispatcher.executeCmd(opscore.actor.keyvar.CmdVar
-                                        (actor='hub', cmdStr='startNubs %s' % (self.name), timeLim=5.0))
-        
     @staticmethod
     def startThreads(actorState, cmd=None, restartQueues=False, restart=False, restartThreads=None):
         """Start or restart the worker threads and queues; restartThreads is a list of names to restart"""

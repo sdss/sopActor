@@ -81,9 +81,9 @@ class SopState(object):
             if not cmd:
                 cmd = self.cmd
             cmd.inform("%sState=%s,%s,%s" % (self.name, qstr(self.cmdState),
+                                             qstr(self.stateText),
                                              ",".join([qstr(self.stages[sname]) \
-                                                           for sname in self.allStages]),
-                                             qstr(self.stateText)))
+                                                           for sname in self.allStages])))
             
         def genCommandKeys(self, cmd=None):
             """ Return a list of the keywords describing our command. """
@@ -561,8 +561,8 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
 
         sopState.gotoField.cmd = None
 
-        sopState.gotoField.doSlew = True if "noSlew" not in cmd.cmd.keywords else False
-        sopState.gotoField.doGuider = True if "noGuider" not in cmd.cmd.keywords else False
+        sopState.gotoField.doSlew = "noSlew" not in cmd.cmd.keywords
+        sopState.gotoField.doGuider = "noGuider" not in cmd.cmd.keywords
         sopState.gotoField.doHartmann = True if (survey == sopActor.BOSS and
                                                  "noHartmann" not in cmd.cmd.keywords) else False
         sopState.gotoField.arcTime = float(cmd.cmd.keywords["arcTime"].values[0]) \
@@ -573,6 +573,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
                                             if "guiderFlatTime" in cmd.cmd.keywords else 0.5
         sopState.gotoField.guiderTime = float(cmd.cmd.keywords["guiderTime"].values[0]) \
                                         if "guiderTime" in cmd.cmd.keywords else 5
+        sopState.gotoField.keepOffsets = "keepOffsets" in cmd.cmd.keywords
 
         if "noCalibs" in cmd.cmd.keywords:
             sopState.gotoField.arcTime = 0
@@ -595,7 +596,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         sopState.gotoField.dec = pointingInfo[4]
         sopState.gotoField.rotang = 0.0                    # Rotator angle; should always be 0.0
 
-        if False:
+        if True:
             sopState.gotoField.ra = 17*15
             sopState.gotoField.dec = 40
             sopState.gotoField.rotang = 120
@@ -722,7 +723,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         # doCalibs
         #
         sopState.doCalibs.genCommandKeys(cmd=cmd)
-        if sopState.doCalibs.cmd and sopState.doCalibs.cmd.isAlive():
+        if sopState.doCalibs.cmd: # and sopState.doCalibs.cmd.isAlive():
             if not oneCommand or oneCommand == 'doCalibs':
                 msg = []
 
@@ -742,7 +743,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         # doScience
         #
         sopState.doScience.genCommandKeys(cmd=cmd)
-        if sopState.doScience.cmd and sopState.doScience.cmd.isAlive():
+        if sopState.doScience.cmd: # and sopState.doScience.cmd.isAlive():
             if not oneCommand or oneCommand == 'doScience':
                 msg = []
 
@@ -755,7 +756,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         # gotoField
         #
         sopState.gotoField.genCommandKeys(cmd=cmd)
-        if sopState.gotoField.cmd and sopState.gotoField.cmd.isAlive():
+        if sopState.gotoField.cmd: # and sopState.gotoField.cmd.isAlive():
             if not oneCommand or oneCommand == 'gotoField':
                 msg = []
 
@@ -790,6 +791,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
             finally:
                 actorState.ignoreAborting = False
 
+        self.actor.sendVersionKey(cmd)
         if finish:
             cmd.finish("")
 
