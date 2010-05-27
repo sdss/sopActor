@@ -166,9 +166,9 @@ class SopCmd(object):
         self.vocab = [
             ("bypass", "<subSystem> [clear]", self.bypass),
             ("doCalibs",
-             "[<narc>] [<nbias>] [<ndark>] [<nflat>] [<arcTime>] [<darkTime>] [<flatTime>] [<guiderFlatTime>] [test]",
+             "[<narc>] [<nbias>] [<ndark>] [<nflat>] [<arcTime>] [<darkTime>] [<flatTime>] [<guiderFlatTime>] [abort] [test]",
              self.doCalibs),
-            ("doScience", "[<expTime>] [<nexp>] [test]", self.doScience),
+            ("doScience", "[<expTime>] [<nexp>] [abort] [test]", self.doScience),
             ("ditheredFlat", "[sp1] [sp2] [<expTime>] [<nStep>] [<nTick>]", self.ditheredFlat),
             ("hartmann", "[sp1] [sp2] [<expTime>]", self.hartmann),
             ("lampsOff", "", self.lampsOff),
@@ -216,12 +216,13 @@ class SopCmd(object):
                 actorState.aborting = True
                 cmd.warn('text="doCalibs will abort when it finishes its current activities; be patient"')
 
-                sopState.doCalibs.nArc = sopState.doCalibs.nArcLeft = sopState.doCalibs.nArcDone = 0
-                sopState.doCalibs.nBias = sopState.doCalibs.nBiasLeft = sopState.doCalibs.nBiasDone = 0
-                sopState.doCalibs.nDark = sopState.doCalibs.nDarkLeft = sopState.doCalibs.nDarkDone = 0
-                sopState.doCalibs.nFlat = sopState.doCalibs.nFlatLeft = sopState.doCalibs.nFlatDone = 0
+                sopState.doCalibs.nArc = sopState.doCalibs.nArcDone
+                sopState.doCalibs.nBias = sopState.doCalibs.nBiasDone
+                sopState.doCalibs.nDark = sopState.doCalibs.nDarkDone
+                sopState.doCalibs.nFlat = sopState.doCalibs.nFlatDone
 
-                self.status(cmd, threads=False, finish=True)
+                sopState.doCalibs.abortStages()
+                self.status(cmd, threads=False, finish=True, oneCommand='doCalibs')
             else:
                 cmd.fail('text="No doCalibs command is active"')
 
@@ -336,8 +337,9 @@ class SopCmd(object):
                 actorState.aborting = True
                 cmd.warn('text="doScience will abort when it finishes its current activities; be patient"')
 
-                sopState.doScience.nExp = sopState.doScience.nExpLeft = sopState.doScience.nExpDone = 0
+                sopState.doScience.nExp = sopState.doScience.nExpDone
 
+                sopState.doScience.abortStages()
                 self.status(cmd, threads=False, finish=True, oneCommand='doScience')
             else:
                 cmd.fail('text="No doScience command is active"')
@@ -497,8 +499,8 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
 
                 sopState.gotoField.doSlew = False
 
-                sopState.gotoField.nArc = sopState.gotoField.nArcLeft = sopState.gotoField.nArcDone = 0
-                sopState.gotoField.nFlat = sopState.gotoField.nFlatLeft = sopState.gotoField.nFlatDone = 0
+                sopState.gotoField.nArc = sopState.gotoField.nArcDone = 0
+                sopState.gotoField.nFlat = sopState.gotoField.nFlatDone = 0
                 sopState.gotoField.doHartmann = False
                 sopState.gotoField.doGuider = False
 
