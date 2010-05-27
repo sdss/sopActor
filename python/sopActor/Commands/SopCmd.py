@@ -58,7 +58,7 @@ class SopState(object):
                 self.genCmdStateKeys()
 
         def setStageState(self, name, stageState, genKeys=True):
-            assert name in self.activeStages
+            assert name in self.stages
             assert stageState in self.validStageStates, "state %s is unknown" % (stageState)
             self.stages[name] = stageState
 

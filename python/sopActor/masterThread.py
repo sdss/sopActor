@@ -683,6 +683,7 @@ def main(actor, queues):
 
                     if not multiCmd.run():
                         cmdState.setStageState("guider", "failed")
+                        cmdState.setCommandState('failed', stateText="failed to start the guider")
                         cmd.fail('text="Failed to start guiding"')
                         continue
 
@@ -695,6 +696,7 @@ def main(actor, queues):
                 if readoutMultiCmd:
                     if not readoutMultiCmd.finish():
                         cmdState.setStageState("calibs", "failed")
+                        cmdState.setCommandState('failed', stateText="failed to readout last exposure")
                         cmd.fail('text="Failed to readout last exposure"')
                         continue
                     else:
@@ -703,8 +705,8 @@ def main(actor, queues):
                 # We're done
                 #
                 if actorState.aborting:
-                    cmdState.setCommandState('failed')
-                    cmd.fail('text="gotoField was aborted')
+                    cmdState.setCommandState('aborted')
+                    cmd.fail('text="gotoField was aborted"')
                 else:
                     cmdState.setCommandState('done')
                     cmd.finish('text="on field')
