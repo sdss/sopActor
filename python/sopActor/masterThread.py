@@ -122,7 +122,7 @@ class SopMultiCommand(MultiCommand):
         elif msg.type == Msg.EXPOSE:
             msg.duration = 0
 
-            if queueName == sopActor.GCAMERA:
+            if queueName == sopActor.GUIDER:
                 msg.duration += msg.expTime
                 msg.duration += guiderReadoutDuration
             elif queueName == sopActor.BOSS:
@@ -291,9 +291,12 @@ def main(actor, queues):
 
                         if cmdState.guiderFlatTime > 0 and cmdState.nArcDone == 0:
                             cmd.inform('text="Taking a %gs guider flat exposure"' % (cmdState.guiderFlatTime))
-                            multiCmd.append(sopActor.GCAMERA, Msg.EXPOSE,
-                                            expTime=cmdState.guiderFlatTime, expType="flat",
-                                            cartridge=cartridge)
+#                            multiCmd.append(sopActor.GCAMERA, Msg.EXPOSE,
+#                                            expTime=cmdState.guiderFlatTime, expType="flat",
+#                                            cartridge=cartridge)
+
+                            multiCmd.append(sopActor.GUIDER, Msg.EXPOSE,
+                                            expTime=cmdState.guiderFlatTime, expType="flat")                                            )
 
                         multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=False))
                         multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON,  on=True))
@@ -468,15 +471,7 @@ def main(actor, queues):
                     else:
                         cmd.warn('text="RHL is skipping the slew"')
 
-                    if doGuiderFlat and survey == sopActor.MARVELS:
-                        cmd.inform('text="commanding guider flat for Marvels"')
-                        multiCmd.append(SopPrecondition(sopActor.FF_LAMP, Msg.LAMP_ON, on=True))
-                        multiCmd.append(SopPrecondition(sopActor.FFS,     Msg.FFS_MOVE, open=False))
-                        multiCmd.append(sopActor.GCAMERA, Msg.EXPOSE,
-                                        expTime=cmdState.guiderFlatTime, expType="flat",
-                                        cartridge=cartridge)
-                        doGuiderFlat = False
-                    elif (cmdState.nArcLeft > 0 or cmdState.nFlatLeft > 0 or cmdState.doHartmann):
+                    if (cmdState.nArcLeft > 0 or cmdState.nFlatLeft > 0 or cmdState.doHartmann):
                         multiCmd.append(sopActor.FFS,     Msg.FFS_MOVE, open=False)
 
                     if cmdState.nArcLeft > 0 or cmdState.doHartmann:
@@ -499,6 +494,20 @@ def main(actor, queues):
                 #
                 # OK, we're there. 
                 #
+                if doGuiderFlat and survey == sopActor.MARVELS:
+                    guiderDelay = 4
+                    cmdState.setStageState("hartmann", "running")
+                    multiCmd = SopMultiCommand(cmd, actorState.timeout + guiderDelay, "gotoField.guiderflat")
+                    cmd.inform('text="commanding guider flat for Marvels"')
+                    multiCmd.append(SopPrecondition(sopActor.FF_LAMP, Msg.LAMP_ON, on=True))
+                    multiCmd.append(SopPrecondition(sopActor.FFS,     Msg.FFS_MOVE, open=False))
+                    #multiCmd.append(sopActor.GCAMERA, Msg.EXPOSE,
+                    #expTime=cmdState.guiderFlatTime, expType="flat",
+                    #cartridge=cartridge)
+                    multiCmd.append(sopActor.GUIDER, Msg.EXPOSE,
+                        expTime=cmdState.guiderFlatTime, expType="flat")
+                    doGuiderFlat = False
+
                 if cmdState.doHartmann:
                     hartmannDelay = 180
                     cmdState.setStageState("hartmann", "running")
@@ -605,8 +614,8 @@ def main(actor, queues):
                         multiCmd.append(sopActor.BOSS, Msg.EXPOSE,
                                         expTime=cmdState.flatTime, expType="flat", readout=False)
                     if cmdState.doGuider and cmdState.guiderFlatTime > 0:
-                        multiCmd.append(sopActor.GCAMERA, Msg.EXPOSE,
-                                        expTime=cmdState.guiderFlatTime, expType="flat", cartridge=cartridge)
+                        multiCmd.append(sopActor.GUIDER, Msg.EXPOSE,
+                                        expTime=cmdState.guiderFlatTime, expType="flat")
 
                     if not multiCmd.run():
                         if pendingReadout:
