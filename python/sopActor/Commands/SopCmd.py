@@ -735,8 +735,8 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
                 msg.append("nArc=%d,%d" % (sopState.doCalibs.nArcDone, sopState.doCalibs.nArc))
 
                 msg.append("darkTime=%g,%g" % (sopState.doCalibs.darkTime, 900))
-                msg.append("flatTime=%g,%g" % (sopState.doCalibs.flatTime, 4))
-                msg.append("arcTime=%g,%g" % (sopState.doCalibs.arcTime, 30))
+                msg.append("flatTime=%g,%g" % (sopState.doCalibs.flatTime, 30))
+                msg.append("arcTime=%g,%g" % (sopState.doCalibs.arcTime, 4))
                 msg.append("guiderFlatTime=%g,%g" % (sopState.doCalibs.guiderFlatTime, 0.5))
 
                 cmd.inform("; ".join(["doCalibs_"+m for m in msg]))
@@ -769,8 +769,8 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
                 #msg.append("nArc=%d,%d" % (sopState.gotoField.nArcDone, sopState.gotoField.nArc))
                 #msg.append("nFlat=%d,%d" % (sopState.gotoField.nFlatDone, sopState.gotoField.nFlat))
 
-                msg.append("arcTime=%g,%g" % (sopState.gotoField.arcTime, 30))
-                msg.append("flatTime=%g,%g" % (sopState.gotoField.flatTime, 4))
+                msg.append("arcTime=%g,%g" % (sopState.gotoField.arcTime, 4))
+                msg.append("flatTime=%g,%g" % (sopState.gotoField.flatTime, 30))
                 msg.append("guiderExpTime=%g,%g" % (sopState.gotoField.guiderTime, 10))
                 msg.append("guiderFlatTime=%g,%g" % (sopState.gotoField.guiderFlatTime, 0.5))
                 
