@@ -296,7 +296,7 @@ def main(actor, queues):
 #                                            cartridge=cartridge)
 
                             multiCmd.append(sopActor.GUIDER, Msg.EXPOSE,
-                                            expTime=cmdState.guiderFlatTime, expType="flat")                                            )
+                                            expTime=cmdState.guiderFlatTime, expType="flat")
 
                         multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=False))
                         multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON,  on=True))
