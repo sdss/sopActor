@@ -291,9 +291,6 @@ def main(actor, queues):
 
                         if cmdState.guiderFlatTime > 0 and cmdState.nArcDone == 0:
                             cmd.inform('text="Taking a %gs guider flat exposure"' % (cmdState.guiderFlatTime))
-#                            multiCmd.append(sopActor.GCAMERA, Msg.EXPOSE,
-#                                            expTime=cmdState.guiderFlatTime, expType="flat",
-#                                            cartridge=cartridge)
 
                             multiCmd.append(sopActor.GUIDER, Msg.EXPOSE,
                                             expTime=cmdState.guiderFlatTime, expType="flat")
@@ -494,19 +491,27 @@ def main(actor, queues):
                 #
                 # OK, we're there. 
                 #
+                import pdb; pdb.set_trace()
                 if doGuiderFlat and survey == sopActor.MARVELS:
-                    guiderDelay = 4
-                    cmdState.setStageState("hartmann", "running")
-                    multiCmd = SopMultiCommand(cmd, actorState.timeout + guiderDelay, "gotoField.guiderflat")
+                    guiderDelay = 20
+                    cmdState.setStageState("calibs", "running")
+                    multiCmd = SopMultiCommand(cmd, actorState.timeout + guiderDelay, "gotoField.calibs.flatExposure")
                     cmd.inform('text="commanding guider flat for Marvels"')
                     multiCmd.append(SopPrecondition(sopActor.FF_LAMP, Msg.LAMP_ON, on=True))
                     multiCmd.append(SopPrecondition(sopActor.FFS,     Msg.FFS_MOVE, open=False))
-                    #multiCmd.append(sopActor.GCAMERA, Msg.EXPOSE,
-                    #expTime=cmdState.guiderFlatTime, expType="flat",
-                    #cartridge=cartridge)
                     multiCmd.append(sopActor.GUIDER, Msg.EXPOSE,
                         expTime=cmdState.guiderFlatTime, expType="flat")
                     doGuiderFlat = False
+
+                    if not multiCmd.run():
+                        cmdState.setStageState("calibs", "failed")
+                        cmdState.setCommandState('failed', stateText="failed to take Guider flat")
+                        cmd.fail('text="Failed to take a Guider flat')
+                        continue
+
+                    cmdState.setStageState("calibs", "done")
+                    status(cmdState.cmd, oneCommand="gotoField")
+
 
                 if cmdState.doHartmann:
                     hartmannDelay = 180
