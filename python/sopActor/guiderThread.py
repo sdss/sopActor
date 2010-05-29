@@ -56,10 +56,10 @@ def main(actor, queues):
 
 
             elif msg.type == Msg.EXPOSE:
-                import pdb; pdb.set_trace()
                 msg.cmd.respond('text="starting guider flat"')
 
-                timeLim = 0    #because guider flat does not take a time yet
+                #timeLim = msg.expTime   # seconds
+                timeLim = 0    
                 timeLim += 100
 
                 #guider flat is hardwired at 0.5 sec at present, so no expTimeOpt

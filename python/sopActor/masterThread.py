@@ -491,7 +491,7 @@ def main(actor, queues):
                 #
                 # OK, we're there. 
                 #
-                import pdb; pdb.set_trace()
+
                 if doGuiderFlat and survey == sopActor.MARVELS:
                     guiderDelay = 20
                     cmdState.setStageState("calibs", "running")
@@ -618,6 +618,7 @@ def main(actor, queues):
                         pendingReadout = True
                         multiCmd.append(sopActor.BOSS, Msg.EXPOSE,
                                         expTime=cmdState.flatTime, expType="flat", readout=False)
+
                     if cmdState.doGuider and cmdState.guiderFlatTime > 0:
                         multiCmd.append(sopActor.GUIDER, Msg.EXPOSE,
                                         expTime=cmdState.guiderFlatTime, expType="flat")
