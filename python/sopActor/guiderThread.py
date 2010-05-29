@@ -65,8 +65,9 @@ def main(actor, queues):
 
                 timeLim = msg.expTime   # seconds
                 timeLim += 100
-                cmdVar = actorState.actor.cmdr.call(actor="guider", forUserCmd=msg.cmd,
-                                                    cmdStr=("%s %s" % (expTimeOpt, forceOpt)),
+
+                #guider flat is hardwired at 0.5 sec at present, so no expTimeOpt
+                cmdVar = actorState.actor.cmdr.call(actor="guider", forUserCmd=msg.cmd))
                                                     keyVars=[], timeLim=timeLim)
                     
                 msg.replyQueue.put(Msg.DONE, cmd=msg.cmd, success=not cmdVar.didFail)
