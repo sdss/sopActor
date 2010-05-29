@@ -54,6 +54,23 @@ def main(actor, queues):
                     
                 msg.replyQueue.put(Msg.DONE, cmd=msg.cmd, success=not cmdVar.didFail)
 
+
+            elif msg.type == Msg.EXPOSE:
+                msg.cmd.respond('text="starting guider flat"')
+
+                if msg.expTime > 0:
+                    expTimeOpt = ("time=%g" % msg.expTime)
+                else:
+                    expTimeOpt = ""
+
+                timeLim = msg.expTime   # seconds
+                timeLim += 100
+                cmdVar = actorState.actor.cmdr.call(actor="guider", forUserCmd=msg.cmd,
+                                                    cmdStr=("%s %s" % (expTimeOpt, forceOpt)),
+                                                    keyVars=[], timeLim=timeLim)
+                    
+                msg.replyQueue.put(Msg.DONE, cmd=msg.cmd, success=not cmdVar.didFail)
+
             elif msg.type == Msg.STATUS:
                 msg.cmd.inform('text="%s thread"' % threadName)
                 msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
