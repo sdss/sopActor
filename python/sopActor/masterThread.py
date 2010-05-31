@@ -453,7 +453,6 @@ def main(actor, queues):
                 slewTimeout = 180
 
                 status(cmdState.cmd, oneCommand="gotoField")
-
                 # eval doGuiderFlat here in case cmdState changed
                 doGuiderFlat = True if (cmdState.doGuider and cmdState.guiderFlatTime > 0) else False
 

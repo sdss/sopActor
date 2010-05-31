@@ -58,14 +58,19 @@ def main(actor, queues):
             elif msg.type == Msg.EXPOSE:
                 msg.cmd.respond('text="starting guider flat"')
 
-                #timeLim = msg.expTime   # seconds
-                timeLim = 0    
-                timeLim += 100
+                if msg.expTime > 0:
+                    expTimeOpt = ("time=%g" % msg.expTime)
+                else:
+                    expTimeOpt = ""
 
-                #guider flat is hardwired at 0.5 sec at present, so no expTimeOpt
+                #timeLim = msg.expTime   # seconds
+                timeLim = msg.expTime    
+                timeLim += 15
+
                 cmdVar = actorState.actor.cmdr.call(actor="guider", forUserCmd=msg.cmd,
+                                                    cmdStr="flat %s" % (expTimeOpt), 
                                                     keyVars=[], timeLim=timeLim)
-                    
+                #import pdb; pdb.set_trace()                    
                 msg.replyQueue.put(Msg.DONE, cmd=msg.cmd, success=not cmdVar.didFail)
 
             elif msg.type == Msg.STATUS:
