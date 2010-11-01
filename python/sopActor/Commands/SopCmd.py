@@ -168,7 +168,7 @@ class SopCmd(object):
             ("doCalibs",
              "[<narc>] [<nbias>] [<ndark>] [<nflat>] [<arcTime>] [<darkTime>] [<flatTime>] [<guiderFlatTime>] [abort] [test]",
              self.doCalibs),
-            ("doScience", "[<expTime>] [<nexp>] [abort] [test]", self.doScience),
+            ("doScience", "[<expTime>] [<nexp>] [abort] [stop] [test]", self.doScience),
             ("ditheredFlat", "[sp1] [sp2] [<expTime>] [<nStep>] [<nTick>]", self.ditheredFlat),
             ("hartmann", "[sp1] [sp2] [<expTime>]", self.hartmann),
             ("lampsOff", "", self.lampsOff),
@@ -332,18 +332,20 @@ class SopCmd(object):
         actorState = myGlobals.actorState
         actorState.aborting = False
 
-        if "abort" in cmd.cmd.keywords:
+        if "abort" in cmd.cmd.keywords or "stop" in cmd.cmd.keywords:
             if sopState.doScience.cmd and sopState.doScience.cmd.isAlive():
                 actorState.aborting = True
-                cmd.warn('text="doScience will abort when it finishes its current activities; be patient"')
+                cmd.warn('text="doScience will cancel pending exposures and stop and readout any running one."')
 
                 sopState.doScience.nExp = sopState.doScience.nExpDone
+                cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=cmd, cmdStr="exposure stop")
+                if cmdVar.didFail:
+                    cmd.warn('text="Failed to stop running exposure"')
 
                 sopState.doScience.abortStages()
                 self.status(cmd, threads=False, finish=True, oneCommand='doScience')
             else:
                 cmd.fail('text="No doScience command is active"')
-
             return
                 
         if sopState.doScience.cmd and sopState.doScience.cmd.isAlive():
