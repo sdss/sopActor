@@ -752,7 +752,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
                 msg = []
 
                 msg.append("nExp=%d,%d" % (sopState.doScience.nExpDone, sopState.doScience.nExp))
-                msg.append("expTime=%g" % sopState.doScience.expTime)
+                msg.append("expTime=%g,%g" % (sopState.doScience.expTime, 900))
             
                 cmd.inform("; ".join(["doScience_"+m for m in msg]))
 
