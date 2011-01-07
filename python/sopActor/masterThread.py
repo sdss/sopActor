@@ -682,11 +682,8 @@ def main(actor, queues):
                     multiCmd = SopMultiCommand(cmd, actorState.timeout + cmdState.guiderTime,
                                                "gotoField.guide.start")
 
-                    for w in ("axes", "focus", "scale"):
-                        multiCmd.append(sopActor.GUIDER, Msg.ENABLE, what=w, on=False)
-
                     multiCmd.append(sopActor.GUIDER, Msg.START, on=True,
-                                    expTime=cmdState.guiderTime, oneExposure=True)
+                                    expTime=cmdState.guiderTime, clearCorrections=True)
 
                     multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False))
                     multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=False))

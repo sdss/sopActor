@@ -1,5 +1,6 @@
 import Queue, threading
 import math, numpy
+import time
 
 from sopActor import *
 import sopActor.myGlobals
@@ -44,16 +45,40 @@ def main(actor, queues):
 
                 forceOpt = "force" if (hasattr(msg, 'force') and msg.force) else ""
                 oneExposureOpt = "oneExposure" if (hasattr(msg, 'oneExposure') and msg.oneExposure) else ""
-                    
+                clearCorrections = "clearCorrections" if (hasattr(msg, 'clearCorrections')
+														  and msg.clearCorrections) else ""
+
+				if clearCorrections:
+					for corr in ("axes", "scale", "focus"):
+						cmdVar = actorState.actor.cmdr.call(actor="guider", forUserCmd=msg.cmd,
+															cmdStr=("%s off" % (corr)),
+															keyVars=[], timeLim=3)
+						if cmdVar.didFail:
+							cmd.cmd.warn('text="failed to disable %s guider corrections!!!"' (corr))
+							msg.replyQueue.put(Msg.DONE, cmd=msg.cmd, success=not cmdVar.didFail)
+							continue
+					
                 timeLim = msg.expTime   # seconds
-                timeLim += 100
+
+                # If we are starting a "permanent" guide loop, we can't wait for the command to finish.
+                # But wait long enough to see whether it blows up on the pad. Ugh - CPL.
+                if oneExposureOpt:
+                    timeLim += 100
+                else:
+                    timeLim += 10
                 cmdVar = actorState.actor.cmdr.call(actor="guider", forUserCmd=msg.cmd,
                                                     cmdStr="%s %s %s %s" % (("on" if msg.on else "off"),
                                                                        expTimeOpt, forceOpt, oneExposureOpt),
                                                     keyVars=[], timeLim=timeLim)
+				if msg.on and not oneExposureOpt:
+					# Waiting for word on whether there's a proper way to distinguish between
+					# 'failed' and 'times out' -- CPL
+                    if cmdVar.maxEndTime and (cmdVar.maxEndTime < time.time()):
+                        # command timed out -- assume the loop is running OK.
+                        msg.replyQueue.put(Msg.DONE, cmd=msg.cmd, success=True)
+                        continue
                     
                 msg.replyQueue.put(Msg.DONE, cmd=msg.cmd, success=not cmdVar.didFail)
-
 
             elif msg.type == Msg.EXPOSE:
                 msg.cmd.respond('text="starting guider flat"')
@@ -70,7 +95,6 @@ def main(actor, queues):
                 cmdVar = actorState.actor.cmdr.call(actor="guider", forUserCmd=msg.cmd,
                                                     cmdStr="flat %s" % (expTimeOpt), 
                                                     keyVars=[], timeLim=timeLim)
-                #import pdb; pdb.set_trace()                    
                 msg.replyQueue.put(Msg.DONE, cmd=msg.cmd, success=not cmdVar.didFail)
 
             elif msg.type == Msg.STATUS:
