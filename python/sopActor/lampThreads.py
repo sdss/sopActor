@@ -44,7 +44,7 @@ def lamp_main(actor, queue, lampName):
                     msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
                     continue
 
-                timeLim = 10.0          # seconds
+                timeLim = 30.0          # seconds
                 cmdVar = actorState.actor.cmdr.call(actor="mcp", forUserCmd=msg.cmd, 
                                                     cmdStr=("%s.%s" % (lampName.lower(), action)),
                                                     timeLim=timeLim)
