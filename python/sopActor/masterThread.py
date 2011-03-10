@@ -104,7 +104,7 @@ desired state, but if it's already in that state no command is required; so retu
 ffsDuration = 10                        # move the FFS
 flushDuration = 15                      # flush the chips prior to an exposure
 guiderReadoutDuration = 1               # readout the guider
-hartmannDuration = 90                   # take a Hartmann sequence and move the collimators
+hartmannDuration = 150                  # take a Hartmann sequence and move the collimators
 readoutDuration = 90                    # read the chips
 
 class SopMultiCommand(MultiCommand):
