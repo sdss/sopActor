@@ -239,7 +239,8 @@ class MultiCommand(object):
                 queue.put(msg)
 
         if nPre:
-            self.cmd.inform('text="expectedDuration=%d expectedEnd=%d"' % (duration, time.time() + duration))
+            self.cmd.inform('text="%s expectedDuration=%d expectedEnd=%d"' %
+                            (self.label, duration, time.time() + duration))
             if self.label:
                 self.cmd.inform('stageState="%s","prepping",0.0,0.0' % (self.label))
         

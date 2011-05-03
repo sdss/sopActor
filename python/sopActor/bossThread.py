@@ -62,7 +62,7 @@ def main(actor, queues):
                 msg.cmd.respond("text=\"starting Hartmann sequence\"")
 
                 if True:
-                    timeLim = 150
+                    timeLim = 180
                     cmdVar = actorState.actor.cmdr.call(actor="sos", forUserCmd=msg.cmd,
                                                         cmdStr="doHartmann",
                                                         keyVars=[], timeLim=timeLim)
