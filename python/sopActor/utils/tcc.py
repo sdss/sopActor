@@ -12,7 +12,7 @@ class TCCState(object):
     halted = False
     moved = False
     slewing = False
-    badStat = False
+    badStat = 0
 
     axisBadStatusMask = 0
 
@@ -24,11 +24,23 @@ class TCCState(object):
         tccModel.keyVarDict["slewEnd"].addCallback(self.listenToSlewEnd, callNow=False)
         tccModel.keyVarDict["tccStatus"].addCallback(self.listenToTccStatus, callNow=False)
 
-        tccModel.keyVarDict["axisBadStatusMask"].addCallback(self.listenToBadStatusMask, callNow=False)
+        tccModel.keyVarDict["axisBadStatusMask"].addCallback(self.listenToBadStatusMask, callNow=True)
         tccModel.keyVarDict["azStat"].addCallback(self.listenToAxisStat, callNow=False)
         tccModel.keyVarDict["altStat"].addCallback(self.listenToAxisStat, callNow=False)
         tccModel.keyVarDict["rotStat"].addCallback(self.listenToAxisStat, callNow=False)
-        
+
+    @staticmethod
+    def axisMask(axisName):
+        d = dict(AZ=1<<0,
+                 ALT=1<<1,
+                 ROT=1<<2)
+
+        return d[axisName.upper()]
+	
+    @staticmethod
+    def resetAxisStat():
+        TCCState.badStat = 0
+	
     @staticmethod
     def listenToInst(keyVar):
         inst = keyVar[0]
@@ -140,11 +152,12 @@ class TCCState(object):
         axisStat = keyVar.valueList[3]
 
         if axisStat is not None:
+            axisMask = TCCState.axisMask(keyVar.name[:-4])
             if not (axisStat & TCCState.axisBadStatusMask) or Bypass.get(name="axes"):
-                TCCState.badStat = False
+                TCCState.badStat &= ~axisMask
             else:
                 logging.info("noting some axis failure (%s: %08x) %s" % (keyVar.name, axisStat, Bypass.get(name="axes")))
-                TCCState.badStat = True
+                TCCState.badStat |= axisMask
                 TCCState.goToNewField = False
                 TCCState.halted = True
                 TCCState.slewing = False
