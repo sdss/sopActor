@@ -208,7 +208,7 @@ class SopCmd(object):
 
           """
 
-        if sopState.gotoField.cmd and sopState.gotoField.cmd.isAlive():
+        if sopState.doScience.cmd and sopState.doScience.cmd.isAlive():
             cmd.fail("text='a science exposure sequence is running -- will not take calibration frames!")
             return
     
@@ -443,8 +443,8 @@ class SopCmd(object):
     def ditheredFlat(self, cmd, finish=True):
         """Take a set of nStep dithered flats, moving the collimator by nTick between exposures"""
 
-        if sopState.gotoField.cmd and sopState.gotoField.cmd.isAlive():
-            cmd.fail("text='a science exposure sequence is running -- will not go start dithered flats!")
+        if sopState.doScience.cmd and sopState.doScience.cmd.isAlive():
+            cmd.fail("text='a science exposure sequence is running -- will not start dithered flats!")
             return
     
         actorState = myGlobals.actorState
@@ -477,7 +477,7 @@ The exposure time is set by expTime
 When the sequence is finished the Hartmann screens are moved out of the beam, the lamps turned off, and the
 flat field screens returned to their initial state.
 """
-        if sopState.gotoField.cmd and sopState.gotoField.cmd.isAlive():
+        if sopState.doScience.cmd and sopState.doScience.cmd.isAlive():
             cmd.fail("text='a science exposure sequence is running -- will not start a hartmann sequence!")
             return
     
@@ -500,7 +500,7 @@ flat field screens returned to their initial state.
 Slew to the position of the currently loaded cartridge. At the beginning of the slew all the lamps are turned on and the flat field screen petals are closed.  When you arrive at the field, all the lamps are turned off again and the flat field petals are opened if you specified openFFS.
         """
         
-        if sopState.gotoField.cmd and sopState.gotoField.cmd.isAlive():
+        if sopState.doScience.cmd and sopState.doScience.cmd.isAlive():
             cmd.fail("text='a science exposure sequence is running -- will not go to field!")
             return
     
@@ -639,7 +639,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
     def gotoInstrumentChange(self, cmd):
         """Go to the instrument change position"""
         
-        if sopState.gotoField.cmd and sopState.gotoField.cmd.isAlive():
+        if sopState.doScience.cmd and sopState.doScience.cmd.isAlive():
             cmd.fail("text='a science exposure sequence is running -- will not go to instrument change!")
             return
     
