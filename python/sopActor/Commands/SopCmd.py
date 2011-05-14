@@ -208,6 +208,10 @@ class SopCmd(object):
 
           """
 
+        if sopState.gotoField.cmd and sopState.gotoField.cmd.isAlive():
+            cmd.fail("text='a science exposure sequence is running -- will not take calibration frames!")
+            return
+    
         actorState = myGlobals.actorState
         actorState.aborting = False
 
@@ -439,6 +443,10 @@ class SopCmd(object):
     def ditheredFlat(self, cmd, finish=True):
         """Take a set of nStep dithered flats, moving the collimator by nTick between exposures"""
 
+        if sopState.gotoField.cmd and sopState.gotoField.cmd.isAlive():
+            cmd.fail("text='a science exposure sequence is running -- will not go start dithered flats!")
+            return
+    
         actorState = myGlobals.actorState
         actorState.aborting = False
 
@@ -469,6 +477,10 @@ The exposure time is set by expTime
 When the sequence is finished the Hartmann screens are moved out of the beam, the lamps turned off, and the
 flat field screens returned to their initial state.
 """
+        if sopState.gotoField.cmd and sopState.gotoField.cmd.isAlive():
+            cmd.fail("text='a science exposure sequence is running -- will not start a hartmann sequence!")
+            return
+    
         actorState = myGlobals.actorState
         actorState.aborting = False
 
@@ -488,6 +500,10 @@ flat field screens returned to their initial state.
 Slew to the position of the currently loaded cartridge. At the beginning of the slew all the lamps are turned on and the flat field screen petals are closed.  When you arrive at the field, all the lamps are turned off again and the flat field petals are opened if you specified openFFS.
         """
         
+        if sopState.gotoField.cmd and sopState.gotoField.cmd.isAlive():
+            cmd.fail("text='a science exposure sequence is running -- will not go to field!")
+            return
+    
         actorState = myGlobals.actorState
         actorState.aborting = False
 
@@ -579,12 +595,8 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
                                         if "guiderTime" in cmd.cmd.keywords else 5
         sopState.gotoField.keepOffsets = "keepOffsets" in cmd.cmd.keywords
 
-        if "noCalibs" in cmd.cmd.keywords:
-            sopState.gotoField.arcTime = 0
-            sopState.gotoField.flatTime = 0
-
-        sopState.gotoField.nArc = 1 if sopState.gotoField.arcTime > 0 else 0
-        sopState.gotoField.nFlat = 1 if sopState.gotoField.flatTime > 0 else 0
+        sopState.gotoField.nArc = 0 if ("noCalibs" in cmd.cmd.keywords or sopState.gotoField.arcTime == 0) else 1
+        sopState.gotoField.nFlat = 0 if ("noCalibs" in cmd.cmd.keywords or sopState.gotoField.flatTime == 0) else 1
 
         if survey == sopActor.UNKNOWN:
             cmd.warn('text="No cartridge is known to be loaded; disabling guider"')
@@ -627,6 +639,10 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
     def gotoInstrumentChange(self, cmd):
         """Go to the instrument change position"""
         
+        if sopState.gotoField.cmd and sopState.gotoField.cmd.isAlive():
+            cmd.fail("text='a science exposure sequence is running -- will not go to instrument change!")
+            return
+    
         actorState = myGlobals.actorState
         actorState.aborting = False
         #
