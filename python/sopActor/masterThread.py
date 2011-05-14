@@ -467,7 +467,8 @@ def main(actor, queues):
                     else:
                         cmd.warn('text="RHL is skipping the slew"')
 
-                    if (cmdState.nArcLeft > 0 or cmdState.nFlatLeft > 0 or cmdState.doHartmann):
+                    if (cmdState.nArcLeft > 0 or cmdState.nFlatLeft > 0 or cmdState.doHartmann
+                        or doGuiderFlat):
                         multiCmd.append(sopActor.FFS,     Msg.FFS_MOVE, open=False)
 
                     if cmdState.nArcLeft > 0 or cmdState.doHartmann:
@@ -475,7 +476,10 @@ def main(actor, queues):
                         multiCmd.append(sopActor.NE_LAMP  , Msg.LAMP_ON, on=True)
                         multiCmd.append(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False)
                         multiCmd.append(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False)
-
+                    else:
+                        if doGuiderFlat and survey == sopActor.MARVELS:
+                            multiCmd.append(sopActor.WHT_LAMP , Msg.LAMP_ON, on=True)
+                        
                     if not multiCmd.run():
                         cmdState.setStageState("slew", "failed")
                         if actorState.tccState.badStat:
@@ -484,34 +488,29 @@ def main(actor, queues):
                         cmd.fail('text="Failed to close screens, warm up lamps, and slew to field"')
                         continue
 
+                    if doGuiderFlat and survey == sopActor.MARVELS:
+                        guiderDelay = 20
+                        multiCmd = SopMultiCommand(cmd, actorState.timeout + guiderDelay, "gotoField.slew.guiderFlat")
+                        cmd.inform('text="commanding guider flat"')
+                        multiCmd.append(SopPrecondition(sopActor.FF_LAMP, Msg.LAMP_ON, on=True))
+                        multiCmd.append(SopPrecondition(sopActor.FFS,     Msg.FFS_MOVE, open=False))
+                        multiCmd.append(sopActor.GUIDER, Msg.EXPOSE,
+                                        expTime=cmdState.guiderFlatTime, expType="flat")
+                        doGuiderFlat = False
+
+                        if not multiCmd.run():
+                            cmdState.setStageState("slew", "failed")
+                            cmdState.setCommandState('failed', stateText="failed to take guider flat")
+                            cmd.fail('text="Failed to take a guider flat')
+                            continue
+
                     # Umm is cmd == cmdState.cmd? If so, the .fail above will cause trouble.
                     cmdState.setStageState("slew", "done")
                     status(cmdState.cmd, oneCommand="gotoField")
+
                 #
                 # OK, we're there. 
                 #
-
-                if doGuiderFlat and survey == sopActor.MARVELS:
-                    guiderDelay = 20
-                    cmdState.setStageState("calibs", "running")
-                    multiCmd = SopMultiCommand(cmd, actorState.timeout + guiderDelay, "gotoField.calibs.flatExposure")
-                    cmd.inform('text="commanding guider flat for Marvels"')
-                    multiCmd.append(SopPrecondition(sopActor.FF_LAMP, Msg.LAMP_ON, on=True))
-                    multiCmd.append(SopPrecondition(sopActor.FFS,     Msg.FFS_MOVE, open=False))
-                    multiCmd.append(sopActor.GUIDER, Msg.EXPOSE,
-                        expTime=cmdState.guiderFlatTime, expType="flat")
-                    doGuiderFlat = False
-
-                    if not multiCmd.run():
-                        cmdState.setStageState("calibs", "failed")
-                        cmdState.setCommandState('failed', stateText="failed to take Guider flat")
-                        cmd.fail('text="Failed to take a Guider flat')
-                        continue
-
-                    cmdState.setStageState("calibs", "done")
-                    status(cmdState.cmd, oneCommand="gotoField")
-
-
                 if cmdState.doHartmann:
                     hartmannDelay = 180
                     cmdState.setStageState("hartmann", "running")
