@@ -76,7 +76,7 @@ def main(actor, queues):
                         # command timed out -- assume the loop is running OK.
                         msg.replyQueue.put(Msg.DONE, cmd=msg.cmd, success=True)
                     else:
-                        cmd.warn('text="probably failed to start guide exposure loop: %s"' % (cmdStr))
+                        msg.cmd.warn('text="probably failed to start guide exposure loop: %s"' % (cmdStr))
                         msg.replyQueue.put(Msg.DONE, cmd=msg.cmd, success=False)
                     continue
                 else:
