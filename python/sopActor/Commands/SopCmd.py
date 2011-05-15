@@ -342,6 +342,7 @@ class SopCmd(object):
                 cmd.warn('text="doScience will cancel pending exposures and stop and readout any running one."')
 
                 sopState.doScience.nExp = sopState.doScience.nExpDone
+                sopState.doScience.nExpLeft = 0                
                 cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=cmd, cmdStr="exposure stop")
                 if cmdVar.didFail:
                     cmd.warn('text="Failed to stop running exposure"')
@@ -595,8 +596,12 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
                                         if "guiderTime" in cmd.cmd.keywords else 5
         sopState.gotoField.keepOffsets = "keepOffsets" in cmd.cmd.keywords
 
-        sopState.gotoField.nArc = 0 if ("noCalibs" in cmd.cmd.keywords or sopState.gotoField.arcTime == 0) else 1
-        sopState.gotoField.nFlat = 0 if ("noCalibs" in cmd.cmd.keywords or sopState.gotoField.flatTime == 0) else 1
+        sopState.gotoField.nArc = 0 if ("noCalibs" in cmd.cmd.keywords
+                                        or sopState.gotoField.arcTime == 0
+                                        or survey != sopActor.BOSS) else 1
+        sopState.gotoField.nFlat = 0 if ("noCalibs" in cmd.cmd.keywords
+                                         or sopState.gotoField.flatTime == 0
+                                         or survey != sopActor.BOSS) else 1
 
         if survey == sopActor.UNKNOWN:
             cmd.warn('text="No cartridge is known to be loaded; disabling guider"')
@@ -613,9 +618,9 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         sopState.gotoField.rotang = 0.0                    # Rotator angle; should always be 0.0
 
         if False:
-            sopState.gotoField.ra = 17*15
+            sopState.gotoField.ra = 150
             sopState.gotoField.dec = 40
-            sopState.gotoField.rotang = 120
+            sopState.gotoField.rotang = 70
             cmd.warn('text="FAKING RA DEC:  %g, %g /rotang=%g"' % (sopState.gotoField.ra,
                                                                    sopState.gotoField.dec,
                                                                    sopState.gotoField.rotang))
@@ -638,12 +643,18 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
             
     def gotoInstrumentChange(self, cmd):
         """Go to the instrument change position"""
-        
-        if sopState.doScience.cmd and sopState.doScience.cmd.isAlive():
+
+        actorState = myGlobals.actorState
+
+        if (sopState.doScience.cmd and sopState.doScience.cmd.isAlive() and
+            (sopState.doScience.nExpLeft > 1 or
+             actorState.models["boss"].keyVarDict["exposureState"][0] != 'READING')):
+            
+            cmd.warn("text='%d left; exposureState=%s'" % (sopState.doScience.nExpLeft,
+                                                           actorState.models["boss"].keyVarDict["exposureState"][0]))
             cmd.fail("text='a science exposure sequence is running -- will not go to instrument change!")
             return
     
-        actorState = myGlobals.actorState
         actorState.aborting = False
         #
         # Try to guess how long the slew will take
@@ -789,7 +800,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
 
                 msg.append("arcTime=%g,%g" % (sopState.gotoField.arcTime, 4))
                 msg.append("flatTime=%g,%g" % (sopState.gotoField.flatTime, 30))
-                msg.append("guiderExpTime=%g,%g" % (sopState.gotoField.guiderTime, 10))
+                msg.append("guiderExpTime=%g,%g" % (sopState.gotoField.guiderTime, 5.0))
                 msg.append("guiderFlatTime=%g,%g" % (sopState.gotoField.guiderFlatTime, 0.5))
                 
                 cmd.inform("; ".join(["gotoField_"+m for m in msg]))
