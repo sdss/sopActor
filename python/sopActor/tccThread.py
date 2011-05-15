@@ -38,7 +38,7 @@ def main(actor, queues):
                     startSlew = True
                     
                 # Do not _start_ slew if an axis is wedged.
-                if tccState.badStat:
+                if tccState.badStat and not Bypass.get(name='axes'):
                     cmd.warn('text="in slew with badStat=%s halted=%s slewing=%s"' % \
                                  (tccState.badStat, tccState.halted, tccState.slewing))
                     msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
