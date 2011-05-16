@@ -154,10 +154,10 @@ class TCCState(object):
         if axisStat is not None:
             axisMask = TCCState.axisMask(keyVar.name[:-4])
             if not axisStat & TCCState.axisBadStatusMask: # or Bypass.get(name="axes"):
-                logging.info("clearing some axis failure (%s: %08x)" % (keyVar.name, axisStat)
+                logging.info("clearing some axis failure (%s: %08x)" % (keyVar.name, axisStat))
                 TCCState.badStat &= ~axisMask
             else:
-                logging.info("noting some axis failure (%s: %08x)" % (keyVar.name, axisStat)
+                logging.info("noting some axis failure (%s: %08x)" % (keyVar.name, axisStat))
                 TCCState.badStat |= axisMask
                 TCCState.goToNewField = False
                 TCCState.halted = True

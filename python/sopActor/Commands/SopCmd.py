@@ -659,7 +659,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         #
         # Try to guess how long the slew will take
         #
-        slewDuration = 180
+        slewDuration = 210
 
         multiCmd = MultiCommand(cmd, slewDuration + actorState.timeout, None)
 

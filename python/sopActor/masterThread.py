@@ -482,9 +482,9 @@ def main(actor, queues):
                         
                     if not multiCmd.run():
                         cmdState.setStageState("slew", "failed")
-                        if actorState.tccState.badStat:
+                        if actorState.tccState.badStat and not Bypass.get(name='axes'):
                             cmd.warn('text="Some axis status is bad!!! Cannot slew!"')
-                        cmdState.setCommandState('failed', stateText="Some axis status is bad!")
+                            cmdState.setCommandState('failed', stateText="Some axis status is bad!")
                         cmd.fail('text="Failed to close screens, warm up lamps, and slew to field"')
                         continue
 
