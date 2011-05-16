@@ -159,6 +159,8 @@ class SopCmd(object):
                                         keys.Key("absolute", help="Set scale to provided value"),
                                         keys.Key("test", help="Assert that the exposures are not expected to be meaningful"),
                                         keys.Key("keepOffsets", help="When slewing, do not clear accumulated offsets"),
+                                        keys.Key("ditherSeq", help="dither positions for each sequence. e.g. AB"),
+                                        keys.Key("seqCount", types.Int(), help="number of times to launch sequence"),
                                         )
         #
         # Declare commands
@@ -169,6 +171,7 @@ class SopCmd(object):
              "[<narc>] [<nbias>] [<ndark>] [<nflat>] [<arcTime>] [<darkTime>] [<flatTime>] [<guiderFlatTime>] [abort] [test]",
              self.doCalibs),
             ("doScience", "[<expTime>] [<nexp>] [abort] [stop] [test]", self.doScience),
+            ("doApogeeScience", "[<expTime>] [<ditherSeq>] [<seqCount>] [abort] [stop] [test]", self.doApogeeScience),
             ("ditheredFlat", "[sp1] [sp2] [<expTime>] [<nStep>] [<nTick>]", self.ditheredFlat),
             ("hartmann", "[sp1] [sp2] [<expTime>]", self.hartmann),
             ("lampsOff", "", self.lampsOff),
@@ -397,6 +400,74 @@ class SopCmd(object):
                             sopActor.MASTER, Msg.DO_SCIENCE, actorState=actorState, cartridge=cartridge,
                             survey=survey, cmdState=sopState.doScience).run():
             cmd.fail('text="Failed to issue doScience"')
+
+    def doApogeeScience(self, cmd):
+        """Take a set of APOGEE science frames"""
+
+        actorState = myGlobals.actorState
+        actorState.aborting = False
+
+        if "abort" in cmd.cmd.keywords or "stop" in cmd.cmd.keywords:
+            if sopState.doApogeeScience.cmd and sopState.doApogeeScience.cmd.isAlive():
+                actorState.aborting = True
+                cmd.warn('text="doApogeeScience will cancel pending exposures and stop and readout any running one."')
+
+                sopState.doApogeeScience.nExp = sopState.doApogeeScience.nExpDone
+                sopState.doApogeeScience.nExpLeft = 0                
+                cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=cmd, cmdStr="exposure stop")
+                if cmdVar.didFail:
+                    cmd.warn('text="Failed to stop running exposure"')
+
+                sopState.doApogeeScience.abortStages()
+                self.status(cmd, threads=False, finish=True, oneCommand='doApogeeScience')
+            else:
+                cmd.fail('text="No doApogeeScience command is active"')
+            return
+                
+        if sopState.doApogeeScience.cmd and sopState.doApogeeScience.cmd.isAlive():
+            # Modify running doApogeeScience command
+            if "nexp" in cmd.cmd.keywords:
+                nExpDoneOld = sopState.doApogeeScience.nExpDone
+                sopState.doApogeeScience.nExp = int(cmd.cmd.keywords["nexp"].values[0])
+                sopState.doApogeeScience.nExpLeft = sopState.doApogeeScience.nExp - nExpDoneOld
+
+            if "expTime" in cmd.cmd.keywords:
+                sopState.doApogeeScience.expTime = float(cmd.cmd.keywords["expTime"].values[0])
+
+            self.status(cmd, threads=False, finish=True, oneCommand='doApogeeScience')
+            return
+
+        sopState.doApogeeScience.cmd = None
+
+        sopState.doApogeeScience.nExp = int(cmd.cmd.keywords["nexp"].values[0])   \
+                                 if "nexp" in cmd.cmd.keywords else 1
+        sopState.doApogeeScience.expTime = float(cmd.cmd.keywords["expTime"].values[0]) \
+                                 if "expTime" in cmd.cmd.keywords else 900
+
+        if sopState.doApogeeScience.nExp == 0:
+            cmd.fail('text="You must take at least one exposure"')
+            return
+        #
+        # How many exposures we have left/have done
+        #
+        sopState.doApogeeScience.nExpLeft = sopState.doApogeeScience.nExp; sopState.doApogeeScience.nExpDone = 0
+        #
+        # Lookup the current cartridge
+        #
+        try:
+            cartridge = int(actorState.models["guider"].keyVarDict["cartridgeLoaded"][0])
+        except TypeError:
+            cmd.warn('text="No cartridge is known to be loaded"')
+            cartridge = -1
+                
+        survey = classifyCartridge(cmd, cartridge)
+
+        sopState.doApogeeScience.setupCommand("doApogeeScience", cmd,
+                                              ["doApogeeScience"])
+        if not MultiCommand(cmd, 2, None,
+                            sopActor.MASTER, Msg.DO_APOGEE_SCIENCE, actorState=actorState, cartridge=cartridge,
+                            survey=survey, cmdState=sopState.doApogeeScience).run():
+            cmd.fail('text="Failed to issue doApogeeScience"')
 
     def lampsOff(self, cmd, finish=True):
         """Turn all the lamps off"""

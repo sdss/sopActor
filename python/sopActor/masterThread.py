@@ -182,7 +182,7 @@ def main(actor, queues):
     while True:
         try:
             msg = queues[MASTER].get(timeout=timeout)
-
+            
             if msg.type == Msg.EXIT:
                 if msg.cmd:
                     msg.cmd.inform("text=\"Exiting thread %s\"" % (threading.current_thread().name))
