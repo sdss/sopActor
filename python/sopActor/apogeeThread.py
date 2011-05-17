@@ -24,7 +24,7 @@ def main(actor, queues):
 
             elif msg.type == Msg.DITHER:
                 timeLim = 30.0  # seconds
-                if True:                # really take data
+                if True:
                     cmdVar = actorState.actor.cmdr.call(actor="apogee", forUserCmd=msg.cmd,
                                                         cmdStr=("dither %s" % msg.dither)
                                                         keyVars=[], timeLim=timeLim)
@@ -35,8 +35,9 @@ def main(actor, queues):
                         @property
                         def didFail(self): return False
                     cmdVar = Foo()
-                    
-                msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=not cmdVar.didFail)
+
+                if not msg.noFinish:
+                    msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=not cmdVar.didFail)
 
             elif msg.type == Msg.EXPOSE:
                 msg.cmd.respond("text=\"starting %s%s exposure\"" % (
@@ -50,7 +51,7 @@ def main(actor, queues):
                                                         keyVars=[], timeLim=timeLim)
                 else:
                     msg.cmd.inform('text="Not taking a %gs exposure"' % msg.expTime)
-
+                    
                     class Foo(object):
                         @property
                         def didFail(self): return False

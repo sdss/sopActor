@@ -119,6 +119,7 @@ class Sop(actorcore.Actor.Actor):
         threadsToStart = []
         for tname, tid, threadModule, target in [("master",  sopActor.MASTER,    masterThread,  masterThread.main),
                                                  ("boss",    sopActor.BOSS,      bossThread,    bossThread.main),
+                                                 ("apogee",  sopActor.APOGEE,    apogeeThread,  apogeeThread.main),
                                                  ("guider",  sopActor.GUIDER,    guiderThread,  guiderThread.main),
                                                  ("gcamera", sopActor.GCAMERA,   gcameraThread, gcameraThread.main),
                                                  ("ff",      sopActor.FF_LAMP,   lampThreads,   lampThreads.ff_main),
