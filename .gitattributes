@@ -3,6 +3,7 @@ etc/sop.cfg -text
 python/sopActor/Commands/SopCmd.py -text
 python/sopActor/Commands/__init__.py -text
 python/sopActor/__init__.py -text
+python/sopActor/apogeeThread.py -text
 python/sopActor/bossThread.py -text
 python/sopActor/ffsThread.py -text
 python/sopActor/gcameraThread.py -text

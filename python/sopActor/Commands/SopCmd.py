@@ -171,7 +171,7 @@ class SopCmd(object):
              "[<narc>] [<nbias>] [<ndark>] [<nflat>] [<arcTime>] [<darkTime>] [<flatTime>] [<guiderFlatTime>] [abort] [test]",
              self.doCalibs),
             ("doScience", "[<expTime>] [<nexp>] [abort] [stop] [test]", self.doScience),
-            ("doApogeeScience", "[<expTime>] [<ditherSeq>] [<seqCount>] [abort] [stop] [test]", self.doApogeeScience),
+            ("doApogeeScience", "[<expTime>] [<ditherSeq>] [<seqCount>] [stop]", self.doApogeeScience),
             ("ditheredFlat", "[sp1] [sp2] [<expTime>] [<nStep>] [<nTick>]", self.ditheredFlat),
             ("hartmann", "[sp1] [sp2] [<expTime>]", self.hartmann),
             ("lampsOff", "", self.lampsOff),
@@ -407,17 +407,12 @@ class SopCmd(object):
         actorState = myGlobals.actorState
         actorState.aborting = False
 
-        if "abort" in cmd.cmd.keywords or "stop" in cmd.cmd.keywords:
+        if "stop" in cmd.cmd.keywords:
             if sopState.doApogeeScience.cmd and sopState.doApogeeScience.cmd.isAlive():
                 actorState.aborting = True
-                cmd.warn('text="doApogeeScience will cancel pending exposures and stop and readout any running one."')
+                cmd.warn('text="doApogeeScience will cancel pending exposures. It cannopt yet stop and readout any running one."')
 
-                sopState.doApogeeScience.nExp = sopState.doApogeeScience.nExpDone
-                sopState.doApogeeScience.nExpLeft = 0                
-                cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=cmd, cmdStr="exposure stop")
-                if cmdVar.didFail:
-                    cmd.warn('text="Failed to stop running exposure"')
-
+                sopState.doApogeeScience.expString = sopState.doApogeeScience.expString[:sopState.doApogeeScience.index]
                 sopState.doApogeeScience.abortStages()
                 self.status(cmd, threads=False, finish=True, oneCommand='doApogeeScience')
             else:
@@ -426,31 +421,39 @@ class SopCmd(object):
                 
         if sopState.doApogeeScience.cmd and sopState.doApogeeScience.cmd.isAlive():
             # Modify running doApogeeScience command
-            if "nexp" in cmd.cmd.keywords:
-                nExpDoneOld = sopState.doApogeeScience.nExpDone
-                sopState.doApogeeScience.nExp = int(cmd.cmd.keywords["nexp"].values[0])
-                sopState.doApogeeScience.nExpLeft = sopState.doApogeeScience.nExp - nExpDoneOld
-
+            if "ditherSeq" in cmd.cmd.keywords:
+                cmd.fail('text="Cannot modify dither sequence"')
+                return
+            
             if "expTime" in cmd.cmd.keywords:
                 sopState.doApogeeScience.expTime = float(cmd.cmd.keywords["expTime"].values[0])
 
+            if "seqCount" in cmd.cmd.keywords:
+                expString = sopState.doApogeeScience.ditherSeq * int(cmd.cmd.keywords["seqCount"].values[0])
+                sopState.doApogeeScience.expString = expString                
+                if sopState.doApogeeScience.index > len(sopState.doApogeeScience.expString):
+                    cmd.warn('text="truncating previous exposure sequence, but NOT trying to stop current exposure"')
+                    sopState.doApogeeScience.index = len(sopState.doApogeeScience.expString)
+                    
             self.status(cmd, threads=False, finish=True, oneCommand='doApogeeScience')
             return
 
-        sopState.doApogeeScience.cmd = None
+        seqCount = int(cmd.cmd.keywords["seqCount"].values[0]) \
+                   if "seqCount" in cmd.cmd.keywords else 1
+        ditherSeq = cmd.cmd.keywords["seqCount"].values[0] \
+                    if "ditherSeq" in cmd.cmd.keywords else "AB"
 
-        sopState.doApogeeScience.nExp = int(cmd.cmd.keywords["nexp"].values[0])   \
-                                 if "nexp" in cmd.cmd.keywords else 1
-        sopState.doApogeeScience.expTime = float(cmd.cmd.keywords["expTime"].values[0]) \
-                                 if "expTime" in cmd.cmd.keywords else 900
+        sopState.doApogeeScience.cmd = cmd
+        sopState.doApogeeScience.ditherSeq = ditherSeq
 
-        if sopState.doApogeeScience.nExp == 0:
+        expString = ditherSeq * seqCount
+        sopState.doApogeeScience.expString = expString
+        sopState.doApogeeScience.index = 0
+        
+        if len(sopState.doApogeeScience.expString) == 0:
             cmd.fail('text="You must take at least one exposure"')
             return
-        #
-        # How many exposures we have left/have done
-        #
-        sopState.doApogeeScience.nExpLeft = sopState.doApogeeScience.nExp; sopState.doApogeeScience.nExpDone = 0
+
         #
         # Lookup the current cartridge
         #

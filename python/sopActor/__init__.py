@@ -65,7 +65,8 @@ except NameError:
         class REPLY(): pass
         class SLEW(): pass
         class WAIT_UNTIL(): pass
-
+        class DITHER(): pass
+        
         def __init__(self, type, cmd, **data):
             self.type = type
             self.cmd = cmd

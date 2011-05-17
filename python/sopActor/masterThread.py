@@ -436,6 +436,63 @@ def main(actor, queues):
                     cmdState.setCommandState('done')
                     cmd.finish('text="Your Nobel Prize is a little closer, sir')
 
+            elif msg.type == Msg.DO_APOGEE_SCIENCE:
+                cmd = msg.cmd
+                actorState = msg.actorState
+                cmdState = msg.cmdState
+                cartridge = msg.cartridge
+                survey = msg.survey
+                #
+                # Tell sop that we've accepted the command
+                #
+                cmdState.setCommandState('running')
+                msg.replyQueue.put(Msg.REPLY, cmd=cmd, success=True)
+
+                failMsg = ""            # message to use if we've failed
+                while cmdState.index < len(cmdState.expString):
+                    status(cmdState.cmd, oneCommand="doApogeeScience")
+
+                    expTime = cmdState.expTime
+                    dither = cmdState.expString[cmdState.index]
+                    
+                    multiCmd = SopMultiCommand(cmd,
+                                               expTime + actorState.timeout,
+                                               "doApogeeScience")
+                    
+                    multiCmd.append(sopActor.APOGEE, Msg.EXPOSE,
+                                    expTime=expTime, expType='science')
+                    
+                    # Really? All of these?
+                    multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=True))
+                    multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON,  on=False))
+                    multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON,  on=False))
+                    multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON,  on=False))
+                    multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON,  on=False))
+                    multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON,  on=False))
+
+                    cmd.inform('text="Taking a science exposure"')
+                    if not multiCmd.run():
+                        failMsg = "Failed to take science exposure"
+                        break
+
+                    cmdState.index += 1
+                #
+                # Did we break out of that loop?
+                #
+                if failMsg:
+                    cmdState.setCommandState('failed', stateText=failMsg)
+                    cmd.fail('text="%s"' % failMsg)
+                    continue
+                #
+                # We're done
+                #
+                if actorState.aborting:
+                    cmdState.setCommandState('aborted')
+                    cmd.fail('text="doScience was aborted')
+                else:
+                    cmdState.setCommandState('done')
+                    cmd.finish('text="Your Nobel Prize is a little closer, sir')
+
             elif msg.type == Msg.GOTO_FIELD:
                 cmd = msg.cmd
                 actorState = msg.actorState
