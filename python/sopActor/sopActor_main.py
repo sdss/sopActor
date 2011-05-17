@@ -15,6 +15,7 @@ import actorkeys
 
 import masterThread
 import bossThread
+import apogeeThread
 import guiderThread
 import gcameraThread
 import ffsThread

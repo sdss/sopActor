@@ -103,6 +103,8 @@ class SopState(object):
                                        ["doCalibs"])
         self.doScience = SopState.state('doScience',
                                         ["doScience"])
+        self.doApogeeScience = SopState.state('doApogeeScience',
+                                              ["doApogeeScience"])
         
 sopState = SopState()
 try:
@@ -159,8 +161,10 @@ class SopCmd(object):
                                         keys.Key("absolute", help="Set scale to provided value"),
                                         keys.Key("test", help="Assert that the exposures are not expected to be meaningful"),
                                         keys.Key("keepOffsets", help="When slewing, do not clear accumulated offsets"),
-                                        keys.Key("ditherSeq", help="dither positions for each sequence. e.g. AB"),
-                                        keys.Key("seqCount", types.Int(), help="number of times to launch sequence"),
+                                        keys.Key("ditherSeq", types.String(),
+                                                 help="dither positions for each sequence. e.g. AB"),
+                                        keys.Key("seqCount", types.Int(),
+                                                 help="number of times to launch sequence"),
                                         )
         #
         # Declare commands
@@ -409,48 +413,55 @@ class SopCmd(object):
 
         if "stop" in cmd.cmd.keywords:
             if sopState.doApogeeScience.cmd and sopState.doApogeeScience.cmd.isAlive():
-                actorState.aborting = True
-                cmd.warn('text="doApogeeScience will cancel pending exposures. It cannopt yet stop and readout any running one."')
+                cmd.warn('text="doApogeeScience will cancel pending exposures and stopping any running one."')
 
-                sopState.doApogeeScience.expString = sopState.doApogeeScience.expString[:sopState.doApogeeScience.index]
+                sopState.doApogeeScience.exposureSeq = sopState.doApogeeScience.exposureSeq[:sopState.doApogeeScience.index]
+
+                cmdVar = actorState.actor.cmdr.call(actor="apogee", forUserCmd=cmd, cmdStr="expose stop")
+                if cmdVar.didFail:
+                    cmd.warn('text="Failed to stop running exposure"')
+
                 sopState.doApogeeScience.abortStages()
                 self.status(cmd, threads=False, finish=True, oneCommand='doApogeeScience')
             else:
                 cmd.fail('text="No doApogeeScience command is active"')
             return
                 
+        sopState.doApogeeScience.expTime = float(cmd.cmd.keywords["expTime"].values[0]) if \
+                                               "expTime" in cmd.cmd.keywords else 10*60.0
+
         if sopState.doApogeeScience.cmd and sopState.doApogeeScience.cmd.isAlive():
             # Modify running doApogeeScience command
             if "ditherSeq" in cmd.cmd.keywords:
                 cmd.fail('text="Cannot modify dither sequence"')
                 return
             
-            if "expTime" in cmd.cmd.keywords:
-                sopState.doApogeeScience.expTime = float(cmd.cmd.keywords["expTime"].values[0])
-
             if "seqCount" in cmd.cmd.keywords:
-                expString = sopState.doApogeeScience.ditherSeq * int(cmd.cmd.keywords["seqCount"].values[0])
-                sopState.doApogeeScience.expString = expString                
-                if sopState.doApogeeScience.index > len(sopState.doApogeeScience.expString):
+                seqCount = int(cmd.cmd.keywords["seqCount"].values[0])
+                exposureSeq = sopState.doApogeeScience.ditherSeq * seqCount
+                sopState.doApogeeScience.seqCount = seqCount
+                sopState.doApogeeScience.exposureSeq = exposureSeq                
+                if sopState.doApogeeScience.index > len(sopState.doApogeeScience.exposureSeq):
                     cmd.warn('text="truncating previous exposure sequence, but NOT trying to stop current exposure"')
-                    sopState.doApogeeScience.index = len(sopState.doApogeeScience.expString)
+                    sopState.doApogeeScience.index = len(sopState.doApogeeScience.exposureSeq)
                     
             self.status(cmd, threads=False, finish=True, oneCommand='doApogeeScience')
             return
 
         seqCount = int(cmd.cmd.keywords["seqCount"].values[0]) \
                    if "seqCount" in cmd.cmd.keywords else 1
-        ditherSeq = cmd.cmd.keywords["seqCount"].values[0] \
+        ditherSeq = cmd.cmd.keywords["ditherSeq"].values[0] \
                     if "ditherSeq" in cmd.cmd.keywords else "AB"
 
         sopState.doApogeeScience.cmd = cmd
         sopState.doApogeeScience.ditherSeq = ditherSeq
+        sopState.doApogeeScience.seqCount = seqCount
 
-        expString = ditherSeq * seqCount
-        sopState.doApogeeScience.expString = expString
+        exposureSeq = ditherSeq * seqCount
+        sopState.doApogeeScience.exposureSeq = exposureSeq
         sopState.doApogeeScience.index = 0
         
-        if len(sopState.doApogeeScience.expString) == 0:
+        if len(sopState.doApogeeScience.exposureSeq) == 0:
             cmd.fail('text="You must take at least one exposure"')
             return
 
@@ -856,6 +867,24 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
                 msg.append("expTime=%g,%g" % (sopState.doScience.expTime, 900))
             
                 cmd.inform("; ".join(["doScience_"+m for m in msg]))
+
+        #
+        # doApogeeScience
+        #
+        sopState.doApogeeScience.genCommandKeys(cmd=cmd)
+        if sopState.doApogeeScience.cmd: # and sopState.doScience.cmd.isAlive():
+            if not oneCommand or oneCommand == 'doApogeeScience':
+                msg = []
+
+                msg.append("ditherSeq=%s,%s" % (sopState.doApogeeScience.ditherSeq, "AB"))
+                msg.append("seqCount=%d,%d" % (sopState.doApogeeScience.seqCount, 1))
+                msg.append("expTime=%g,%g" % (sopState.doApogeeScience.expTime, 600))
+                cmd.inform("; ".join(["doApogeeScience_"+m for m in msg]))
+
+                msg = []
+                msg.append("sequenceState=%s,%d" % (sopState.doApogeeScience.exposureSeq,
+                                                    sopState.doApogeeScience.index))
+                cmd.inform("; ".join(["doApogeeScience_"+m for m in msg]))
 
         #
         # gotoField

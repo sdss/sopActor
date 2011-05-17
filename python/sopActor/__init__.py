@@ -50,6 +50,7 @@ except NameError:
         class DITHERED_FLAT(): pass
         class HARTMANN(): pass
         class DO_SCIENCE(): pass
+        class DO_APOGEE_SCIENCE(): pass
         class DONE(): pass
         class EXIT(): pass
         class ENABLE(): pass

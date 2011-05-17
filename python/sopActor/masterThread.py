@@ -449,26 +449,28 @@ def main(actor, queues):
                 msg.replyQueue.put(Msg.REPLY, cmd=cmd, success=True)
 
                 failMsg = ""            # message to use if we've failed
-                while cmdState.index < len(cmdState.expString):
+                while cmdState.index < len(cmdState.exposureSeq):
                     status(cmdState.cmd, oneCommand="doApogeeScience")
 
                     expTime = cmdState.expTime
-                    dither = cmdState.expString[cmdState.index]
+                    dither = cmdState.exposureSeq[cmdState.index]
                     
                     multiCmd = SopMultiCommand(cmd,
                                                expTime + actorState.timeout,
                                                "doApogeeScience")
                     
                     multiCmd.append(sopActor.APOGEE, Msg.EXPOSE,
-                                    expTime=expTime, expType='science')
+                                    expTime=expTime, dither=dither,
+                                    expType='science')
                     
                     # Really? All of these?
-                    multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=True))
-                    multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON,  on=False))
-                    multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON,  on=False))
-                    multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON,  on=False))
-                    multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON,  on=False))
-                    multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON,  on=False))
+                    if False:
+                        multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=True))
+                        multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON,  on=False))
+                        multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON,  on=False))
+                        multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON,  on=False))
+                        multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON,  on=False))
+                        multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON,  on=False))
 
                     cmd.inform('text="Taking a science exposure"')
                     if not multiCmd.run():
