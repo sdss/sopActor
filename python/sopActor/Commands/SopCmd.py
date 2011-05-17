@@ -432,7 +432,8 @@ class SopCmd(object):
 
         if sopState.doApogeeScience.cmd and sopState.doApogeeScience.cmd.isAlive():
             # Modify running doApogeeScience command
-            if "ditherSeq" in cmd.cmd.keywords:
+            if ("ditherSeq" in cmd.cmd.keywords
+                and cmd.cmd.keywords['ditherSeq'].values[0] != sopState.doApogeeScience.ditherSeq):
                 cmd.fail('text="Cannot modify dither sequence"')
                 return
             
@@ -882,7 +883,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
                 cmd.inform("; ".join(["doApogeeScience_"+m for m in msg]))
 
                 msg = []
-                msg.append("sequenceState=%s,%d" % (sopState.doApogeeScience.exposureSeq,
+                msg.append('sequenceState="%s",%d' % (sopState.doApogeeScience.exposureSeq,
                                                     sopState.doApogeeScience.index))
                 cmd.inform("; ".join(["doApogeeScience_"+m for m in msg]))
 
