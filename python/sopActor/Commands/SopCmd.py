@@ -406,7 +406,7 @@ class SopCmd(object):
             cmd.fail('text="Failed to issue doScience"')
 
     def doApogeeScience(self, cmd):
-        """Take a set of APOGEE science frames"""
+        """Take a sequence of dithered APOGEE science frames, or stop or modify a running sequence."""
 
         actorState = myGlobals.actorState
         actorState.aborting = False
