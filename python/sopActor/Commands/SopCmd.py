@@ -184,6 +184,7 @@ class SopCmd(object):
             ("gotoField", "[<arcTime>] [<flatTime>] [<guiderFlatTime>] [<guiderExpTime>] [noSlew] [noHartmann] [noCalibs] [noGuider] [abort] [keepOffsets]",
              self.gotoField),
             ("gotoInstrumentChange", "", self.gotoInstrumentChange),
+            ("gotoStow", "", self.gotoStow),
             ("setScale", "<delta>|<scale>", self.setScale),
             ("scaleChange", "<delta>|<scale>", self.scaleChange),
             ("status", "[geek]", self.status),
@@ -704,7 +705,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         sopState.gotoField.rotang = 0.0                    # Rotator angle; should always be 0.0
 
         if False:
-            sopState.gotoField.ra = 150
+            sopState.gotoField.ra = 82
             sopState.gotoField.dec = 40
             sopState.gotoField.rotang = 70
             cmd.warn('text="FAKING RA DEC:  %g, %g /rotang=%g"' % (sopState.gotoField.ra,
@@ -727,9 +728,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
 
         # self.status(cmd, threads=False, finish=False, oneCommand="gotoField")
             
-    def gotoInstrumentChange(self, cmd):
-        """Go to the instrument change position"""
-
+    def gotoPosition(self, cmd, name, az, alt, rot=0):
         actorState = myGlobals.actorState
 
         if (sopState.doScience.cmd and sopState.doScience.cmd.isAlive() and
@@ -738,7 +737,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
             
             cmd.warn("text='%d left; exposureState=%s'" % (sopState.doScience.nExpLeft,
                                                            actorState.models["boss"].keyVarDict["exposureState"][0]))
-            cmd.fail("text='a science exposure sequence is running -- will not go to instrument change!")
+            cmd.fail("text='a BOSS science exposure sequence is running -- will not go to %s!" % (name))
             return
     
         actorState.aborting = False
@@ -749,14 +748,24 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
 
         multiCmd = MultiCommand(cmd, slewDuration + actorState.timeout, None)
 
-        multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState, az=121, alt=90, rot=0)
+        multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState, az=az, alt=alt, rot=rot)
 
         if not multiCmd.run():
-            cmd.fail('text="Failed to slew to instrument change"')
+            cmd.fail('text="Failed to slew to %s"' % (name))
             return
         
-        cmd.finish('text="At instrument change position')
+        cmd.finish('text="At %s position"' % (name))
 
+    def gotoInstrumentChange(self, cmd):
+        """Go to the instrument change position"""
+
+        gotoPosition(cmd, "instrument change", 121, 90)
+        
+    def gotoStow(self, cmd):
+        """Go to the gang connector change/stow position"""
+
+        gotoPosition(cmd, "stow", 121, 30)
+        
     def ping(self, cmd):
         """ Query sop for liveness/happiness. """
 
