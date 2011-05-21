@@ -759,12 +759,12 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
     def gotoInstrumentChange(self, cmd):
         """Go to the instrument change position"""
 
-        gotoPosition(cmd, "instrument change", 121, 90)
+        self.gotoPosition(cmd, "instrument change", 121, 90)
         
     def gotoStow(self, cmd):
         """Go to the gang connector change/stow position"""
 
-        gotoPosition(cmd, "stow", 121, 30)
+        self.gotoPosition(cmd, "stow", 121, 30)
         
     def ping(self, cmd):
         """ Query sop for liveness/happiness. """
