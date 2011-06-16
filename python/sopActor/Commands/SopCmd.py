@@ -105,7 +105,10 @@ class SopState(object):
                                         ["doScience"])
         self.doApogeeScience = SopState.state('doApogeeScience',
                                               ["doApogeeScience"])
-        
+        self.gotoInstrumentChange = SopState.state('gotoInstrumentChange',
+                                                   ["gotoInstrumentChange"])
+        self.gotoSlew = SopState.state('gotoSlew',
+                                       ["gotoSlew"])
 sopState = SopState()
 try:
     sopState
@@ -735,8 +738,8 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
             (sopState.doScience.nExpLeft > 1 or
              actorState.models["boss"].keyVarDict["exposureState"][0] != 'READING')):
             
-            cmd.warn("text='%d left; exposureState=%s'" % (sopState.doScience.nExpLeft,
-                                                           actorState.models["boss"].keyVarDict["exposureState"][0]))
+            cmd.warn("text='%d exposures left; exposureState=%s'" % (sopState.doScience.nExpLeft,
+                                                                     actorState.models["boss"].keyVarDict["exposureState"][0]))
             cmd.fail("text='a BOSS science exposure sequence is running -- will not go to %s!" % (name))
             return
     
@@ -748,13 +751,21 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
 
         multiCmd = MultiCommand(cmd, slewDuration + actorState.timeout, None)
 
+        tccDict = actorState.models["tcc"].keyVarDict
+        if az == None:
+            az = tccDict['axePos'][0]
+        if alt == None:
+            alt = tccDict['axePos'][1]
+        if rot == None:
+            rot = tccDict['axePos'][2]
+            
         multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState, az=az, alt=alt, rot=rot)
 
         if not multiCmd.run():
             cmd.fail('text="Failed to slew to %s"' % (name))
             return
         
-        cmd.finish('text="At %s position"' % (name))
+        cmd.finish('text="at %s position"' % (name))
 
     def gotoInstrumentChange(self, cmd):
         """Go to the instrument change position"""
@@ -764,7 +775,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
     def gotoStow(self, cmd):
         """Go to the gang connector change/stow position"""
 
-        self.gotoPosition(cmd, "stow", 121, 30)
+        self.gotoPosition(cmd, "stow", None, 30, rot=None)
         
     def ping(self, cmd):
         """ Query sop for liveness/happiness. """
