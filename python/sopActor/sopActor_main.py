@@ -48,6 +48,8 @@ class State(object):
         msg = "%s %s" % (self.actor, self.actor.cmdr.dispatcher)
 
         return msg
+
+
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 class Sop(actorcore.Actor.Actor):
@@ -70,8 +72,12 @@ class Sop(actorcore.Actor.Actor):
         # that might invalidate guiding
         #
         from sopActor.utils.tcc import TCCState
+        from sopActor.utils.guider import GuiderState
 
         actorState.tccState = TCCState(actorState.models["tcc"])
+        actorState.guiderState = GuiderState(actorState.models["guider"])
+        actorState.actor.commandSets["SopCmd"].initCommands()
+        
         #
         # spawn off the threads that sequence actions (e.g. take an exposure; move telescope)
         # and talk to the gcamera
@@ -93,6 +99,8 @@ class Sop(actorcore.Actor.Actor):
                                            "wht" : sopActor.WHT_LAMP,
                                            "uv" : sopActor.UV_LAMP
                                        }[k.lower()]] = float(v)
+
+        
         #
         # Finally start the reactor
         #
