@@ -1,6 +1,8 @@
 import Queue as _Queue
 import re, time, threading
 
+from opscore.utility.qstr import qstr
+
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
 # Survey names; use classes so that the unique IDs are automatically generated
@@ -303,4 +305,81 @@ class MultiCommand(object):
             self.cmd.inform('stageState="%s","%s",0.0,0.0' % (self.label, state))
         return not failed and self.status
 
-__all__ = ["MASTER", "Msg", "Precondition", "Bypass"]
+class CmdState(object):
+    validStageStates = ('starting', 'prepping', 'running', 'done', 'failed', 'aborted')
+
+    """A class that's intended to hold command state data"""
+
+    def __init__(self, name, allStages, keywords={}, hiddenKeywords=()):
+        self.name = name
+        self.cmd = myGlobals.actorState.actor.bcast
+        self.cmdState = "idle"
+        self.stateText="OK"
+        self.keywords = dict(keywords)
+        self.hiddenKeywords = hiddenKeywords
+        for k, v in keywords.iteritems():
+            setattr(self, k, v)
+            
+        self.setStages(allStages)
+
+    def setStages(self, allStages):
+        self.allStages = allStages
+        self.stages = dict(zip(self.allStages, ["idle"] * len(self.allStages)))
+
+    def setupCommand(self, name, cmd, activeStages):
+        self.name = name
+        self.cmd = cmd
+        self.stateText="OK"
+        self.activeStages = activeStages
+        for s in self.allStages:
+            self.stages[s] = "pending" if s in activeStages else "off"
+        self.genCommandKeys()
+
+    def setCommandState(self, state, genKeys=True, stateText=None):
+        self.cmdState = state
+        if stateText:
+            self.stateText=stateText
+
+        if genKeys:
+            self.genCmdStateKeys()
+
+    def setStageState(self, name, stageState, genKeys=True):
+        assert name in self.stages
+        assert stageState in self.validStageStates, "state %s is unknown" % (stageState)
+        self.stages[name] = stageState
+
+        if genKeys:
+            self.genCmdStateKeys()
+
+    def abortStages(self):
+        """ Mark all unstarted stages as aborted. """
+        for s in self.allStages:
+            if not self.stages[s] in ("pending", "done", "failed"):
+                self.stages[s] = "aborted"
+        self.genCmdStateKeys()
+
+    def setActiveStages(self, stages, genKeys=True):
+        raise NotImplementedError()
+        for s in stages:
+            assert s in self.allStages
+
+    def genCmdStateKeys(self, cmd=None):
+        if not cmd:
+            cmd = self.cmd
+        cmd.inform("%sState=%s,%s,%s" % (self.name, qstr(self.cmdState),
+                                         qstr(self.stateText),
+                                         ",".join([qstr(self.stages[sname]) \
+                                                       for sname in self.allStages])))
+
+    def genCommandKeys(self, cmd=None):
+        """ Return a list of the keywords describing our command. """
+
+        if not cmd:
+            cmd = self.cmd
+
+        cmd.inform("%sStages=%s" % (self.name,
+                                    ",".join([qstr(sname) \
+                                                  for sname in self.allStages])))
+        self.genCmdStateKeys(cmd=cmd)
+
+__all__ = ["MASTER", "Msg", "Precondition", "Bypass", "CmdState"]
