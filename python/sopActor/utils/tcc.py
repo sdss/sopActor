@@ -19,12 +19,13 @@ class TCCState(object):
     def __init__(self, tccModel):
         """Register keywords that we need to pay attention to"""
 
+        tccModel.keyVarDict["axisBadStatusMask"].addCallback(self.listenToBadStatusMask, callNow=True)
+
         tccModel.keyVarDict["moveItems"].addCallback(self.listenToMoveItems, callNow=False)
         tccModel.keyVarDict["inst"].addCallback(self.listenToInst, callNow=False)
         tccModel.keyVarDict["slewEnd"].addCallback(self.listenToSlewEnd, callNow=False)
         tccModel.keyVarDict["tccStatus"].addCallback(self.listenToTccStatus, callNow=False)
 
-        tccModel.keyVarDict["axisBadStatusMask"].addCallback(self.listenToBadStatusMask, callNow=True)
         tccModel.keyVarDict["azStat"].addCallback(self.listenToAxisStat, callNow=False)
         tccModel.keyVarDict["altStat"].addCallback(self.listenToAxisStat, callNow=False)
         tccModel.keyVarDict["rotStat"].addCallback(self.listenToAxisStat, callNow=False)
