@@ -77,6 +77,7 @@ class SopCmd(object):
                                                  help="dither positions for each sequence. e.g. AB"),
                                         keys.Key("seqCount", types.Int(),
                                                  help="number of times to launch sequence"),
+                                        keys.Key("comment", help="comment for headers"),
                                         )
         #
         # Declare commands
@@ -87,7 +88,7 @@ class SopCmd(object):
              "[<narc>] [<nbias>] [<ndark>] [<nflat>] [<arcTime>] [<darkTime>] [<flatTime>] [<guiderFlatTime>] [abort] [test]",
              self.doCalibs),
             ("doScience", "[<expTime>] [<nexp>] [abort] [stop] [test]", self.doScience),
-            ("doApogeeScience", "[<expTime>] [<ditherSeq>] [<seqCount>] [stop]", self.doApogeeScience),
+            ("doApogeeScience", "[<expTime>] [<ditherSeq>] [<seqCount>] [stop] [<comment>]", self.doApogeeScience),
             ("ditheredFlat", "[sp1] [sp2] [<expTime>] [<nStep>] [<nTick>]", self.ditheredFlat),
             ("hartmann", "[sp1] [sp2] [<expTime>]", self.hartmann),
             ("lampsOff", "", self.lampsOff),
@@ -356,7 +357,7 @@ class SopCmd(object):
         seqCount = int(cmd.cmd.keywords["seqCount"].values[0]) \
                    if "seqCount" in cmd.cmd.keywords else 1
         ditherSeq = cmd.cmd.keywords["ditherSeq"].values[0] \
-                    if "ditherSeq" in cmd.cmd.keywords else "AB"
+                    if "ditherSeq" in cmd.cmd.keywords else "A"
 
         sopState.doApogeeScience.cmd = cmd
         sopState.doApogeeScience.ditherSeq = ditherSeq
@@ -632,15 +633,6 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         sopState = myGlobals.actorState
         actorState = myGlobals.actorState
 
-        if (sopState.doScience.cmd and sopState.doScience.cmd.isAlive() and
-            (sopState.doScience.nExpLeft > 1 or
-             actorState.models["boss"].keyVarDict["exposureState"][0] != 'READING')):
-            
-            cmd.warn("text='%d exposures left; exposureState=%s'" % (sopState.doScience.nExpLeft,
-                                                                     actorState.models["boss"].keyVarDict["exposureState"][0]))
-            cmd.fail("text='a BOSS science exposure sequence is running -- will not go to %s!" % (name))
-            return
-    
         cmdState.setCommandState('running')
         cmdState.setStageState("slew", "running")
 
@@ -675,8 +667,18 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
     def gotoInstrumentChange(self, cmd):
         """Go to the instrument change position"""
 
+        actorState = myGlobals.actorState
         sopState = myGlobals.actorState
 
+        if (sopState.survey == sopActor.BOSS and
+            sopState.doScience.cmd and sopState.doScience.cmd.isAlive() and
+            not (sopState.doScience.nExpLeft == 1 and actorState.models["boss"].keyVarDict["exposureState"][0] == 'READING')):
+            
+            cmd.warn("text='%d exposures left; exposureState=%s'" % (sopState.doScience.nExpLeft,
+                                                                     actorState.models["boss"].keyVarDict["exposureState"][0]))
+            cmd.fail("text='a BOSS science exposure sequence is running --- will not go to instrument change!")
+            return
+    
         sopState.gotoInstrumentChange.setupCommand("gotoInstrumentChange", cmd, ['slew'])
         self.gotoPosition(cmd, "instrument change", sopState.gotoInstrumentChange, 121, 90)
         
@@ -909,13 +911,14 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
                                         keywords=dict(expTime=900.0))
         actorState.doScience.nExp = 0
         actorState.doScience.nExpDone = 0
-
+        actorState.doScience.nExpLeft = 0
+        
         actorState.doApogeeScience = CmdState('doApogeeScience',
                                               ["doApogeeScience"],
-                                              keywords=dict(ditherSeq="AB",
-                                                            seqCount=1,
-                                                            expTime=600.0))
-        actorState.doApogeeScience.exposureSeq = "AB"*3
+                                              keywords=dict(ditherSeq="A",
+                                                            seqCount=7,
+                                                            expTime=500.0))
+        actorState.doApogeeScience.exposureSeq = "A"*7
         actorState.doApogeeScience.index = 0
         
         actorState.gotoInstrumentChange = CmdState('gotoInstrumentChange',
