@@ -314,68 +314,73 @@ class SopCmd(object):
 
         actorState = myGlobals.actorState
         sopState = myGlobals.actorState
+        cmdState = sopState.doApogeeScience
+        
         actorState.aborting = False
 
         if "stop" in cmd.cmd.keywords:
-            if sopState.doApogeeScience.cmd and sopState.doApogeeScience.cmd.isAlive():
+            if cmdState.cmd and cmdState.cmd.isAlive():
                 cmd.warn('text="doApogeeScience will cancel pending exposures and stopping any running one."')
 
-                sopState.doApogeeScience.exposureSeq = sopState.doApogeeScience.exposureSeq[:sopState.doApogeeScience.index]
-
+                cmdState.exposureSeq = cmdState.exposureSeq[:cmdState.index]
+                # Need to work out seqCount/seqDone -- CPL
+                
                 cmdVar = actorState.actor.cmdr.call(actor="apogee", forUserCmd=cmd, cmdStr="expose stop")
                 if cmdVar.didFail:
                     cmd.warn('text="Failed to stop running exposure"')
 
-                sopState.doApogeeScience.abortStages()
+                cmdState.abortStages()
                 self.status(cmd, threads=False, finish=True, oneCommand='doApogeeScience')
             else:
                 cmd.fail('text="No doApogeeScience command is active"')
             return
                 
-        sopState.doApogeeScience.expTime = float(cmd.cmd.keywords["expTime"].values[0]) if \
+        cmdState.expTime = float(cmd.cmd.keywords["expTime"].values[0]) if \
                                                "expTime" in cmd.cmd.keywords else 10*60.0
 
-        if sopState.doApogeeScience.cmd and sopState.doApogeeScience.cmd.isAlive():
+        if cmdState.cmd and cmdState.cmd.isAlive():
             # Modify running doApogeeScience command
             if ("ditherSeq" in cmd.cmd.keywords
-                and cmd.cmd.keywords['ditherSeq'].values[0] != sopState.doApogeeScience.ditherSeq):
+                and cmd.cmd.keywords['ditherSeq'].values[0] != cmdState.ditherSeq):
                 cmd.fail('text="Cannot modify dither sequence"')
                 return
             
             if "seqCount" in cmd.cmd.keywords:
                 seqCount = int(cmd.cmd.keywords["seqCount"].values[0])
-                exposureSeq = sopState.doApogeeScience.ditherSeq * seqCount
-                sopState.doApogeeScience.seqCount = seqCount
-                sopState.doApogeeScience.exposureSeq = exposureSeq                
-                if sopState.doApogeeScience.index > len(sopState.doApogeeScience.exposureSeq):
+                exposureSeq = cmdState.ditherSeq * seqCount
+                cmdState.seqCount = seqCount
+                cmdState.exposureSeq = exposureSeq                
+                if cmdState.index > len(cmdState.exposureSeq):
                     cmd.warn('text="truncating previous exposure sequence, but NOT trying to stop current exposure"')
-                    sopState.doApogeeScience.index = len(sopState.doApogeeScience.exposureSeq)
+                    cmdState.index = len(cmdState.exposureSeq)
                     
             self.status(cmd, threads=False, finish=True, oneCommand='doApogeeScience')
             return
 
         seqCount = int(cmd.cmd.keywords["seqCount"].values[0]) \
-                   if "seqCount" in cmd.cmd.keywords else 1
+                   if "seqCount" in cmd.cmd.keywords else 7
         ditherSeq = cmd.cmd.keywords["ditherSeq"].values[0] \
                     if "ditherSeq" in cmd.cmd.keywords else "A"
 
-        sopState.doApogeeScience.cmd = cmd
-        sopState.doApogeeScience.ditherSeq = ditherSeq
-        sopState.doApogeeScience.seqCount = seqCount
+        cmdState.cmd = cmd
+        cmdState.ditherSeq = ditherSeq
+        cmdState.seqCount = seqCount
 
         exposureSeq = ditherSeq * seqCount
-        sopState.doApogeeScience.exposureSeq = exposureSeq
-        sopState.doApogeeScience.index = 0
+        cmdState.exposureSeq = exposureSeq
+        cmdState.index = 0
         
-        if len(sopState.doApogeeScience.exposureSeq) == 0:
+        if len(cmdState.exposureSeq) == 0:
             cmd.fail('text="You must take at least one exposure"')
             return
 
-        sopState.doApogeeScience.setupCommand("doApogeeScience", cmd,
-                                              ["doApogeeScience"])
+        cmdState.setupCommand("doApogeeScience", cmd,
+                              ["doApogeeScience"])
+        cmd.diag('text="Issuing doApogeeScience"')
         if not MultiCommand(cmd, 2, None,
-                            sopActor.MASTER, Msg.DO_APOGEE_SCIENCE, actorState=actorState, cartridge=cartridge,
-                            survey=sopState.survey, cmdState=sopState.doApogeeScience).run():
+                            sopActor.MASTER, Msg.DO_APOGEE_SCIENCE, actorState=actorState,
+                            cartridge=sopState.cartridge,
+                            survey=sopState.survey, cmdState=cmdState).run():
             cmd.fail('text="Failed to issue doApogeeScience"')
 
     def lampsOff(self, cmd, finish=True):
@@ -791,72 +796,12 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         cmd.inform("surveyCommands=" + ", ".join(sopState.validCommands))
         
         #
-        # doCalibs
+        # major commands
         #
-        cmdState = sopState.doCalibs
-        cmdState.genCommandKeys(cmd=cmd)
-        if cmdState.cmd: # and sopState.doCalibs.cmd.isAlive():
-            if not oneCommand or oneCommand == 'doCalibs':
-                msg = []
-
-                for keyName, default in cmdState.keywords.iteritems():
-                    msg.append("%s=%s,%s" % (keyName, getattr(cmdState, keyName),
-                                             default))
-                msg.append("nBias=%d,%d" % (cmdState.nBiasDone, cmdState.nBias))
-                msg.append("nDark=%d,%d" % (cmdState.nDarkDone, cmdState.nDark))
-                msg.append("nFlat=%d,%d" % (cmdState.nFlatDone, cmdState.nFlat))
-                msg.append("nArc=%d,%d" % (cmdState.nArcDone, cmdState.nArc))
-
-                cmd.inform("; ".join(["doCalibs_"+m for m in msg]))
-                
-        #
-        # doScience
-        #
-        cmdState = sopState.doScience
-        cmdState.genCommandKeys(cmd=cmd)
-        if cmdState.cmd: # and sopState.doScience.cmd.isAlive():
-            if not oneCommand or oneCommand == 'doScience':
-                msg = []
-
-                for keyName, default in cmdState.keywords.iteritems():
-                    msg.append("%s=%s,%s" % (keyName, getattr(cmdState, keyName),
-                                             default))
-                msg.append("nExp=%d,%d" % (cmdState.nExpDone, cmdState.nExp))
-                
-                cmd.inform("; ".join(["doScience_"+m for m in msg]))
-
-        #
-        # doApogeeScience
-        #
-        cmdState = sopState.doApogeeScience
-        cmdState.genCommandKeys(cmd=cmd)
-        if cmdState.cmd: # and sopState.doScience.cmd.isAlive():
-            if not oneCommand or oneCommand == 'doApogeeScience':
-                msg = []
-
-                for keyName, default in cmdState.keywords.iteritems():
-                    msg.append("%s=%s,%s" % (keyName, getattr(cmdState, keyName),
-                                             default))
-                cmd.inform("; ".join(["doApogeeScience_"+m for m in msg]))
-
-                msg = []
-                msg.append('sequenceState="%s",%d' % (sopState.doApogeeScience.exposureSeq,
-                                                      sopState.doApogeeScience.index))
-                cmd.inform("; ".join(["doApogeeScience_"+m for m in msg]))
-
-        #
-        # gotoField
-        #
-        cmdState = sopState.gotoField
-        cmdState.genCommandKeys(cmd=cmd)
-        if cmdState.cmd: # and sopState.gotoField.cmd.isAlive():
-            if not oneCommand or oneCommand == 'gotoField':
-                msg = []
-
-                for keyName, default in cmdState.keywords.iteritems():
-                    msg.append("%s=%s,%s" % (keyName, getattr(cmdState, keyName),
-                                             default))
-                cmd.inform("; ".join(["gotoField_"+m for m in msg]))
+        sopState.gotoField.genKeys(cmd=cmd, trimKeys=oneCommand)
+        sopState.doCalibs.genKeys(cmd=cmd, trimKeys=oneCommand)
+        sopState.doScience.genKeys(cmd=cmd, trimKeys=oneCommand)
+        sopState.doApogeeScience.genKeys(cmd=cmd, trimKeys=oneCommand)
 
         #
         # commands with no state
@@ -889,37 +834,10 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
     def initCommands(self):
         actorState = myGlobals.actorState
         
-        actorState.gotoField = CmdState('gotoField', 
-                                        ["slew", "hartmann", "calibs", "guider"],
-                                        keywords=dict(arcTime=4,
-                                                      flatTime=30,
-                                                      guiderExpTime=5.0,
-                                                      guiderFlatTime=0.5))
-        actorState.doCalibs = CmdState('doCalibs',
-                                       ["doCalibs"],
-                                       keywords=dict(darkTime=900.0,
-                                                     flatTime=30.0,
-                                                     arcTime=4.0,
-                                                     guiderFlatTime=0.5))
-        actorState.doCalibs.nBias = 0; actorState.doCalibs.nBiasDone = 0
-        actorState.doCalibs.nDark = 0; actorState.doCalibs.nDarkDone = 0
-        actorState.doCalibs.nFlat = 0; actorState.doCalibs.nFlatDone = 0
-        actorState.doCalibs.nArc = 0; actorState.doCalibs.nArcDone = 0
-
-        actorState.doScience = CmdState('doScience',
-                                        ["doScience"],
-                                        keywords=dict(expTime=900.0))
-        actorState.doScience.nExp = 0
-        actorState.doScience.nExpDone = 0
-        actorState.doScience.nExpLeft = 0
-        
-        actorState.doApogeeScience = CmdState('doApogeeScience',
-                                              ["doApogeeScience"],
-                                              keywords=dict(ditherSeq="A",
-                                                            seqCount=7,
-                                                            expTime=500.0))
-        actorState.doApogeeScience.exposureSeq = "A"*7
-        actorState.doApogeeScience.index = 0
+        actorState.gotoField = GotoFieldCmd()
+        actorState.doCalibs = DoCalibsCmd()
+        actorState.doScience = DoScienceCmd()
+        actorState.doApogeeScience = DoApogeeScienceCmd()
         
         actorState.gotoInstrumentChange = CmdState('gotoInstrumentChange',
                                                    ["slew"])
@@ -989,3 +907,72 @@ def getDefaultFlatTime(survey):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+class GotoFieldCmd(CmdState):
+    def __init__(self):
+        CmdState.__init__(self, 'gotoField', 
+                          ["slew", "hartmann", "calibs", "guider"],
+                          keywords=dict(arcTime=4,
+                                        flatTime=30,
+                                        guiderExpTime=5.0,
+                                        guiderFlatTime=0.5))
+
+class DoCalibsCmd(CmdState):
+    def __init__(self):
+        CmdState.__init__(self, 'doCalibs',
+                          ["doCalibs"],
+                          keywords=dict(darkTime=900.0,
+                                        flatTime=30.0,
+                                        arcTime=4.0,
+                                        guiderFlatTime=0.5))
+        self.nBias = 0; self.nBiasDone = 0
+        self.nDark = 0; self.nDarkDone = 0
+        self.nFlat = 0; self.nFlatDone = 0
+        self.nArc = 0; self.nArcDone = 0
+
+    def getUserKeys(self):
+        msg = []
+        msg.append("nBias=%d,%d" % (self.nBiasDone, self.nBias))
+        msg.append("nDark=%d,%d" % (self.nDarkDone, self.nDark))
+        msg.append("nFlat=%d,%d" % (self.nFlatDone, self.nFlat))
+        msg.append("nArc=%d,%d" % (self.nArcDone, self.nArc))
+
+        return ["%s_%s" % (self.name, m) for m in msg]
+    
+class DoApogeeScienceCmd(CmdState):
+    def __init__(self):
+        CmdState.__init__(self, 'doApogeeScience',
+                          ["doApogeeScience"],
+                          keywords=dict(ditherSeq="A",
+                                        expTime=500.0))
+        self.seqCount = 0
+        self.seqDone = 0
+        
+        self.exposureSeq = "A"*7
+        self.index = 0
+
+    def getUserKeys(self):
+        msg = []
+        msg.append("%s_seqCount=%d,%d" % (self.name,
+                                          self.seqDone, self.seqCount))
+        msg.append('%s_sequenceState="%s",%d' % (self.name,
+                                                 self.exposureSeq,
+                                                 self.index))
+        return msg
+
+class DoScienceCmd(CmdState):
+    def __init__(self):
+        CmdState.__init__(self, 'doScience',
+                          ["doScience"],
+                          keywords=dict(expTime=900.0))
+        self.nExp = 0
+        self.nExpDone = 0
+        self.nExpLeft = 0
+        
+    def getUserKeys(self):
+        msg = []
+
+        msg.append("%s_nExp=%d,%d" % (self.name,
+                                      self.nExpDone, self.nExp))
+        return msg
+
+    

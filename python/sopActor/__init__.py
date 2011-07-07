@@ -312,7 +312,7 @@ class CmdState(object):
 
     def __init__(self, name, allStages, keywords={}, hiddenKeywords=()):
         self.name = name
-        self.cmd = myGlobals.actorState.actor.bcast
+        self.cmd = None
         self.cmdState = "idle"
         self.stateText="OK"
         self.keywords = dict(keywords)
@@ -322,6 +322,13 @@ class CmdState(object):
             
         self.setStages(allStages)
 
+    def _getCmd(self, cmd=None):
+        if cmd:
+            return cmd
+        if self.cmd:
+            return self.cmd
+        return myGlobals.actorState.actor.bcast
+    
     def setStages(self, allStages):
         self.allStages = allStages
         self.stages = dict(zip(self.allStages, ["idle"] * len(self.allStages)))
@@ -341,7 +348,7 @@ class CmdState(object):
             self.stateText=stateText
 
         if genKeys:
-            self.genCmdStateKeys()
+            self.genKeys()
 
     def setStageState(self, name, stageState, genKeys=True):
         assert name in self.stages
@@ -364,8 +371,7 @@ class CmdState(object):
             assert s in self.allStages
 
     def genCmdStateKeys(self, cmd=None):
-        if not cmd:
-            cmd = self.cmd
+        cmd = self._getCmd(cmd)
         cmd.inform("%sState=%s,%s,%s" % (self.name, qstr(self.cmdState),
                                          qstr(self.stateText),
                                          ",".join([qstr(self.stages[sname]) \
@@ -374,12 +380,38 @@ class CmdState(object):
     def genCommandKeys(self, cmd=None):
         """ Return a list of the keywords describing our command. """
 
-        if not cmd:
-            cmd = self.cmd
-
+        cmd = self._getCmd(cmd)
         cmd.inform("%sStages=%s" % (self.name,
                                     ",".join([qstr(sname) \
                                                   for sname in self.allStages])))
         self.genCmdStateKeys(cmd=cmd)
 
+    def getUserKeys(self):
+        return []
+    
+    def genStateKeys(self, cmd=None):
+        cmd = self._getCmd(cmd)
+
+        msg = []
+        for keyName, default in self.keywords.iteritems():
+            msg.append("%s_%s=%s,%s" % (self.name, keyName,
+                                        getattr(self, keyName),
+                                        default))
+        cmd.inform("; ".join(msg))
+
+        try:
+            userKeys = self.getUserKeys()
+        except:
+            userKeys = []
+            cmd.warn('text="failed to fetch all keywords for %s"' % (self.name))
+            
+        cmd.inform(";".join(userKeys))
+        
+    def genKeys(self, cmd=None, trimKeys=False):
+        """ generate all our keywords. """
+
+        self.genCommandKeys(cmd=cmd)
+        if not trimKeys or trimKeys == self.name:
+            self.genStateKeys(cmd=cmd)
+        
 __all__ = ["MASTER", "Msg", "Precondition", "Bypass", "CmdState"]

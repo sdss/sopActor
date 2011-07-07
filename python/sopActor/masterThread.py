@@ -478,6 +478,8 @@ def main(actor, queues):
                         break
 
                     cmdState.index += 1
+                    seqIndex = (cmdState.index + len(cmdState.ditherSeq)-1) / len(cmdState.ditherSeq)
+                    cmdState.seqDone = seqIndex
                 #
                 # Did we break out of that loop?
                 #
