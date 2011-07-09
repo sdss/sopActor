@@ -34,7 +34,8 @@ except NameError:
     class GCAMERA(): pass                   # command the gcamera ICC
     class GUIDER(): pass                    # command the guider
     class TCC(): pass                       # command the TCC
-
+    class APOGEE_SCRIPT(): pass
+    
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 try:
@@ -69,6 +70,8 @@ except NameError:
         class SLEW(): pass
         class WAIT_UNTIL(): pass
         class DITHER(): pass
+        class GOTO_GANG_CHANGE(): pass
+        class POST_FLAT(): pass
         
         def __init__(self, type, cmd, **data):
             self.type = type

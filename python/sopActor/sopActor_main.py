@@ -65,7 +65,7 @@ class Sop(actorcore.Actor.Actor):
         #
         # Load other actor's models so we can send them commands
         #
-        for actor in ["boss", "guider", "platedb", "mcp", "sop", "tcc"]:
+        for actor in ["boss", "guider", "platedb", "mcp", "sop", "tcc", "apogee"]:
             actorState.models[actor] = opscore.actor.model.Model(actor)
         #
         # Start listening to the TCC's keywords that announce that it's done a move or halt
@@ -73,9 +73,12 @@ class Sop(actorcore.Actor.Actor):
         #
         from sopActor.utils.tcc import TCCState
         from sopActor.utils.guider import GuiderState
+        from sopActor.utils.gang import ApogeeGang
 
         actorState.tccState = TCCState(actorState.models["tcc"])
         actorState.guiderState = GuiderState(actorState.models["guider"])
+        actorState.apogeeGang = ApogeeGang()
+        
         actorState.actor.commandSets["SopCmd"].initCommands()
         
         #
@@ -129,6 +132,7 @@ class Sop(actorcore.Actor.Actor):
         for tname, tid, threadModule, target in [("master",  sopActor.MASTER,    masterThread,  masterThread.main),
                                                  ("boss",    sopActor.BOSS,      bossThread,    bossThread.main),
                                                  ("apogee",  sopActor.APOGEE,    apogeeThread,  apogeeThread.main),
+                                                 ("apogeeScript",  sopActor.APOGEE_SCRIPT, apogeeThread,  apogeeThread.script_main),
                                                  ("guider",  sopActor.GUIDER,    guiderThread,  guiderThread.main),
                                                  ("gcamera", sopActor.GCAMERA,   gcameraThread, gcameraThread.main),
                                                  ("ff",      sopActor.FF_LAMP,   lampThreads,   lampThreads.ff_main),
