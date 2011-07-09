@@ -98,7 +98,7 @@ class SopCmd(object):
              self.gotoField),
             ("gotoInstrumentChange", "", self.gotoInstrumentChange),
             ("gotoStow", "", self.gotoStow),
-            ("gotoGangChange [<alt>]", "", self.gotoGangChange),
+            ("gotoGangChange", "[<alt>] [abort] [stop]", self.gotoGangChange),
             ("setScale", "<delta>|<scale>", self.setScale),
             ("scaleChange", "<delta>|<scale>", self.scaleChange),
             ("status", "[geek]", self.status),
@@ -721,6 +721,10 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         alt = float(cmd.cmd.keywords["alt"].values[0]) \
               if "alt" in cmd.cmd.keywords else 45.0
 
+        if 'stop' in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
+            cmd.fail('text"sorry, I cannot stop or abort a gotoGangChange command. (yet)"')
+            return
+        
         sopState.gotoGangChange.setupCommand("gotoGangChange", cmd, ['slew'])
 
         actorState.queues[sopActor.MASTER].put(Msg.GOTO_GANG_CHANGE, cmd, replyQueue=actorState.queues[sopActor.MASTER],
@@ -826,13 +830,13 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         sopState.doCalibs.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.doScience.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.doApogeeScience.genKeys(cmd=cmd, trimKeys=oneCommand)
+        sopState.gotoGangChange.genKeys(cmd=cmd, trimKeys=oneCommand)
 
         #
         # commands with no state
         #
-        sopState.gotoStow.genCommandKeys(cmd=cmd)
-        sopState.gotoInstrumentChange.genCommandKeys(cmd=cmd)
-        sopState.gotoGangChange.genCommandKeys(cmd=cmd)
+        sopState.gotoStow.genKeys(cmd=cmd, trimKeys=oneCommand)
+        sopState.gotoInstrumentChange.genKeys(cmd=cmd, trimKeys=oneCommand)
 
         if threads:
             try:
@@ -863,13 +867,12 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         actorState.doCalibs = DoCalibsCmd()
         actorState.doScience = DoScienceCmd()
         actorState.doApogeeScience = DoApogeeScienceCmd()
+        actorState.gotoGangChange = GotoGangChangeCmd()
         
         actorState.gotoInstrumentChange = CmdState('gotoInstrumentChange',
                                                    ["slew"])
         actorState.gotoStow = CmdState('gotoStow',
                                        ["slew"])
-        actorState.gotoGangChange = CmdState('gotoGangChange',
-                                             ["slew"])
 
         self.updateCartridge(-1)
         actorState.guiderState.setCartridgeLoadedCallback(self.updateCartridge)
@@ -942,6 +945,12 @@ def getDefaultFlatTime(survey):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+class GotoGangChangeCmd(CmdState):
+    def __init__(self):
+        CmdState.__init__(self, 'gotoGangChange',
+                          ["slew"],
+                          keywords=dict(alt=45.0))
+    
 class GotoFieldCmd(CmdState):
     def __init__(self):
         CmdState.__init__(self, 'gotoField', 
@@ -978,7 +987,8 @@ class DoApogeeScienceCmd(CmdState):
         CmdState.__init__(self, 'doApogeeScience',
                           ["doApogeeScience"],
                           keywords=dict(ditherSeq="A",
-                                        expTime=500.0))
+                                        expTime=500.0,
+                                        comment=""))
         self.seqCount = 0
         self.seqDone = 0
         
@@ -1009,5 +1019,3 @@ class DoScienceCmd(CmdState):
         msg.append("%s_nExp=%d,%d" % (self.name,
                                       self.nExpDone, self.nExp))
         return msg
-
-    
