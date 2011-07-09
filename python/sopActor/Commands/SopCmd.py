@@ -14,7 +14,6 @@ from sopActor import *
 import sopActor
 import sopActor.myGlobals as myGlobals
 from sopActor import MultiCommand
-
 if not False:
     oldPrecondition = sopActor.Precondition
     oldMultiCommand = sopActor.MultiCommand
@@ -78,6 +77,7 @@ class SopCmd(object):
                                         keys.Key("seqCount", types.Int(),
                                                  help="number of times to launch sequence"),
                                         keys.Key("comment", help="comment for headers"),
+                                        keys.Key("alt", types.Float(), help="what altitude to slew to"),
                                         )
         #
         # Declare commands
@@ -88,7 +88,7 @@ class SopCmd(object):
              "[<narc>] [<nbias>] [<ndark>] [<nflat>] [<arcTime>] [<darkTime>] [<flatTime>] [<guiderFlatTime>] [abort] [test]",
              self.doCalibs),
             ("doScience", "[<expTime>] [<nexp>] [abort] [stop] [test]", self.doScience),
-            ("doApogeeScience", "[<expTime>] [<ditherSeq>] [<seqCount>] [stop] [<comment>]", self.doApogeeScience),
+            ("doApogeeScience", "[<expTime>] [<ditherSeq>] [<seqCount>] [stop] [<abort>] [<comment>]", self.doApogeeScience),
             ("ditheredFlat", "[sp1] [sp2] [<expTime>] [<nStep>] [<nTick>]", self.ditheredFlat),
             ("hartmann", "[sp1] [sp2] [<expTime>]", self.hartmann),
             ("lampsOff", "", self.lampsOff),
@@ -98,7 +98,7 @@ class SopCmd(object):
              self.gotoField),
             ("gotoInstrumentChange", "", self.gotoInstrumentChange),
             ("gotoStow", "", self.gotoStow),
-            ("gotoGangChange", "", self.gotoGangChange),
+            ("gotoGangChange [<alt>]", "", self.gotoGangChange),
             ("setScale", "<delta>|<scale>", self.setScale),
             ("scaleChange", "<delta>|<scale>", self.scaleChange),
             ("status", "[geek]", self.status),
@@ -305,7 +305,8 @@ class SopCmd(object):
         sopState.doScience.setupCommand("doScience", cmd,
                                         ["doScience"])
         if not MultiCommand(cmd, 2, None,
-                            sopActor.MASTER, Msg.DO_SCIENCE, actorState=actorState, cartridge=cartridge,
+                            sopActor.MASTER, Msg.DO_SCIENCE, actorState=actorState,
+                            cartridge=sopState.cartridge,
                             survey=sopState.survey, cmdState=sopState.doScience).run():
             cmd.fail('text="Failed to issue doScience"')
 
@@ -318,7 +319,7 @@ class SopCmd(object):
         
         actorState.aborting = False
 
-        if "stop" in cmd.cmd.keywords:
+        if "stop" in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
             if cmdState.cmd and cmdState.cmd.isAlive():
                 cmd.warn('text="doApogeeScience will cancel pending exposures and stopping any running one."')
 
@@ -361,11 +362,14 @@ class SopCmd(object):
                    if "seqCount" in cmd.cmd.keywords else 7
         ditherSeq = cmd.cmd.keywords["ditherSeq"].values[0] \
                     if "ditherSeq" in cmd.cmd.keywords else "A"
+        comment = cmd.cmd.keywords["comment"].values[0] \
+                    if "comment" in cmd.cmd.keywords else ""
 
         cmdState.cmd = cmd
         cmdState.ditherSeq = ditherSeq
         cmdState.seqCount = seqCount
-
+        cmdState.comment = comment
+        
         exposureSeq = ditherSeq * seqCount
         cmdState.exposureSeq = exposureSeq
         cmdState.index = 0
@@ -411,7 +415,7 @@ class SopCmd(object):
 
         actorState = myGlobals.actorState
 
-        if subSystem == "planets":
+        if subSystem in ("planets", "brightPlate"):
             global fakeBoss
             fakeBoss = doBypass
             if doBypass:
@@ -419,7 +423,7 @@ class SopCmd(object):
             self.updateCartridge(actorState.cartridge)
             cmd.finish('text="%s"' % ("I'm studying some very faint fuzzies" if fakeBoss else ""))
             return
-        elif subSystem == "science":
+        elif subSystem in ("science", "darkPlate"):
             global fakeMarvels
             fakeMarvels = doBypass
             if doBypass:
@@ -427,7 +431,11 @@ class SopCmd(object):
             self.updateCartridge(actorState.cartridge)
             cmd.finish('text="%s"' % ("Ah, a Marvels night" if fakeMarvels else ""))
             return
-
+        elif subSystem in ('gang', 'gangConnected', 'gangPodium', 'gangCart'):
+            actorState.apogeeGang.bypass(subSystem, doBypass)
+            cmd.finish('text="gang bypass: %s"' % (actorState.apogeeGang.getPos()))
+            return
+            
         if Bypass.set(subSystem, doBypass) is None:
             cmd.fail('text="%s is not a recognised and bypassable subSystem"' % subSystem)
             return
@@ -498,7 +506,9 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         """
         
         sopState = myGlobals.actorState
+        survey = sopState.survey
 
+        # APOGEE -- CPL
         if sopState.doScience.cmd and sopState.doScience.cmd.isAlive():
             cmd.fail("text='a science exposure sequence is running -- will not go to field!")
             return
@@ -572,7 +582,6 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
             return
 
         sopState.gotoField.cmd = None
-        survey = sopState.survey
         
         sopState.gotoField.doSlew = "noSlew" not in cmd.cmd.keywords
         sopState.gotoField.doGuider = "noGuider" not in cmd.cmd.keywords
@@ -595,6 +604,13 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
                                          or sopState.gotoField.flatTime == 0
                                          or survey != sopActor.BOSS) else 1
 
+        # Take out the BOSS test if we trust the switches/bypasses
+        if survey != sopActor.BOSS and not actorState.apogeeGang.atPodium():
+            cmd.warn('text="skipping guider flat because APOGEE gang connector is not connected to the podium"')
+            sopState.gotoField.doGuiderFlat = False
+        else:
+            sopState.gotoField.doGuiderFlat = True if (sopState.gotoField.doGuider and sopState.gotoField.guiderFlatTime > 0) else False
+    
         if survey == sopActor.UNKNOWN:
             cmd.warn('text="No cartridge is known to be loaded; disabling guider"')
             sopState.gotoField.doGuider = False
@@ -610,9 +626,9 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         sopState.gotoField.rotang = 0.0                    # Rotator angle; should always be 0.0
 
         if False:
-            sopState.gotoField.ra = 82
+            sopState.gotoField.ra = 161
             sopState.gotoField.dec = 40
-            sopState.gotoField.rotang = 70
+            sopState.gotoField.rotang = 110
             cmd.warn('text="FAKING RA DEC:  %g, %g /rotang=%g"' % (sopState.gotoField.ra,
                                                                    sopState.gotoField.dec,
                                                                    sopState.gotoField.rotang))
@@ -628,7 +644,8 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         sopState.gotoField.setupCommand("gotoField", cmd,
                                         activeStages)
         if not MultiCommand(cmd, 2, None,
-                            sopActor.MASTER, Msg.GOTO_FIELD, actorState=actorState, cartridge=cartridge,
+                            sopActor.MASTER, Msg.GOTO_FIELD, actorState=actorState,
+                            cartridge=sopState.cartridge,
                             survey=sopState.survey, cmdState=sopState.gotoField).run():
             cmd.fail('text="Failed to issue gotoField"')
 
@@ -698,10 +715,17 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
     def gotoGangChange(self, cmd):
         """Go to the gang connector change position"""
 
+        actorState = myGlobals.actorState
         sopState = myGlobals.actorState
 
+        alt = float(cmd.cmd.keywords["alt"].values[0]) \
+              if "alt" in cmd.cmd.keywords else 45.0
+
         sopState.gotoGangChange.setupCommand("gotoGangChange", cmd, ['slew'])
-        self.gotoPosition(cmd, "gangChange", sopState.gotoGangChange, None, 30, rot=None)
+
+        actorState.queues[sopActor.MASTER].put(Msg.GOTO_GANG_CHANGE, cmd, replyQueue=actorState.queues[sopActor.MASTER],
+                                               actorState=actorState, cmdState=sopState.gotoGangChange,
+                                               alt=alt, survey=actorState.survey)
         
     def ping(self, cmd):
         """ Query sop for liveness/happiness. """
@@ -827,6 +851,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
             finally:
                 actorState.ignoreAborting = False
 
+        cmd.inform('text="apogeeGang: %s"' % (actorState.apogeeGang.getPos()))
         self.actor.sendVersionKey(cmd)
         if finish:
             cmd.finish("")
@@ -865,19 +890,29 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         if survey == sopActor.BOSS:
             actorState.gotoField.setStages(['slew', 'hartmann', 'calibs', 'guider'])
             actorState.validCommands = ['gotoField',
-                                        'doHartmann', 'doCalibs', 'doScience',
+                                        'hartmann', 'doCalibs', 'doScience',
                                         'gotoStow', 'gotoInstrumentChange']
+            refractionBalance = 0.0
         elif survey == sopActor.MARVELS:
             actorState.gotoField.setStages(['slew', 'guider'])
             actorState.validCommands = ['gotoField',
                                         'doApogeeScience',
                                         'gotoStow', 'gotoGangChange', 'gotoInstrumentChange']
+            refractionBalance = 1.0
         else:
             actorState.gotoField.setStages(['slew', 'guider'])
             actorState.validCommands = ['gotoStow', 'gotoInstrumentChange']
+            refractionBalance = 0.0
+
+        if survey in (sopActor.BOSS, sopActor.MARVELS):
+            # We set refraction balance here instead of in the actor so that we can bypass for tests.
+            #cmdVar = actorState.actor.cmdr.call(actor="guider", forUserCmd=cmd,
+            #                                    cmdStr="setRefractionBalance corrRatio=%0.1f" % (refractionBalance),
+            #                                    keyVars=[])
+            #if cmdVar.didFail:
+            cmd.warn('text="did not set guider refraction balance (to %s)"' % (refractionBalance))
             
         self.status(cmd, threads=False, finish=False)
-        # actorState.gotoField.genCommandKeys()
 
     def classifyCartridge(self, cmd, cartridge):
         """Return the survey type corresponding to this cartridge"""
