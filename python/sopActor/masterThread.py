@@ -461,7 +461,7 @@ def main(actor, queues):
                     
                     multiCmd.append(sopActor.APOGEE, Msg.EXPOSE,
                                     expTime=expTime, dither=dither,
-                                    expType='science')
+                                    expType='object', comment=cmdState.comment)
                     
                     # Really? All of these?
                     if False:
@@ -514,8 +514,7 @@ def main(actor, queues):
                 slewTimeout = 180
 
                 status(cmdState.cmd, oneCommand="gotoField")
-                # eval doGuiderFlat here in case cmdState changed
-                doGuiderFlat = True if (cmdState.doGuider and cmdState.guiderFlatTime > 0) else False
+                doGuiderFlat = cmdState.doGuiderFlat
 
                 if cmdState.doSlew:
                     multiCmd = SopMultiCommand(cmd, slewTimeout + actorState.timeout, "gotoField.slew")
@@ -782,6 +781,75 @@ def main(actor, queues):
                     cmdState.setCommandState('done')
                     cmd.finish('text="on field')
                 
+            elif msg.type == Msg.GOTO_GANG_CHANGE:
+                """ Go to gang change position. """
+                cmd = msg.cmd
+                actorState = msg.actorState
+                cmdState = msg.cmdState
+                survey = msg.survey
+                
+                # Behavior varies depending on where the gang connector is.
+                doCals = actorState.apogeeGang.atCartridge()
+
+                multiCmd = MultiCommand(cmd, actorState.timeout + 100, 
+                                        "gotoGangChange.slew")
+
+                cmdState.setCommandState('running')
+                cmdState.setStageState("slew", "running")
+                if doCals and survey != sopActor.BOSS:
+                    cmd.warn('text="scheduling cals": %s %s"' % (doCals, survey))
+                    multiCmd.append(SopPrecondition(sopActor.FFS, Msg.FFS_MOVE, open=False))
+                    multiCmd.append(sopActor.APOGEE_SCRIPT, Msg.POST_FLAT, cmdState=cmdState)
+
+                    if not multiCmd.run():
+                        cmdState.setStageState("slew", "failed")
+                        cmdState.setCommandState('failed', stateText="failed to take cals")
+                        cmd.fail('text="Failed to take cals going before gang change"')
+                        return
+                else:
+                    cmd.warn('text="skipping cals": %s %s"' % (doCals, survey))
+                
+                tccDict = actorState.models["tcc"].keyVarDict
+
+                if doCals:              # Heading towards the instrument change pos.
+                    az = 121
+                    alt = msg.alt
+                    rot = 0
+
+                    # Try to move the rotator as far as we can while the altitude is moving.
+                    thisAlt = tccDict['axePos'][1]
+                    thisRot = tccDict['axePos'][2]
+                    dRot = rot-thisRot
+                    if dRot != 0:
+                        dAlt = alt-thisAlt
+                        dAltTime = abs(dAlt) / 1.0 #deg/sec
+                        dRotTime = abs(dRot) / 1.0 #deg/sec
+                        dCanRot = dRot * min(1.0, dAltTime/dRotTime)
+                        rot = thisRot + dCanRot
+                else:                   # Nod up.
+                    az = tccDict['axePos'][0]
+                    alt = msg.alt
+                    rot= tccDict['axePos'][2]
+                    
+                slewDuration = 210
+                multiCmd = MultiCommand(cmd, slewDuration + actorState.timeout, None)
+
+                cmd.warn('text="might slew to %.1f,%.1f,%.1f"' % (az,alt,rot))
+                if True:
+                    multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState, az=az, alt=alt, rot=rot)
+                else:
+                    cmd.warn('text="Skipping gang change slew"')
+
+                if not multiCmd.run():
+                    cmdState.setStageState("slew", "failed")
+                    cmdState.setCommandState('failed', stateText="failed to move telescope")
+                    cmd.fail('text="Failed to slew to gang change"')
+                    return
+        
+                cmdState.setStageState("slew", "done")
+                cmdState.setCommandState('done', stateText="moved telescope")
+                cmd.finish('text="at gang change position"')
+            
             elif msg.type == Msg.HARTMANN:
                 """Take two arc exposures with the left then the right Hartmann screens in"""
                 cmd = msg.cmd
