@@ -4,9 +4,16 @@ import math, numpy, time
 import sopActor
 from sopActor import *
 import sopActor.myGlobals as myGlobals
+
 from opscore.utility.qstr import qstr
 from opscore.utility.tback import tback
 
+from twisted.internet import reactor, defer
+def twistedSleep(secs):
+    d = defer.deferred()
+    reactor.callLater(secs, d.callback, None)
+    return d
+                
 def doDither(cmd, actorState, dither):
     timeLim = 30.0  # seconds
     if True:
@@ -25,77 +32,88 @@ def doDither(cmd, actorState, dither):
 
 class ApogeeCB(object):
     def __init__(self):
-        apogeeModel = myGlobals.actorState.models['apogee']
-        apogeeModel.keyVarDict["utrReadState"].addCallback(self.listenToReads, callNow=False)
-        self.reset()
         self.cmd = myGlobals.actorState.actor.bcast
+        self.reset()
+        myGlobals.actorState.models['apogee'].keyVarDict["utrReadState"].addCallback(self.listenToReads, callNow=False)
 
     def shutdown(self):
-        apogeeModel.keyVarDict["utrReadState"].removeCallback(self.listenToReads)
+        myGlobals.actorState.models['apogee'].keyVarDict["utrReadState"].removeCallback(self.listenToReads)
 
     def listenToReads(self, key):
-        state = key[1]
-        n = key[2]
+        try:
+            state = key[1]
+            n = key[2]
+        except:
+            state="gack"
+            n=42
+
+        self.cmd.warn('text="utrReadState=%s,%s count=%s trigger=%s"' %
+                      (state, n, self.count, self.triggerCount))
 
         if self.triggerCount < 0:
             return
-        if str(state) != "Saving":
+        if str(state) != "Reading":
             return
 
         self.count += 1
         
-        if not self.cmd.isAlive():
-            self.cmd = myGlobals.actorState.actor.bcast
-        self.cmd.warn('text="utrReadState=%s,%s count=%s trigger=%s"' %
-                      (state, n, self.count, self.triggerCount))
+        try:
+            #if not self.cmd.isAlive():
+            #    self.cmd = myGlobals.actorState.actor.bcast
+            self.cmd.warn('text="utrReadState2=%s,%s count=%s trigger=%s"' %
+                          (state, n, self.count, self.triggerCount))
 
-        if self.count == self.triggerCount:
-            self.reset()
-            self.cb()
+            if self.count == self.triggerCount:
+                self.reset()
+                self.cb()
+        except Exception, e:
+            self.cmd.warn('text="failed to call callback: %s"' % (e))
+            tback("cb", e)
 
     def reset(self):
         self.count = 0
         self.triggerCount = -1
 
-    def waitForNthRead(self, cmd, n, q, msg, cb=None):
+    def waitForNthRead(self, cmd, n, q, cb=None):
         self.reset()
         self.cmd = cmd
         self.triggerCount = n
         self.q = q
-        self.msg = msg
 
         self.cb = cb if cb else self.flashLamps
 
+    def turnOffLamps(self):
+        self.cmd.warn('text="calling wht.off"')
+        replyQueue = sopActor.Queue("apogeeFlasher")
+        myGlobals.actorState.queues[sopActor.FF_LAMP].put(Msg.LAMP_ON, cmd=self.cmd, on=False, replyQueue=replyQueue)
+        #ret = replyQueue.get()
+        #self.cmd.warn('text="wht.off ret: %s"' % (ret))
+        self.cmd.warn('text="called wht.off"')
+                               
+        
     def flashLamps(self):
         timeLim = 5.0          # seconds
         t0 = time.time()
 
-        if self.cmd:
-            self.cmd.warn('text="would flash lamps"')
+        self.cmd.warn('text="might flash lamps"')
+    
         cmdr = myGlobals.actorState.actor.cmdr
-        replyQueue = Queue.Queue()
-        sopActor.queues[sopActor.FF_LAMP].put(Msg.LAMP_ON, cmd, replyQueue=replyQueue)
-        replyQueue.get(True, 10)
-        #cmdVar = cmdr.call(actor="mcp", forUserCmd=self.cmd, 
-        #                   cmdStr="ff.on",
-        #                   timeLim=timeLim)
+        replyQueue = sopActor.Queue("apogeeFlasher")
+        self.cmd.warn('text="calling wht.on"')
+        myGlobals.actorState.queues[sopActor.FF_LAMP].put(Msg.LAMP_ON, cmd=self.cmd, on=True, replyQueue=replyQueue)
+        #ret = replyQueue.get(True)
+        #self.cmd.warn('text="wht.on ret: %s"' % (ret))
+
+        self.cmd.warn('text="called wht.on"')
         t1 = time.time()
-        if cmdVar.didFail:
-            cmd.warn('text="ff lamp on command failed"')
+        if False: # cmdVar.didFail: # ret.success:
+            self.cmd.warn('text="ff lamp on command failed"')
+        else:
+            self.cmd.warn('text="pausing..."')
+            reactor.callLater(5.0, self.turnOffLamps)
+            
 
-        time.sleep(5.0)
-        t2 = time.time()
-        sopActor.queues[sopActor.FF_LAMP].put(Msg.LAMP_OFF, cmd, replyQueue=replyQueue)
-        replyQueue.get(True, 10)
-        #cmdVar = cmdr.call(actor="mcp", forUserCmd=msg.cmd, 
-        #                   cmdStr="ff.off",
-        #                   timeLim=timeLim)
-        t3 = time.time()
-        if cmdVar.didFail:
-            cmd.warn('text="ff lamp off command failed"')
-        cmd.warn('text="times=%0.2f %0.2f %0.2f"' % (t1-t0,t2-t0,t3-t0)) 
-
-        self.q.put(self.msg)
+        # self.q.put(Msg(Msg.EXPOSURE_FINISHED, cmd=self.cmd,  success=not cmdVar.didFail))
         
 def main(actor, queues):
     """Main loop for APOGEE ICC thread"""
@@ -108,7 +126,7 @@ def main(actor, queues):
     
     while True:
         try:
-            msg = queues[sopActor.APOGEE].get(timeout=timeout)
+            msg = actorState.queues[sopActor.APOGEE].get(timeout=timeout)
 
             if msg.type == Msg.EXIT:
                 if msg.cmd:
@@ -116,7 +134,7 @@ def main(actor, queues):
                 return
 
             elif msg.type == Msg.DITHER:
-                ret = doDither(msg.cmd, msg.dither)
+                ret = doDither(msg.cmd, actorState, msg.dither)
                 
             elif msg.type == Msg.EXPOSE:
                 msg.cmd.respond("text=\"starting %s%s exposure\"" % (
@@ -129,8 +147,13 @@ def main(actor, queues):
 
                 try:
                     expType = msg.expType
-                except AttributeError.e:
+                except AttributeError, e:
                     expType = "dark"
+                    
+                try:
+                    comment = msg.comment
+                except AttributeError, e:
+                    comment = ""
                     
                 if dither != None:
                     cmdVar = doDither(msg.cmd, actorState, dither)
@@ -144,7 +167,7 @@ def main(actor, queues):
                 if True:                # really take data
                     cmdVar = actorState.actor.cmdr.call(actor="apogee", forUserCmd=msg.cmd,
                                                         cmdStr="expose time=%0.1f object=%s comment=%s" %
-                                                        (msg.expTime, expType, qstr(msg.comment)),
+                                                        (msg.expTime, expType, qstr(comment)),
                                                         keyVars=[], timeLim=timeLim)
                 else:
                     msg.cmd.warn('text="Not taking a %gs exposure"' % (msg.expTime))
@@ -170,7 +193,7 @@ def main(actor, queues):
             tback(errMsg, e)
 
             try:
-                msg.replyQueue.put(Msg.EXIT, cmd=msg.cmd, success=False)
+                msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
             except Exception, e:
                 pass
 
@@ -186,7 +209,7 @@ def script_main(actor, queues):
     
     while True:
         try:
-            msg = queues[sopActor.APOGEE_SCRIPT].get(timeout=timeout)
+            msg = actorState.queues[sopActor.APOGEE_SCRIPT].get(timeout=timeout)
 
             if msg.type == Msg.EXIT:
                 if msg.cmd:
@@ -197,18 +220,13 @@ def script_main(actor, queues):
             elif msg.type == Msg.POST_FLAT:
                 cmd = msg.cmd
                 n = 2
-                replyQueue = Queue.Queue()
-                replyMsg = True
 
                 if False:
                     cmd.warn('text="SKIPPING flat exposure"')
                 else:
-                    queues[sopActor.APOGEE].put(Msg.EXPOSE, cmd, replyQueue=queues[sopActor.APOGEE_SCRIPT],
-                                                expTime=50, expType='dark')
-
-                apogeeFlatCB.waitForNthRead(cmd, n, replyQueue, replyMsg, cb=None)
-                ret = replyQueue.get(True, 100)
-                msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=ret)
+                    actorState.queues[sopActor.APOGEE].put(Msg.EXPOSE, cmd, replyQueue=msg.replyQueue,
+                                                           expTime=50, expType='dark')
+                    apogeeFlatCB.waitForNthRead(cmd, n, msg.replyQueue)
 
             elif msg.type == Msg.EXPOSURE_FINISHED:
                 msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=msg.success)
@@ -227,7 +245,7 @@ def script_main(actor, queues):
             tback(errMsg, e)
 
             try:
-                msg.replyQueue.put(Msg.EXIT, cmd=msg.cmd, success=False)
+                msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
             except Exception, e:
                 pass
 
