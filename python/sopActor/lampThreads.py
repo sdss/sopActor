@@ -39,7 +39,7 @@ def lamp_main(actor, queue, lampName):
             elif msg.type == Msg.LAMP_ON:
                 action = "on" if msg.on else "off"
 
-                if lampName in ["uv", "wht",]:
+                if lampName in ["uv"]:
                     msg.cmd.diag('text="ignoring %s.%s"' % (action, lampName))
                     msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
                     continue
@@ -89,7 +89,7 @@ def lamp_main(actor, queue, lampName):
             tback(errMsg, e)
 
             try:
-                msg.replyQueue.put(Msg.EXIT, cmd=msg.cmd, success=False)
+                msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
             except Exception, e:
                 pass
 

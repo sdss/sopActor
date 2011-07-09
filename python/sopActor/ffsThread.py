@@ -89,6 +89,6 @@ def main(actor, queues):
             tback(errMsg, e)
 
             try:
-                msg.replyQueue.put(Msg.EXIT, cmd=msg.cmd, success=False)
+                msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
             except Exception, e:
                 pass

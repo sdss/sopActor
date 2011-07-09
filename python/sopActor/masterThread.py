@@ -797,7 +797,7 @@ def main(actor, queues):
                 cmdState.setCommandState('running')
                 cmdState.setStageState("slew", "running")
                 if doCals and survey != sopActor.BOSS:
-                    cmd.warn('text="scheduling cals": %s %s"' % (doCals, survey))
+                    cmd.warn('text="scheduling cals: %s %s"' % (doCals, survey))
                     multiCmd.append(SopPrecondition(sopActor.FFS, Msg.FFS_MOVE, open=False))
                     multiCmd.append(sopActor.APOGEE_SCRIPT, Msg.POST_FLAT, cmdState=cmdState)
 
@@ -807,7 +807,7 @@ def main(actor, queues):
                         cmd.fail('text="Failed to take cals going before gang change"')
                         return
                 else:
-                    cmd.warn('text="skipping cals": %s %s"' % (doCals, survey))
+                    cmd.warn('text="skipping cals: %s %s"' % (doCals, survey))
                 
                 tccDict = actorState.models["tcc"].keyVarDict
 
@@ -1001,6 +1001,6 @@ def main(actor, queues):
             tback(errMsg, e)
 
             try:
-                msg.replyQueue.put(Msg.EXIT, cmd=msg.cmd, success=False)
+                msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
             except Exception, e:
                 pass
