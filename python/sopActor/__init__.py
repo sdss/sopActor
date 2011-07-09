@@ -397,18 +397,23 @@ class CmdState(object):
 
         msg = []
         for keyName, default in self.keywords.iteritems():
+            val = getattr(self, keyName)
+            if type(val) == str:
+                val = qstr(val)
+                default = qstr(default)
             msg.append("%s_%s=%s,%s" % (self.name, keyName,
-                                        getattr(self, keyName),
-                                        default))
-        cmd.inform("; ".join(msg))
+                                        val, default))
+        if msg:
+            cmd.inform("; ".join(msg))
 
         try:
             userKeys = self.getUserKeys()
         except:
             userKeys = []
             cmd.warn('text="failed to fetch all keywords for %s"' % (self.name))
-            
-        cmd.inform(";".join(userKeys))
+
+        if userKeys:
+            cmd.inform(";".join(userKeys))
         
     def genKeys(self, cmd=None, trimKeys=False):
         """ generate all our keywords. """
