@@ -76,7 +76,7 @@ class SopCmd(object):
                                                  help="dither positions for each sequence. e.g. AB"),
                                         keys.Key("seqCount", types.Int(),
                                                  help="number of times to launch sequence"),
-                                        keys.Key("comment", help="comment for headers"),
+                                        keys.Key("comment", types.String(), help="comment for headers"),
                                         keys.Key("alt", types.Float(), help="what altitude to slew to"),
                                         )
         #
@@ -721,6 +721,8 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         alt = float(cmd.cmd.keywords["alt"].values[0]) \
               if "alt" in cmd.cmd.keywords else 45.0
 
+        cmdState.alt = alt
+        
         if 'stop' in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
             cmd.fail('text"sorry, I cannot stop or abort a gotoGangChange command. (yet)"')
             return
