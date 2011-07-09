@@ -572,7 +572,7 @@ def main(actor, queues):
                 # OK, we're there. 
                 #
                 if cmdState.doHartmann:
-                    hartmannDelay = 180
+                    hartmannDelay = 210
                     cmdState.setStageState("hartmann", "running")
                     multiCmd = SopMultiCommand(cmd, actorState.timeout + hartmannDelay, "gotoField.hartmann")
 
