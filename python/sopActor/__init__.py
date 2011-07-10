@@ -398,7 +398,7 @@ class CmdState(object):
         msg = []
         for keyName, default in self.keywords.iteritems():
             val = getattr(self, keyName)
-            if type(val) == str:
+            if type(default) == str:
                 val = qstr(val)
                 default = qstr(default)
             msg.append("%s_%s=%s,%s" % (self.name, keyName,

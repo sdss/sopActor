@@ -47,7 +47,9 @@ class ApogeeCB(object):
             state="gack"
             n=42
 
-        self.cmd.warn('text="utrReadState=%s,%s count=%s trigger=%s"' %
+        if not self.cmd.isAlive():
+            self.cmd = myGlobals.actorState.actor.bcast
+        self.cmd.diag('text="utrReadState=%s,%s count=%s trigger=%s"' %
                       (state, n, self.count, self.triggerCount))
 
         if self.triggerCount < 0:
@@ -60,7 +62,7 @@ class ApogeeCB(object):
         try:
             #if not self.cmd.isAlive():
             #    self.cmd = myGlobals.actorState.actor.bcast
-            self.cmd.warn('text="utrReadState2=%s,%s count=%s trigger=%s"' %
+            self.cmd.diag('text="utrReadState2=%s,%s count=%s trigger=%s"' %
                           (state, n, self.count, self.triggerCount))
 
             if self.count == self.triggerCount:
@@ -87,8 +89,8 @@ class ApogeeCB(object):
         replyQueue = sopActor.Queue("apogeeFlasher")
         myGlobals.actorState.queues[sopActor.FF_LAMP].put(Msg.LAMP_ON, cmd=self.cmd, on=False, replyQueue=replyQueue)
         #ret = replyQueue.get()
-        #self.cmd.warn('text="wht.off ret: %s"' % (ret))
-        self.cmd.warn('text="called wht.off"')
+        #self.cmd.diag('text="wht.off ret: %s"' % (ret))
+        self.cmd.diag('text="called wht.off"')
                                
         
     def flashLamps(self):
@@ -99,17 +101,17 @@ class ApogeeCB(object):
     
         cmdr = myGlobals.actorState.actor.cmdr
         replyQueue = sopActor.Queue("apogeeFlasher")
-        self.cmd.warn('text="calling wht.on"')
+        self.cmd.diag('text="calling wht.on"')
         myGlobals.actorState.queues[sopActor.FF_LAMP].put(Msg.LAMP_ON, cmd=self.cmd, on=True, replyQueue=replyQueue)
         #ret = replyQueue.get(True)
-        #self.cmd.warn('text="wht.on ret: %s"' % (ret))
+        #self.cmd.diag('text="wht.on ret: %s"' % (ret))
 
         self.cmd.warn('text="called wht.on"')
         t1 = time.time()
         if False: # cmdVar.didFail: # ret.success:
             self.cmd.warn('text="ff lamp on command failed"')
         else:
-            self.cmd.warn('text="pausing..."')
+            self.cmd.diag('text="pausing..."')
             reactor.callLater(5.0, self.turnOffLamps)
             
 
@@ -225,7 +227,7 @@ def script_main(actor, queues):
                     cmd.warn('text="SKIPPING flat exposure"')
                 else:
                     actorState.queues[sopActor.APOGEE].put(Msg.EXPOSE, cmd, replyQueue=msg.replyQueue,
-                                                           expTime=50, expType='dark')
+                                                           expTime=50, expType='DomeFlat')
                     apogeeFlatCB.waitForNthRead(cmd, n, msg.replyQueue)
 
             elif msg.type == Msg.EXPOSURE_FINISHED:

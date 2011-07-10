@@ -721,16 +721,17 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         alt = float(cmd.cmd.keywords["alt"].values[0]) \
               if "alt" in cmd.cmd.keywords else 45.0
 
+        cmdState = sopState.gotoGangChange
         cmdState.alt = alt
         
         if 'stop' in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
             cmd.fail('text"sorry, I cannot stop or abort a gotoGangChange command. (yet)"')
             return
         
-        sopState.gotoGangChange.setupCommand("gotoGangChange", cmd, ['slew'])
+        cmdState.setupCommand("gotoGangChange", cmd, ['slew'])
 
         actorState.queues[sopActor.MASTER].put(Msg.GOTO_GANG_CHANGE, cmd, replyQueue=actorState.queues[sopActor.MASTER],
-                                               actorState=actorState, cmdState=sopState.gotoGangChange,
+                                               actorState=actorState, cmdState=cmdState,
                                                alt=alt, survey=actorState.survey)
         
     def ping(self, cmd):
