@@ -67,6 +67,7 @@ class ApogeeCB(object):
 
             if self.count == self.triggerCount:
                 self.reset()
+                # time.sleep(1)
                 self.cb()
         except Exception, e:
             self.cmd.warn('text="failed to call callback: %s"' % (e))
@@ -221,7 +222,7 @@ def script_main(actor, queues):
 
             elif msg.type == Msg.POST_FLAT:
                 cmd = msg.cmd
-                n = 2
+                n = 3
 
                 if False:
                     cmd.warn('text="SKIPPING flat exposure"')
