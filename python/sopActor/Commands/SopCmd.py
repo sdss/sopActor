@@ -898,26 +898,15 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
             actorState.validCommands = ['gotoField',
                                         'hartmann', 'doCalibs', 'doScience',
                                         'gotoStow', 'gotoInstrumentChange']
-            refractionBalance = 0.0
         elif survey == sopActor.MARVELS:
             actorState.gotoField.setStages(['slew', 'guider'])
             actorState.validCommands = ['gotoField',
                                         'doApogeeScience',
                                         'gotoStow', 'gotoGangChange', 'gotoInstrumentChange']
-            refractionBalance = 1.0
         else:
             actorState.gotoField.setStages(['slew', 'guider'])
             actorState.validCommands = ['gotoStow', 'gotoInstrumentChange']
-            refractionBalance = 0.0
 
-        if survey in (sopActor.BOSS, sopActor.MARVELS):
-            # We set refraction balance here instead of in the actor so that we can bypass for tests.
-            #cmdVar = actorState.actor.cmdr.call(actor="guider", forUserCmd=cmd,
-            #                                    cmdStr="setRefractionBalance corrRatio=%0.1f" % (refractionBalance),
-            #                                    keyVars=[])
-            #if cmdVar.didFail:
-            cmd.warn('text="did not set guider refraction balance (to %s)"' % (refractionBalance))
-            
         self.status(cmd, threads=False, finish=False)
 
     def classifyCartridge(self, cmd, cartridge):
