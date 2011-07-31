@@ -538,7 +538,7 @@ def main(actor, queues):
                         multiCmd.append(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False)
                     else:
                         if doGuiderFlat and survey == sopActor.MARVELS:
-                            multiCmd.append(sopActor.WHT_LAMP , Msg.LAMP_ON, on=True)
+                            multiCmd.append(sopActor.FF_LAMP , Msg.LAMP_ON, on=True)
                         
                     if not multiCmd.run():
                         cmdState.setStageState("slew", "failed")
