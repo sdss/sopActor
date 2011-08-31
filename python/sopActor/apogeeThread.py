@@ -96,6 +96,7 @@ class ApogeeCB(object):
         
     def flashLamps(self):
         timeLim = 5.0          # seconds
+        time2flash = 4.0       # seconds
         t0 = time.time()
 
         self.cmd.warn('text="might flash lamps"')
@@ -113,7 +114,7 @@ class ApogeeCB(object):
             self.cmd.warn('text="ff lamp on command failed"')
         else:
             self.cmd.diag('text="pausing..."')
-            reactor.callLater(5.0, self.turnOffLamps)
+            reactor.callLater(time2flash, self.turnOffLamps)
             
 
         # self.q.put(Msg(Msg.EXPOSURE_FINISHED, cmd=self.cmd,  success=not cmdVar.didFail))
