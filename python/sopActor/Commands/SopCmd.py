@@ -982,13 +982,13 @@ class DoApogeeScienceCmd(CmdState):
     def __init__(self):
         CmdState.__init__(self, 'doApogeeScience',
                           ["doApogeeScience"],
-                          keywords=dict(ditherSeq="A",
+                          keywords=dict(ditherSeq="AB",
                                         expTime=500.0,
                                         comment=""))
         self.seqCount = 0
         self.seqDone = 0
         
-        self.exposureSeq = "A"*7
+        self.exposureSeq = "AB"*3
         self.index = 0
 
     def getUserKeys(self):

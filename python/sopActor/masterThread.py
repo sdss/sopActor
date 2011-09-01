@@ -511,7 +511,7 @@ def main(actor, queues):
                     cmd.fail('text="doScience was aborted')
                 else:
                    cmdState.setCommandState('done')
-                    cmd.finish('text="Your Nobel Prize is a little closer, sir')
+                   cmd.finish('text="Your Nobel Prize is a little closer, sir')
 
             elif msg.type == Msg.GOTO_FIELD:
                 cmd = msg.cmd
@@ -824,8 +824,6 @@ def main(actor, queues):
                     cmd.warn('text="scheduling cals: %s %s"' % (doCals, survey))
                     multiCmd.append(SopPrecondition(sopActor.FFS, Msg.FFS_MOVE, open=False))
                     multiCmd.append(sopActor.APOGEE_SCRIPT, Msg.POST_FLAT, cmdState=cmdState)
-                    # Done here until we (maybe) decide that it is safe to slew with shutter open.
-                    multiCmd.append(sopActor.APOGEE, Msg.APOGEE_SHUTTER, open=False)
 
                     if not multiCmd.run():
                         cmdState.setStageState("slew", "failed")
@@ -862,8 +860,8 @@ def main(actor, queues):
 
                 cmd.warn('text="might slew to %.1f,%.1f,%.1f"' % (az,alt,rot))
                 if True:
-                    # Enable this if we want the shutter to be closed during the slew
-                    # multiCmd.append(sopActor.APOGEE, Msg.APOGEE_SHUTTER, open=False)
+                    # Convert this to a non Precondition this if we want the shutter to be closed during the slew
+                    multiCmd.append(SopPrecondition(sopActor.APOGEE, Msg.APOGEE_SHUTTER, open=False))
                     multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState, az=az, alt=alt, rot=rot)
                 else:
                     cmd.warn('text="Skipping gang change slew"')
