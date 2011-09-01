@@ -62,12 +62,12 @@ def main(actor, queues):
                 msg.cmd.respond("text=\"starting Hartmann sequence\"")
 
                 if True:
-                    timeLim = 180
+                    timeLim = 240
                     cmdVar = actorState.actor.cmdr.call(actor="sos", forUserCmd=msg.cmd,
                                                         cmdStr="doHartmann",
                                                         keyVars=[], timeLim=timeLim)
                 else:
-                    msg.cmd.inform('text="Faking Hartmann sequence"')
+                    msg.cmd.warn('text="Faking Hartmann sequence"')
                     import time; time.sleep(4)
 
                     class Foo(object):

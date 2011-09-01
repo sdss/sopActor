@@ -89,22 +89,23 @@ class ApogeeCB(object):
         self.cmd.warn('text="calling wht.off"')
         replyQueue = sopActor.Queue("apogeeFlasher")
         myGlobals.actorState.queues[sopActor.FF_LAMP].put(Msg.LAMP_ON, cmd=self.cmd, on=False, replyQueue=replyQueue)
+
+        # This is dreadful. Why is this .get() and test commented out? Some bad threading/reactor interaction. CPL
         #ret = replyQueue.get()
         #self.cmd.diag('text="wht.off ret: %s"' % (ret))
         self.cmd.diag('text="called wht.off"')
                                
-        
     def flashLamps(self):
-        timeLim = 5.0          # seconds
         time2flash = 4.0       # seconds
         t0 = time.time()
 
-        self.cmd.warn('text="might flash lamps"')
-    
         cmdr = myGlobals.actorState.actor.cmdr
         replyQueue = sopActor.Queue("apogeeFlasher")
         self.cmd.diag('text="calling wht.on"')
         myGlobals.actorState.queues[sopActor.FF_LAMP].put(Msg.LAMP_ON, cmd=self.cmd, on=True, replyQueue=replyQueue)
+
+        # See angry comment in .turnOffLamps(). In this case I wonder if calling reactor.callLater _before_
+        # the put(LAMP_ON) would help. Bad, bad, bad.
         #ret = replyQueue.get(True)
         #self.cmd.diag('text="wht.on ret: %s"' % (ret))
 
@@ -115,10 +116,7 @@ class ApogeeCB(object):
         else:
             self.cmd.diag('text="pausing..."')
             reactor.callLater(time2flash, self.turnOffLamps)
-            
 
-        # self.q.put(Msg(Msg.EXPOSURE_FINISHED, cmd=self.cmd,  success=not cmdVar.didFail))
-        
 def main(actor, queues):
     """Main loop for APOGEE ICC thread"""
 
@@ -139,6 +137,17 @@ def main(actor, queues):
 
             elif msg.type == Msg.DITHER:
                 ret = doDither(msg.cmd, actorState, msg.dither)
+                
+            elif msg.type == Msg.APOGEE_SHUTTER:
+                action = "open" if msg.open else "close"
+                cmdVar = actorState.actor.cmdr.call(actor="apogee", forUserCmd=msg.cmd,
+                                                    cmdStr="shutter %s" % (action),
+                                                    timeLim=20)
+                if cmdVar.didFail:
+                    msg.cmd.warn('text="Failed to %s internal shutter"' % (action))
+                    msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
+                else:
+                    msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
                 
             elif msg.type == Msg.EXPOSE:
                 msg.cmd.respond("text=\"starting %s%s exposure\"" % (
@@ -170,8 +179,9 @@ def main(actor, queues):
                 timeLim = msg.expTime + 30.0  # seconds
                 if True:                # really take data
                     cmdVar = actorState.actor.cmdr.call(actor="apogee", forUserCmd=msg.cmd,
-                                                        cmdStr="expose time=%0.1f object=%s comment=%s" %
-                                                        (msg.expTime, expType, qstr(comment)),
+                                                        cmdStr="expose time=%0.1f object=%s %s" %
+                                                        (msg.expTime, expType,
+                                                         ("comment=%s" % qstr(comment)) if comment else ""),
                                                         keyVars=[], timeLim=timeLim)
                 else:
                     msg.cmd.warn('text="Not taking a %gs exposure"' % (msg.expTime))
@@ -233,7 +243,7 @@ def script_main(actor, queues):
                     apogeeFlatCB.waitForNthRead(cmd, n, msg.replyQueue)
 
             elif msg.type == Msg.EXPOSURE_FINISHED:
-                msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=msg.success)
+                msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=(msg.success and not cmdVar.didFail))
                 
             elif msg.type == Msg.STATUS:
                 msg.cmd.inform('text="%s thread"' % threadName)

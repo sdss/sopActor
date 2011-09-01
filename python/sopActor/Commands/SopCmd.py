@@ -604,6 +604,10 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
                                          or sopState.gotoField.flatTime == 0
                                          or survey != sopActor.BOSS) else 1
 
+        # Tricky. if we are APOGEE, behave differently depending on where the gang connector is:
+        #  on podium: take a guider flat.
+        #  elsewhere: don't
+        #
         # Take out the BOSS test if we trust the switches/bypasses
         if survey != sopActor.BOSS and not actorState.apogeeGang.atPodium():
             cmd.warn('text="skipping guider flat because APOGEE gang connector is not connected to the podium"')

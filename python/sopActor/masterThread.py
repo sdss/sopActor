@@ -48,6 +48,10 @@ desired state, but if it's already in that state no command is required; so retu
             else:
                 return self.ffsAreOpen()
 
+        elif self.queueName == sopActor.APOGEE and self.msgId == Msg.APOGEE_SHUTTER:
+            # move if we are not where we want to be.
+            return self.apogeeShutterIsOpen() != self.kwargs.get('open')
+        
         return True
     #
     # Commands to get state from e.g. the MCP
@@ -72,6 +76,17 @@ desired state, but if it's already in that state no command is required; so retu
         else:
             return None
 
+    def apogeeShutterIsOpen(self):
+        """Return True if APOGEE shutter is open; False if closed, and None if indeterminate"""
+
+        shutterStatus = myGlobals.actorState.models["apogee"].keyVarDict["shutterLimitSwitch"]
+
+        if shutterStatus[0] and not shutterStatus[1]:
+            return True
+        elif shutterStatus[1] and not shutterStatus[0]:
+            return False
+        return None
+    
     def lampIsOn(self, queueName):
         """Return (True iff some lamps are on, timeSinceTransition)"""
 
@@ -464,8 +479,9 @@ def main(actor, queues):
                                     expType='object', comment=cmdState.comment)
                     
                     # Really? All of these?
-                    if False:
-                        multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=True))
+                    if True:
+                        multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE,        open=True))
+                        multiCmd.append(SopPrecondition(sopActor.APOGEE   , Msg.APOGEE_SHUTTER,  open=True))
                         multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON,  on=False))
                         multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON,  on=False))
                         multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON,  on=False))
@@ -494,7 +510,7 @@ def main(actor, queues):
                     cmdState.setCommandState('aborted')
                     cmd.fail('text="doScience was aborted')
                 else:
-                    cmdState.setCommandState('done')
+                   cmdState.setCommandState('done')
                     cmd.finish('text="Your Nobel Prize is a little closer, sir')
 
             elif msg.type == Msg.GOTO_FIELD:
@@ -530,7 +546,10 @@ def main(actor, queues):
                     if (cmdState.nArcLeft > 0 or cmdState.nFlatLeft > 0 or cmdState.doHartmann
                         or doGuiderFlat):
                         multiCmd.append(sopActor.FFS,     Msg.FFS_MOVE, open=False)
-
+                    else:
+                        multiCmd.append(sopActor.FFS,     Msg.FFS_MOVE, open=True)
+                        # We can _possibly_ open the APOGEE shutter here. -- CPL.
+                        
                     if cmdState.nArcLeft > 0 or cmdState.doHartmann:
                         multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=True)
                         multiCmd.append(sopActor.NE_LAMP  , Msg.LAMP_ON, on=True)
@@ -548,6 +567,7 @@ def main(actor, queues):
                         cmd.fail('text="Failed to close screens, warm up lamps, and slew to field"')
                         continue
 
+                    # For bright plates (no hartmann or calibs), take the guider flat as part of the slew stage.
                     if doGuiderFlat and survey == sopActor.MARVELS:
                         guiderDelay = 20
                         multiCmd = SopMultiCommand(cmd, actorState.timeout + guiderDelay, "gotoField.slew.guiderFlat")
@@ -659,7 +679,7 @@ def main(actor, queues):
                     multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
                     multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
                     multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=False))
-
+                    
                 if not multiCmd.run():
                     cmdState.setStageState("calibs", "failed")
                     cmdState.setCommandState('failed', stateText="failed to prepare flats")
@@ -713,10 +733,13 @@ def main(actor, queues):
 
                     readoutMultiCmd = None
 
+                # Hmm. I think this whole multiCmd section is vestigial, but needs to be _carefully_ taken out. -- CPL
                 multiCmd = SopMultiCommand(cmd,
                                            actorState.timeout + (readoutDuration if pendingReadout else 0),
                                            "gotoField.guide.prep")
 
+                # Can't trivially pull this stanza due to the deferred readoutMultiCmd possibly failing.
+                # Still, there is stupid repetition here. -- CPL
                 multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False))
                 multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=False))
                 multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=False))
@@ -724,6 +747,7 @@ def main(actor, queues):
                 multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
 
                 if cmdState.doGuider:
+                    # Should be a Precondition, I think. -- CPL
                     multiCmd.append(sopActor.FFS, Msg.FFS_MOVE, open=True)
 
                 if not multiCmd.run():
@@ -800,6 +824,8 @@ def main(actor, queues):
                     cmd.warn('text="scheduling cals: %s %s"' % (doCals, survey))
                     multiCmd.append(SopPrecondition(sopActor.FFS, Msg.FFS_MOVE, open=False))
                     multiCmd.append(sopActor.APOGEE_SCRIPT, Msg.POST_FLAT, cmdState=cmdState)
+                    # Done here until we (maybe) decide that it is safe to slew with shutter open.
+                    multiCmd.append(sopActor.APOGEE, Msg.APOGEE_SHUTTER, open=False)
 
                     if not multiCmd.run():
                         cmdState.setStageState("slew", "failed")
@@ -836,6 +862,8 @@ def main(actor, queues):
 
                 cmd.warn('text="might slew to %.1f,%.1f,%.1f"' % (az,alt,rot))
                 if True:
+                    # Enable this if we want the shutter to be closed during the slew
+                    # multiCmd.append(sopActor.APOGEE, Msg.APOGEE_SHUTTER, open=False)
                     multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState, az=az, alt=alt, rot=rot)
                 else:
                     cmd.warn('text="Skipping gang change slew"')

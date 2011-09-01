@@ -72,6 +72,7 @@ except NameError:
         class DITHER(): pass
         class GOTO_GANG_CHANGE(): pass
         class POST_FLAT(): pass
+        class APOGEE_SHUTTER(): pass            # control the internal APOGEE shutter 
         
         def __init__(self, type, cmd, **data):
             self.type = type
