@@ -479,7 +479,7 @@ def main(actor, queues):
                                     expType='object', comment=cmdState.comment)
                     
                     # Really? All of these?
-                    if True:
+                    if cmdState.index == 0:
                         multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE,        open=True))
                         multiCmd.append(SopPrecondition(sopActor.APOGEE   , Msg.APOGEE_SHUTTER,  open=True))
                         multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON,  on=False))
@@ -862,6 +862,10 @@ def main(actor, queues):
                 if True:
                     # Convert this to a non Precondition this if we want the shutter to be closed during the slew
                     multiCmd.append(SopPrecondition(sopActor.APOGEE, Msg.APOGEE_SHUTTER, open=False))
+                    #multiCmd.append(sopActor.APOGEE, Msg.EXPOSE, actorState=actorState,
+                    #                expType='dark', comment="post-plate dark", expTime=20.0)
+                    #multiCmd.append(sopActor.APOGEE, Msg.EXPOSE, actorState=actorState,
+                    #                expType='dark', comment="post-plate dark", expTime=20.0)
                     multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState, az=az, alt=alt, rot=rot)
                 else:
                     cmd.warn('text="Skipping gang change slew"')
