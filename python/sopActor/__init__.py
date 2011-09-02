@@ -73,6 +73,8 @@ except NameError:
         class GOTO_GANG_CHANGE(): pass
         class POST_FLAT(): pass
         class APOGEE_SHUTTER(): pass            # control the internal APOGEE shutter 
+        class APOGEE_PARK_DARKS(): pass 
+        class APOGEE_SKY_FLATS(): pass 
         
         def __init__(self, type, cmd, **data):
             self.type = type

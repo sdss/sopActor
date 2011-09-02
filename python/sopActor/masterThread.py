@@ -547,9 +547,10 @@ def main(actor, queues):
                         or doGuiderFlat):
                         multiCmd.append(sopActor.FFS,     Msg.FFS_MOVE, open=False)
                     else:
-                        multiCmd.append(sopActor.FFS,     Msg.FFS_MOVE, open=True)
                         # We can _possibly_ open the APOGEE shutter here. -- CPL.
-                        
+                        # multiCmd.append(sopActor.FFS,     Msg.FFS_MOVE, open=True)
+                        pass
+                    
                     if cmdState.nArcLeft > 0 or cmdState.doHartmann:
                         multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=True)
                         multiCmd.append(sopActor.NE_LAMP  , Msg.LAMP_ON, on=True)
@@ -860,13 +861,11 @@ def main(actor, queues):
 
                 cmd.warn('text="might slew to %.1f,%.1f,%.1f"' % (az,alt,rot))
                 if True:
-                    # Convert this to a non Precondition this if we want the shutter to be closed during the slew
-                    multiCmd.append(SopPrecondition(sopActor.APOGEE, Msg.APOGEE_SHUTTER, open=False))
-                    #multiCmd.append(sopActor.APOGEE, Msg.EXPOSE, actorState=actorState,
-                    #                expType='dark', comment="post-plate dark", expTime=20.0)
-                    #multiCmd.append(sopActor.APOGEE, Msg.EXPOSE, actorState=actorState,
-                    #                expType='dark', comment="post-plate dark", expTime=20.0)
                     multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState, az=az, alt=alt, rot=rot)
+                    if survey != sopActor.BOSS:
+                        # Convert this to a non Precondition this if we want the shutter to be closed during the slew
+                        multiCmd.append(SopPrecondition(sopActor.APOGEE, Msg.APOGEE_SHUTTER, open=False))
+                        multiCmd.append(sopActor.APOGEE_SCRIPT, Msg.APOGEE_PARK_DARKS)
                 else:
                     cmd.warn('text="Skipping gang change slew"')
 

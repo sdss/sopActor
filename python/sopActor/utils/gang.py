@@ -1,4 +1,5 @@
 import sopActor.myGlobals as myGlobals
+from sopActor import Bypass
 
 class ApogeeGang(object):
     """ Encapsulate the APOGEE gang connector. """
@@ -7,26 +8,31 @@ class ApogeeGang(object):
     GANG_ON_CARTRIDGE = "gang on cartridge"
     GANG_ON_PODIUM    = "gang on podium"
     GANG_AT_SPARSE    = "gang at sparse cals"
+    GANG_DISCONNECTED = "gang disconnected"
     
     def __init__(self):
-        self.manualPos = None
+        pass
 
-    def forcePos(self, forcedPos):
-        self.manualPos = forcedPos
-        
-    def bypass(self, subSystem, doBypass):
-        bypass2state = dict(gangValid=self.GANG_UNKNOWN,
-                            gangPodium=self.GANG_ON_CARTRIDGE,
-                            gangCart=self.GANG_ON_PODIUM,
-                            gang=self.GANG_UNKNOWN)
-
-        # Clearing _any_ gang bypass clears all of them.
-        if not doBypass:
-            self.forcePos(None)
-        else:
-            self.forcePos(bypass2state.get(subSystem, None))
-    
     def getPhysicalPos(self):
+        """ Return the gang position as indicated by the MCP apogeeGang keyword
+
+        The mcp puts out an Int described as an Enum, which we map.
+        We no longer need to do this....
+        """
+
+        gangMap = {0:self.GANG_DISCONNECTED,
+                   1:self.GANG_ON_PODIUM,
+                   2:self.GANG_ON_CARTRIDGE,
+                   3:self.GANG_AT_SPARSE}
+        
+        mcpModel = myGlobals.actorState.models["mcp"]
+        gangPos = mcpModel.keyVarDict["apogeeGang"]
+        if not gangPos.isCurrent:
+            return self.GANG_UNKNOWN
+
+        return gangMap[int(gangPos[0])]
+    
+    def getPhysicalPosByBits(self):
         """ Return the gang position as indicated by the physical switches.
 
         For now there is no direct MCP support, so we look at the Allen-Bradley ab_I0_L0 bits directly:
@@ -56,10 +62,15 @@ class ApogeeGang(object):
             return self.GANG_ON_PODIUM
         return self.GANG_UNKNOWN
         
-    
     def getPos(self):
-        if self.manualPos:
-            return self.manualPos
+        bcast = myGlobals.actorState.actor.bcast
+
+        if Bypass.get(name='gangCart'):
+            bcast.warn('text="Lying about the APOGEE gang connector being on the podium"')
+            return self.GANG_ON_PODIUM
+        elif Bypass.get(name='gangPodium'):
+            bcast.warn('text="Lying about the APOGEE gang connector being on the cartridge"')
+            return self.GANG_ON_CARTRIDGE
         else:
             return self.getPhysicalPos()
             

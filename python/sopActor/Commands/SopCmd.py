@@ -24,13 +24,6 @@ if not False:
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-
-try:
-    fakeMarvels                         # force this to be interpreted as a Marvels cartridge
-except:
-    fakeBoss = False
-    fakeMarvels = False
-
 class SopCmd(object):
     """ Wrap commands to the sop actor"""
 
@@ -89,6 +82,7 @@ class SopCmd(object):
              self.doCalibs),
             ("doScience", "[<expTime>] [<nexp>] [abort] [stop] [test]", self.doScience),
             ("doApogeeScience", "[<expTime>] [<ditherSeq>] [<seqCount>] [stop] [<abort>] [<comment>]", self.doApogeeScience),
+            ("doApogeeSkyFlats", "[<expTime>] [<ditherSeq>] [stop]", self.doApogeeSkyFlats),
             ("ditheredFlat", "[sp1] [sp2] [<expTime>] [<nStep>] [<nTick>]", self.ditheredFlat),
             ("hartmann", "[sp1] [sp2] [<expTime>]", self.hartmann),
             ("lampsOff", "", self.lampsOff),
@@ -108,7 +102,10 @@ class SopCmd(object):
     # Declare systems that can be bypassed
     #
     if not Bypass.get():
-        for ss in ("ffs", "ff_lamp", "hgcd_lamp", "ne_lamp", "uv_lamp", "wht_lamp", "boss", "gcamera", "axes"):
+        # Pulled a couple to get the count under 9
+        # "uv_lamp", "wht_lamp", "boss", "gcamera", 
+        for ss in ("ffs", "ff_lamp", "hgcd_lamp", "ne_lamp", "axes",
+                   "brightPlate", "darkPlate", "gangCart", "gangPodium"):
             Bypass.set(ss, False, define=True)
     #
     # Define commands' callbacks
@@ -415,30 +412,21 @@ class SopCmd(object):
 
         actorState = myGlobals.actorState
 
-        if subSystem in ("planets", "brightPlate"):
-            global fakeBoss
-            fakeBoss = doBypass
-            if doBypass:
-                fakeMarvels = not fakeBoss
-            self.updateCartridge(actorState.cartridge)
-            cmd.finish('text="%s"' % ("I'm studying some very faint fuzzies" if fakeBoss else ""))
-            return
-        elif subSystem in ("science", "darkPlate"):
-            global fakeMarvels
-            fakeMarvels = doBypass
-            if doBypass:
-                fakeBoss = not fakeMarvels
-            self.updateCartridge(actorState.cartridge)
-            cmd.finish('text="%s"' % ("Ah, a Marvels night" if fakeMarvels else ""))
-            return
-        elif subSystem in ('gang', 'gangConnected', 'gangPodium', 'gangCart'):
-            actorState.apogeeGang.bypass(subSystem, doBypass)
-            cmd.finish('text="gang bypass: %s"' % (actorState.apogeeGang.getPos()))
-            return
-            
         if Bypass.set(subSystem, doBypass) is None:
             cmd.fail('text="%s is not a recognised and bypassable subSystem"' % subSystem)
             return
+
+        if subSystem in ("darkPlate", "brightPlate"):
+            # Clear the other one
+            if doBypass:
+                Bypass.set("darkPlate" if subSystem == "brightPlate" else "brightPlate", False)            
+            self.updateCartridge(actorState.cartridge)
+        elif subSystem in ('gangPodium', 'gangCart'):
+            # Clear the other one
+            if doBypass:
+                Bypass.set("gangCart" if subSystem == "gangPodium" else "gangPodium", False)            
+            actorState.apogeeGang.bypass(subSystem, doBypass)
+            cmd.warn('text="gang bypass: %s"' % (actorState.apogeeGang.getPos()))
 
         self.status(cmd, threads=False)
 
@@ -708,6 +696,26 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         sopState.gotoInstrumentChange.setupCommand("gotoInstrumentChange", cmd, ['slew'])
         self.gotoPosition(cmd, "instrument change", sopState.gotoInstrumentChange, 121, 90)
         
+    def doApogeeSkyFlats(self, cmd):
+        """ Take sky flats. """
+
+        actorState = myGlobals.actorState
+        sopState = myGlobals.actorState
+
+        cmdState = sopState.doApogeeSkyFlats
+
+        cmd.fail('text="sorry, doApogeeSkyFlats is not implemented yet."')
+        if 'stop' in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
+            cmd.fail('text"sorry, I cannot stop or abort a sky flat command. (yet)"')
+            return
+        
+        cmdState.setupCommand("doApogeeSkyFlats", cmd, ['slew'])
+
+        actorState.queues[sopActor.APOGEE_SCRIPT].put(Msg.APOGEE_SKY_FLATS, cmd,
+                                                      replyQueue=actorState.queues[sopActor.MASTER],
+                                                      actorState=actorState, cmdState=cmdState,
+                                                      survey=actorState.survey)
+        
     def gotoStow(self, cmd):
         """Go to the gang connector change/stow position"""
 
@@ -837,6 +845,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         sopState.doCalibs.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.doScience.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.doApogeeScience.genKeys(cmd=cmd, trimKeys=oneCommand)
+        sopState.doApogeeSkyFlats.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.gotoGangChange.genKeys(cmd=cmd, trimKeys=oneCommand)
 
         #
@@ -874,6 +883,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         actorState.doCalibs = DoCalibsCmd()
         actorState.doScience = DoScienceCmd()
         actorState.doApogeeScience = DoApogeeScienceCmd()
+        actorState.doApogeeSkyFlats = DoApogeeSkyFlatsCmd()
         actorState.gotoGangChange = GotoGangChangeCmd()
         
         actorState.gotoInstrumentChange = CmdState('gotoInstrumentChange',
@@ -905,7 +915,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         elif survey == sopActor.MARVELS:
             actorState.gotoField.setStages(['slew', 'guider'])
             actorState.validCommands = ['gotoField',
-                                        'doApogeeScience',
+                                        'doApogeeScience', 'doApogeeSkyFlats',
                                         'gotoStow', 'gotoGangChange', 'gotoInstrumentChange']
         else:
             actorState.gotoField.setStages(['slew', 'guider'])
@@ -916,11 +926,11 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
     def classifyCartridge(self, cmd, cartridge):
         """Return the survey type corresponding to this cartridge"""
 
-        if fakeBoss:
+        if Bypass.get(name='brightPlate'):
             cmd.warn('text="We are lying about this being a Boss cartridge"')
             return sopActor.BOSS
-        elif fakeMarvels:
-            cmd.warn('text="We are lying about this being a Marvels cartridge"')
+        elif Bypass.get(name='darkPlate'):
+            cmd.warn('text="We are lying about this being a bright-time cartridge"')
             return sopActor.MARVELS
 
         if cartridge <= 0:
@@ -982,13 +992,13 @@ class DoApogeeScienceCmd(CmdState):
     def __init__(self):
         CmdState.__init__(self, 'doApogeeScience',
                           ["doApogeeScience"],
-                          keywords=dict(ditherSeq="AB",
+                          keywords=dict(ditherSeq="ABBA",
                                         expTime=500.0,
                                         comment=""))
         self.seqCount = 0
         self.seqDone = 0
         
-        self.exposureSeq = "AB"*3
+        self.exposureSeq = "ABBA"*2
         self.index = 0
 
     def getUserKeys(self):
@@ -999,6 +1009,18 @@ class DoApogeeScienceCmd(CmdState):
                                                  self.exposureSeq,
                                                  self.index))
         return msg
+
+class DoApogeeSkyFlatsCmd(CmdState):
+    def __init__(self):
+        CmdState.__init__(self, 'doApogeeSkyFlats',
+                          ["doApogeeSkyFlats"],
+                          keywords=dict(ditherSeq="ABBA",
+                                        expTime=150.0))
+        self.seqCount = 0
+        self.seqDone = 0
+        
+        self.exposureSeq = "ABBA"
+        self.index = 0
 
 class DoScienceCmd(CmdState):
     def __init__(self):
