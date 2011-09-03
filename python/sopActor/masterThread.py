@@ -510,8 +510,8 @@ def main(actor, queues):
                     cmdState.setCommandState('aborted')
                     cmd.fail('text="doScience was aborted')
                 else:
-                   cmdState.setCommandState('done')
-                   cmd.finish('text="Your Nobel Prize is a little closer, sir')
+                    cmdState.setCommandState('done')
+                    cmd.finish('text="Your Nobel Prize is a little closer, sir')
 
             elif msg.type == Msg.GOTO_FIELD:
                 cmd = msg.cmd
