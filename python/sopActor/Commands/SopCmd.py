@@ -425,7 +425,6 @@ class SopCmd(object):
             # Clear the other one
             if doBypass:
                 Bypass.set("gangCart" if subSystem == "gangPodium" else "gangPodium", False)            
-            actorState.apogeeGang.bypass(subSystem, doBypass)
             cmd.warn('text="gang bypass: %s"' % (actorState.apogeeGang.getPos()))
 
         self.status(cmd, threads=False)

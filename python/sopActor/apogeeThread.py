@@ -170,7 +170,7 @@ def main(actor, queues):
                     
                 try:
                     inBackground = msg.inBackground
-                except AttributeError:
+                except AttributeError, e:
                     inBackground = False
                     
                 if dither != None:
@@ -191,7 +191,7 @@ def main(actor, queues):
                                                          ("comment=%s" % qstr(comment)) if comment else ""),
                                                         keyVars=[], timeLim=timeLim)
 
-                    if inBackgound:
+                    if inBackground:
                         # command timed out -- assume the loop is running OK.
                         success = "Timeout" in cmdVar.lastReply.keywords
                         if not success:
@@ -270,7 +270,7 @@ def script_main(actor, queues):
                     apogeeFlatCB.waitForNthRead(cmd, n, msg.replyQueue)
 
             elif msg.type == Msg.EXPOSURE_FINISHED:
-                msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=(msg.success and not cmdVar.didFail))
+                msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=msg.success)
                 
             elif msg.type == Msg.STATUS:
                 msg.cmd.inform('text="%s thread"' % threadName)
