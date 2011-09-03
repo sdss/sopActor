@@ -58,7 +58,7 @@ class SopCmd(object):
                                         keys.Key("sp1", help="Select SP1"),
                                         keys.Key("sp2", help="Select SP2"),
                                         keys.Key("geek", help="Show things that only some of us love"),
-                                        keys.Key("subSystem", types.String(), help="The sub-system to bypass"),
+                                        keys.Key("subSystem", types.String()*(1,), help="The sub-systems to bypass"),
                                         keys.Key("threads", types.String()*(1,), help="Threads to restart; default: all"),
                                         keys.Key("scale", types.Float(), help="Current scale from \"tcc show scale\""),
                                         keys.Key("delta", types.Float(), help="Delta scale (percent)"),
@@ -82,7 +82,7 @@ class SopCmd(object):
              self.doCalibs),
             ("doScience", "[<expTime>] [<nexp>] [abort] [stop] [test]", self.doScience),
             ("doApogeeScience", "[<expTime>] [<ditherSeq>] [<seqCount>] [stop] [<abort>] [<comment>]", self.doApogeeScience),
-            ("doApogeeSkyFlats", "[<expTime>] [<ditherSeq>] [stop]", self.doApogeeSkyFlats),
+            ("doApogeeSkyFlats", "[<expTime>] [<ditherSeq>] [stop] [abort]", self.doApogeeSkyFlats),
             ("ditheredFlat", "[sp1] [sp2] [<expTime>] [<nStep>] [<nTick>]", self.ditheredFlat),
             ("hartmann", "[sp1] [sp2] [<expTime>]", self.hartmann),
             ("lampsOff", "", self.lampsOff),
@@ -356,9 +356,9 @@ class SopCmd(object):
             return
 
         seqCount = int(cmd.cmd.keywords["seqCount"].values[0]) \
-                   if "seqCount" in cmd.cmd.keywords else 7
+                   if "seqCount" in cmd.cmd.keywords else 2
         ditherSeq = cmd.cmd.keywords["ditherSeq"].values[0] \
-                    if "ditherSeq" in cmd.cmd.keywords else "A"
+                    if "ditherSeq" in cmd.cmd.keywords else "ABBA"
         comment = cmd.cmd.keywords["comment"].values[0] \
                     if "comment" in cmd.cmd.keywords else ""
 
@@ -379,11 +379,75 @@ class SopCmd(object):
                               ["doApogeeScience"])
         cmd.diag('text="Issuing doApogeeScience"')
         if not MultiCommand(cmd, 2, None,
-                            sopActor.MASTER, Msg.DO_APOGEE_SCIENCE, actorState=actorState,
+                            sopActor.MASTER, Msg.DO_APOGEE_EXPOSURES, actorState=actorState,
+                            expType='object',
                             cartridge=sopState.cartridge,
                             survey=sopState.survey, cmdState=cmdState).run():
             cmd.fail('text="Failed to issue doApogeeScience"')
 
+    def doApogeeSkyFlats(self, cmd):
+        """ Take sky flats. """
+
+        actorState = myGlobals.actorState
+        sopState = myGlobals.actorState
+        cmdState = sopState.doApogeeSkyFlats
+
+        if "stop" in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
+            if cmdState.cmd and cmdState.cmd.isAlive():
+                cmd.warn('text="doApogeeSkyFlats will cancel pending exposures and stopping any running one."')
+
+                cmdState.exposureSeq = cmdState.exposureSeq[:cmdState.index]
+                # Need to work out seqCount/seqDone -- CPL
+                
+                cmdVar = actorState.actor.cmdr.call(actor="apogee", forUserCmd=cmd, cmdStr="expose stop")
+                if cmdVar.didFail:
+                    cmd.warn('text="Failed to stop running exposure"')
+
+                cmdState.abortStages()
+                self.status(cmd, threads=False, finish=True, oneCommand='doApogeeScience')
+            else:
+                cmd.fail('text="No doApogeeScience command is active"')
+            return
+                
+        cmdState.expTime = float(cmd.cmd.keywords["expTime"].values[0]) if \
+                           "expTime" in cmd.cmd.keywords else 150.0
+        seqCount = 1
+        ditherSeq = cmd.cmd.keywords["ditherSeq"].values[0] \
+                    if "ditherSeq" in cmd.cmd.keywords else "ABBA"
+
+        cmdState.cmd = cmd
+        cmdState.ditherSeq = ditherSeq
+        cmdState.seqCount = seqCount
+        cmdState.comment = "sky flat, offset 0.1 degree in RA"
+        
+        exposureSeq = ditherSeq * seqCount
+        cmdState.exposureSeq = exposureSeq
+        cmdState.index = 0
+        
+        if len(cmdState.exposureSeq) == 0:
+            cmd.fail('text="You must take at least one exposure"')
+            return
+
+        cmdState.setupCommand("doApogeeSkyFlats", cmd,
+                              ["doApogeeSkyFlats"])
+        cmd.diag('text="Issuing doApogeeSkyFlats"')
+
+        # Offset
+        cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd,
+                                            cmdStr="offset arc 0.1,0.0",
+                                            timeLim=actorState.timeout)
+        if cmdVar.didFail:
+            cmd.fail('text="Failed to take offset for sky flats."')
+            return
+        
+        if not MultiCommand(cmd, 2, None,
+                            sopActor.MASTER, Msg.DO_APOGEE_EXPOSURES,
+                            actorState=actorState,
+                            expType='object',
+                            cartridge=sopState.cartridge,
+                            survey=sopState.survey, cmdState=cmdState).run():
+            cmd.fail('text="Failed to issue doApogeeSkyFlats"')
+        
     def lampsOff(self, cmd, finish=True):
         """Turn all the lamps off"""
 
@@ -407,25 +471,26 @@ class SopCmd(object):
 
     def bypass(self, cmd):
         """Tell MultiCmd to ignore errors in a subsystem"""
-        subSystem = cmd.cmd.keywords["subSystem"].values[0]        
+        subSystems = cmd.cmd.keywords["subSystem"].values
         doBypass = False if "clear" in cmd.cmd.keywords else True
 
         actorState = myGlobals.actorState
 
-        if Bypass.set(subSystem, doBypass) is None:
-            cmd.fail('text="%s is not a recognised and bypassable subSystem"' % subSystem)
-            return
+        for subSystem in subSystems:
+            if Bypass.set(subSystem, doBypass) is None:
+                cmd.fail('text="%s is not a recognised and bypassable subSystem"' % subSystem)
+                return
 
-        if subSystem in ("darkPlate", "brightPlate"):
-            # Clear the other one
-            if doBypass:
-                Bypass.set("darkPlate" if subSystem == "brightPlate" else "brightPlate", False)            
-            self.updateCartridge(actorState.cartridge)
-        elif subSystem in ('gangPodium', 'gangCart'):
-            # Clear the other one
-            if doBypass:
-                Bypass.set("gangCart" if subSystem == "gangPodium" else "gangPodium", False)            
-            cmd.warn('text="gang bypass: %s"' % (actorState.apogeeGang.getPos()))
+            if subSystem in ("darkPlate", "brightPlate"):
+                # Clear the other one
+                if doBypass:
+                    Bypass.set("darkPlate" if subSystem == "brightPlate" else "brightPlate", False)            
+                self.updateCartridge(actorState.cartridge)
+            elif subSystem in ('gangPodium', 'gangCart'):
+                # Clear the other one
+                if doBypass:
+                    Bypass.set("gangCart" if subSystem == "gangPodium" else "gangPodium", False)            
+                cmd.warn('text="gang bypass: %s"' % (actorState.apogeeGang.getPos()))
 
         self.status(cmd, threads=False)
 
@@ -694,26 +759,6 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
     
         sopState.gotoInstrumentChange.setupCommand("gotoInstrumentChange", cmd, ['slew'])
         self.gotoPosition(cmd, "instrument change", sopState.gotoInstrumentChange, 121, 90)
-        
-    def doApogeeSkyFlats(self, cmd):
-        """ Take sky flats. """
-
-        actorState = myGlobals.actorState
-        sopState = myGlobals.actorState
-
-        cmdState = sopState.doApogeeSkyFlats
-
-        cmd.fail('text="sorry, doApogeeSkyFlats is not implemented yet."')
-        if 'stop' in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
-            cmd.fail('text"sorry, I cannot stop or abort a sky flat command. (yet)"')
-            return
-        
-        cmdState.setupCommand("doApogeeSkyFlats", cmd, ['slew'])
-
-        actorState.queues[sopActor.APOGEE_SCRIPT].put(Msg.APOGEE_SKY_FLATS, cmd,
-                                                      replyQueue=actorState.queues[sopActor.MASTER],
-                                                      actorState=actorState, cmdState=cmdState,
-                                                      survey=actorState.survey)
         
     def gotoStow(self, cmd):
         """Go to the gang connector change/stow position"""

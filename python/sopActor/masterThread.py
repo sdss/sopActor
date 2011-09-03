@@ -1,5 +1,5 @@
 import Queue, threading
-import math, time
+import math, sys, time
 
 from sopActor import *
 import sopActor
@@ -27,6 +27,7 @@ desired state, but if it's already in that state no command is required; so retu
             assert self.msgId == Msg.LAMP_ON
 
             isOn, timeSinceTransition = self.lampIsOn(self.queueName)
+            print >> sys.stderr, "prereq(%s) = %s" % (self.queueName, isOn)
             if self.kwargs.get('on'):                    # we want to turn them on
                 if not isOn:
                     timeSinceTransition = 0                              # we want the time since turn on
@@ -97,9 +98,9 @@ desired state, but if it's already in that state no command is required; so retu
         elif queueName == sopActor.NE_LAMP:
             status = myGlobals.actorState.models["mcp"].keyVarDict["neLamp"]
         elif queueName == sopActor.UV_LAMP:
-            return myGlobals.actorState.models["mcp"].keyVarDict["uvLampCommandedOn"], 0
+            return myGlobals.actorState.models["mcp"].keyVarDict["uvLampCommandedOn"][0], 0
         elif queueName == sopActor.WHT_LAMP:
-            return myGlobals.actorState.models["mcp"].keyVarDict["whtLampCommandedOn"], 0
+            return myGlobals.actorState.models["mcp"].keyVarDict["whtLampCommandedOn"][0], 0
         else:
             print "Unknown lamp queue %s" % queueName
             return False, 0
@@ -451,12 +452,14 @@ def main(actor, queues):
                     cmdState.setCommandState('done')
                     cmd.finish('text="Your Nobel Prize is a little closer, sir')
 
-            elif msg.type == Msg.DO_APOGEE_SCIENCE:
+            elif msg.type == Msg.DO_APOGEE_EXPOSURES:
                 cmd = msg.cmd
                 actorState = msg.actorState
                 cmdState = msg.cmdState
                 cartridge = msg.cartridge
                 survey = msg.survey
+                expType = msg.expType
+
                 #
                 # Tell sop that we've accepted the command
                 #
@@ -465,18 +468,18 @@ def main(actor, queues):
 
                 failMsg = ""            # message to use if we've failed
                 while cmdState.index < len(cmdState.exposureSeq):
-                    status(cmdState.cmd, oneCommand="doApogeeScience")
+                    status(cmdState.cmd, oneCommand=cmdState.name)
 
                     expTime = cmdState.expTime
                     dither = cmdState.exposureSeq[cmdState.index]
                     
                     multiCmd = SopMultiCommand(cmd,
                                                expTime + actorState.timeout,
-                                               "doApogeeScience")
+                                               cmdState.name)
                     
                     multiCmd.append(sopActor.APOGEE, Msg.EXPOSE,
                                     expTime=expTime, dither=dither,
-                                    expType='object', comment=cmdState.comment)
+                                    expType=expType, comment=cmdState.comment)
                     
                     # Really? All of these?
                     if cmdState.index == 0:
@@ -488,9 +491,11 @@ def main(actor, queues):
                         multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON,  on=False))
                         multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON,  on=False))
 
-                    cmd.inform('text="Taking a science exposure"')
+                    cmd.diag('text="taking %d of %d %s exposure"' % (cmdState.index,
+                                                                     len(cmdState.exposureSeq),
+                                                                     expType))
                     if not multiCmd.run():
-                        failMsg = "Failed to take science exposure"
+                        failMsg = "Failed to take an %s exposure" % (expType)
                         break
 
                     cmdState.index += 1
@@ -806,6 +811,7 @@ def main(actor, queues):
                     cmdState.setCommandState('done')
                     cmd.finish('text="on field')
                 
+
             elif msg.type == Msg.GOTO_GANG_CHANGE:
                 """ Go to gang change position. """
                 cmd = msg.cmd
@@ -830,7 +836,7 @@ def main(actor, queues):
                         cmdState.setStageState("slew", "failed")
                         cmdState.setCommandState('failed', stateText="failed to take cals")
                         cmd.fail('text="Failed to take cals going before gang change"')
-                        return
+                        continue
                 else:
                     cmd.warn('text="skipping cals: %s %s"' % (doCals, survey))
                 
@@ -856,16 +862,16 @@ def main(actor, queues):
                     alt = msg.alt
                     rot= tccDict['axePos'][2]
                     
-                slewDuration = 210
+                slewDuration = 60
                 multiCmd = MultiCommand(cmd, slewDuration + actorState.timeout, None)
 
                 cmd.warn('text="might slew to %.1f,%.1f,%.1f"' % (az,alt,rot))
                 if True:
-                    multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState, az=az, alt=alt, rot=rot)
                     if survey != sopActor.BOSS:
                         # Convert this to a non Precondition this if we want the shutter to be closed during the slew
                         multiCmd.append(SopPrecondition(sopActor.APOGEE, Msg.APOGEE_SHUTTER, open=False))
-                        multiCmd.append(sopActor.APOGEE_SCRIPT, Msg.APOGEE_PARK_DARKS)
+                        # multiCmd.append(sopActor.APOGEE_SCRIPT, Msg.APOGEE_PARK_DARKS)
+                    multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState, az=az, alt=alt, rot=rot)
                 else:
                     cmd.warn('text="Skipping gang change slew"')
 
@@ -873,7 +879,7 @@ def main(actor, queues):
                     cmdState.setStageState("slew", "failed")
                     cmdState.setCommandState('failed', stateText="failed to move telescope")
                     cmd.fail('text="Failed to slew to gang change"')
-                    return
+                    continue
         
                 cmdState.setStageState("slew", "done")
                 cmdState.setCommandState('done', stateText="moved telescope")

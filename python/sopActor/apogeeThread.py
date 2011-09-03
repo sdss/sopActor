@@ -168,11 +168,6 @@ def main(actor, queues):
                 except AttributeError, e:
                     comment = ""
                     
-                try:
-                    inBackground = msg.inBackground
-                except AttributeError, e:
-                    inBackground = False
-                    
                 if dither != None:
                     cmdVar = doDither(msg.cmd, actorState, dither)
                     if cmdVar.didFail:
@@ -181,31 +176,23 @@ def main(actor, queues):
                         continue
                                       
                 # msg.cmd.warn('text="Not issuing a %gs exposure"' % (msg.expTime))
-                timeLim = msg.expTime + 30.0  # seconds
+                timeLim = msg.expTime + 15.0  # seconds
                 if True:                # really take data
-                    if inBackground:
-                        timeLim = min(msg.expTime, 15.0) # Long enough for a single UTR to succeed.
                     cmdVar = actorState.actor.cmdr.call(actor="apogee", forUserCmd=msg.cmd,
                                                         cmdStr="expose time=%0.1f object=%s %s" %
                                                         (msg.expTime, expType,
                                                          ("comment=%s" % qstr(comment)) if comment else ""),
                                                         keyVars=[], timeLim=timeLim)
-
-                    if inBackground:
-                        # command timed out -- assume the loop is running OK.
-                        success = "Timeout" in cmdVar.lastReply.keywords
-                        if not success:
-                            msg.cmd.warn('text="probably failed to start backgrounded %s exposure"' % (expType))
-                    else:
-                        success = not cmdVar.didFail
+                    success = not cmdVar.didFail
 
                 else:
                     msg.cmd.warn('text="Not taking a %gs exposure"' % (msg.expTime))
                     success = True
                     
                 if not success:
-                    msg.cmd.warn('text="failed to start %s exposureds"' % (expType))
-
+                    msg.cmd.warn('text="failed to start %s exposure"' % (expType))
+                else:
+                    msg.cmd.warn('text="done with %s exposure"' % (expType))
                 msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=success)
 
             elif msg.type == Msg.STATUS:
@@ -264,11 +251,12 @@ def script_main(actor, queues):
 
                 if True:
                     cmd.warn('text="SKIPPING darks"')
+                    success = True
                 else:
-                    actorState.queues[sopActor.APOGEE].put(Msg.EXPOSE, cmd, replyQueue=msg.replyQueue,
-                                                           expTime=40, expType='DomeFlat')
-                    apogeeFlatCB.waitForNthRead(cmd, n, msg.replyQueue)
+                    success = True
 
+                msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=success)
+                
             elif msg.type == Msg.EXPOSURE_FINISHED:
                 msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=msg.success)
                 
