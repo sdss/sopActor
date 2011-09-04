@@ -418,7 +418,7 @@ class SopCmd(object):
         cmdState.cmd = cmd
         cmdState.ditherSeq = ditherSeq
         cmdState.seqCount = seqCount
-        cmdState.comment = "sky flat, offset 0.1 degree in RA"
+        cmdState.comment = "sky flat, offset 0.01 degree in RA"
         
         exposureSeq = ditherSeq * seqCount
         cmdState.exposureSeq = exposureSeq
@@ -434,7 +434,7 @@ class SopCmd(object):
 
         # Offset
         cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd,
-                                            cmdStr="offset arc 0.1,0.0",
+                                            cmdStr="offset arc 0.01,0.0",
                                             timeLim=actorState.timeout)
         if cmdVar.didFail:
             cmd.fail('text="Failed to take offset for sky flats."')

@@ -241,7 +241,7 @@ def script_main(actor, queues):
                     cmd.warn('text="SKIPPING flat exposure"')
                 else:
                     actorState.queues[sopActor.APOGEE].put(Msg.EXPOSE, cmd, replyQueue=msg.replyQueue,
-                                                           expTime=40, expType='DomeFlat')
+                                                           expTime=50, expType='DomeFlat')
                     apogeeFlatCB.waitForNthRead(cmd, n, msg.replyQueue)
 
             elif msg.type == Msg.APOGEE_PARK_DARKS:
