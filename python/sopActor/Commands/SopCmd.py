@@ -661,9 +661,16 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         #  elsewhere: don't
         #
         # Take out the BOSS test if we trust the switches/bypasses
-        if survey != sopActor.BOSS and not actorState.apogeeGang.atPodium():
-            cmd.warn('text="skipping guider flat because APOGEE gang connector is not connected to the podium"')
-            sopState.gotoField.doGuiderFlat = False
+        if survey != sopActor.BOSS:
+            if actorState.apogeeGang.atPodium():
+                sopState.gotoField.doGuiderFlat = True
+            else:
+                shutterStatus = actorState.models["apogee"].keyVarDict["shutterLimitSwitch"]
+                if shutterStatus[0] and not shutterStatus[1]:                
+                    sopState.gotoField.doGuiderFlat = True
+                else:
+                    cmd.warn('text="skipping guider flat because APOGGE gang connector is not on the podium _and_ the cold shutter is open."')
+                    sopState.gotoField.doGuiderFlat = False
         else:
             sopState.gotoField.doGuiderFlat = True if (sopState.gotoField.doGuider and sopState.gotoField.guiderFlatTime > 0) else False
     
@@ -852,6 +859,8 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
             cmd.finish('text="scale change completed"')
 
     def reinit(self, cmd):
+        """ (engineering command) Recreate the objects which hold the state of the various top-level commands. """
+        
         cmd.inform('text="recreating command objects"')
         try:
             self.initCommands()
@@ -874,11 +883,16 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
 
         bypassStates = []
         bypassNames = []
+        bypassedNames = [] 
         for name, state in Bypass.get():
             bypassNames.append(qstr(name))
             bypassStates.append("1" if state else "0")
+            if state:
+                bypassedNames.append(qstr(name))
+                
         cmd.inform("bypassNames=" + ", ".join(bypassNames))
         cmd.inform("bypassed=" + ", ".join(bypassStates))
+        cmd.inform("bypassedNames=" + ", ".join(bypassedNames))
 
         cmd.inform("surveyCommands=" + ", ".join(sopState.validCommands))
         
