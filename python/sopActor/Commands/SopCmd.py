@@ -656,20 +656,17 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
                                          or sopState.gotoField.flatTime == 0
                                          or survey != sopActor.BOSS) else 1
 
-        # Tricky. if we are APOGEE, behave differently depending on where the gang connector is:
-        #  on podium: take a guider flat.
-        #  elsewhere: don't
-        #
+        # A bit tricky. if we are APOGEE, only take a flat if the gang is at the podium or the cold shutter is closed.
         # Take out the BOSS test if we trust the switches/bypasses
         if survey != sopActor.BOSS:
-            if actorState.apogeeGang.atPodium():
+            if actorState.apogeeGang.atPodium(sparseOK=True):
                 sopState.gotoField.doGuiderFlat = True
             else:
                 shutterStatus = actorState.models["apogee"].keyVarDict["shutterLimitSwitch"]
-                if shutterStatus[0] and not shutterStatus[1]:                
+                if shutterStatus[1] and not shutterStatus[0]: 
                     sopState.gotoField.doGuiderFlat = True
                 else:
-                    cmd.warn('text="skipping guider flat because APOGGE gang connector is not on the podium _and_ the cold shutter is open."')
+                    cmd.warn('text="skipping guider flat because APOGEE gang connector is not on the podium _and_ the cold shutter is open."')
                     sopState.gotoField.doGuiderFlat = False
         else:
             sopState.gotoField.doGuiderFlat = (True if (sopState.gotoField.doGuider and
@@ -690,7 +687,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         sopState.gotoField.dec = pointingInfo[4]
         sopState.gotoField.rotang = 0.0                    # Rotator angle; should always be 0.0
 
-        if Bypass.set(name='slewToField'):
+        if Bypass.get(name='slewToField'):
             here = actorState.tccState.here(cmd)
             sopState.gotoField.ra = here[0]
             sopState.gotoField.dec = here[1]

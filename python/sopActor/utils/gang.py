@@ -74,8 +74,13 @@ class ApogeeGang(object):
         else:
             return self.getPhysicalPos()
             
-    def atPodium(self):
-        return self.getPos() == self.GANG_ON_PODIUM
+    def atPodium(self, sparseOK=False):
+        """ Return True if the gang connector is on the podium. If sparseOK is True also accept being connected to the sparse port."""
+        ok = self.getPos() == self.GANG_ON_PODIUM
+        if sparseOK:
+            ok = ok or (self.getPos() == self.GANG_AT_SPARSE)
+
+        return ok
         
     def atCartridge(self):
         return self.getPos() == self.GANG_ON_CARTRIDGE
