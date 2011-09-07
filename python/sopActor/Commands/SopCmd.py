@@ -105,7 +105,7 @@ class SopCmd(object):
         # Pulled a couple to get the count under 9
         # "uv_lamp", "wht_lamp", "boss", "gcamera", 
         for ss in ("ffs", "ff_lamp", "hgcd_lamp", "ne_lamp", "axes",
-                   "brightPlate", "darkPlate", "gangCart", "gangPodium"):
+                   "brightPlate", "darkPlate", "gangCart", "gangPodium", "slewToField"):
             Bypass.set(ss, False, define=True)
     #
     # Define commands' callbacks
@@ -672,7 +672,9 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
                     cmd.warn('text="skipping guider flat because APOGGE gang connector is not on the podium _and_ the cold shutter is open."')
                     sopState.gotoField.doGuiderFlat = False
         else:
-            sopState.gotoField.doGuiderFlat = True if (sopState.gotoField.doGuider and sopState.gotoField.guiderFlatTime > 0) else False
+            sopState.gotoField.doGuiderFlat = (True if (sopState.gotoField.doGuider and
+                                                        sopState.gotoField.guiderFlatTime > 0)
+                                               else False)
     
         if survey == sopActor.UNKNOWN:
             cmd.warn('text="No cartridge is known to be loaded; disabling guider"')
@@ -688,10 +690,11 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         sopState.gotoField.dec = pointingInfo[4]
         sopState.gotoField.rotang = 0.0                    # Rotator angle; should always be 0.0
 
-        if False:
-            sopState.gotoField.ra = 161
-            sopState.gotoField.dec = 40
-            sopState.gotoField.rotang = 110
+        if Bypass.set(name='slewToField'):
+            here = actorState.tccState.here(cmd)
+            sopState.gotoField.ra = here[0]
+            sopState.gotoField.dec = here[1]
+            sopState.gotoField.rotang = here[2]
             cmd.warn('text="FAKING RA DEC:  %g, %g /rotang=%g"' % (sopState.gotoField.ra,
                                                                    sopState.gotoField.dec,
                                                                    sopState.gotoField.rotang))

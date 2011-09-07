@@ -1,3 +1,4 @@
+import sopActor.myGlobals as myGlobals
 from sopActor import Bypass
 
 import logging
@@ -163,4 +164,25 @@ class TCCState(object):
                 TCCState.goToNewField = False
                 TCCState.halted = True
                 TCCState.slewing = False
+
+    @staticmethod
+    def here(cmd):
+        """ return ra, dec, rot for the current telescope position. """
+
+
+        tccDict = myGlobals.actorState.models['tcc'].keyVarDict
+        axePos = tccDict['axePos']
+
+        cmdVar = myGlobals.actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd,
+                                                      cmdStr=("convert %0.5f,%0.6f obs icrs" %
+                                                              (axePos[0], axePos[1])))
+        if cmdVar.didFail:
+            return 0,0,0
+        else:
+            convPos = tccDict['convPos']
+            convAng = tccDict['convAng']
+
+            # I think I need to do _something with the axePos rotation angle.
+            return convPos[0].getPos(), convPos[1].getPos(), 180.0-convAng[0].getPos()
+        
 
