@@ -49,7 +49,13 @@ def lamp_main(actor, queue, lampName):
                                                     cmdStr=("%s.%s" % (lampName.lower(), action)),
                                                     timeLim=timeLim)
                 if cmdVar.didFail:
-                    msg.cmd.warn('text="Failed to turn %s lamps %s"' % (lampName, action))
+                    bypassName = "%s_lamp" % (lampName.lower())
+                    bypassed = Bypass.get(name=bypassName)
+                    msg.cmd.warn('text="Failed to turn %s lamps %s (bypass(%s) = %s)"' % (lampName, action, bypassName, bypassed))
+                    if bypassed:
+                        msg.cmd.warn('text="Ignoring failure on %s lamps"' % (lampName))
+                        msg.replyQueue.put(Msg.LAMP_COMPLETE, cmd=msg.cmd, success=True)
+                        
                     msg.replyQueue.put(Msg.LAMP_COMPLETE, cmd=msg.cmd, success=False)
                 elif hasattr(msg, "delay"):
                     if msg.delay > 0:
