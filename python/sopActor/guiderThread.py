@@ -95,7 +95,7 @@ def main(actor, queues):
 
                 #timeLim = msg.expTime   # seconds
                 timeLim = msg.expTime    
-                timeLim += 15
+                timeLim += 30
 
                 cmdVar = actorState.actor.cmdr.call(actor="guider", forUserCmd=msg.cmd,
                                                     cmdStr="flat %s" % (expTimeOpt), 

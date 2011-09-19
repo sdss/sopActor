@@ -695,7 +695,7 @@ def main(actor, queues):
                 # Now take the exposure
                 #
                 if cmdState.nFlatLeft > 0 or doGuiderFlat:
-                    multiCmd = SopMultiCommand(cmd, cmdState.flatTime + actorState.timeout,
+                    multiCmd = SopMultiCommand(cmd, cmdState.flatTime + actorState.timeout + 30,
                                                "gotoField.calibs.flatExposure")
 
                     if cmdState.nFlatLeft > 0:
