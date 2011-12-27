@@ -94,7 +94,7 @@ class SopCmd(object):
             ("gotoStow", "", self.gotoStow),
             ("gotoGangChange", "[<alt>] [abort] [stop]", self.gotoGangChange),
             ("setScale", "<delta>|<scale>", self.setScale),
-            ("scaleChange", "<delta>|<scale>", self.scaleChange),
+            ("scaleChange", "<delta>|<scale>", self.setScale),
             ("status", "[geek]", self.status),
             ("reinit", "", self.reinit),
             ]
@@ -433,6 +433,14 @@ class SopCmd(object):
         cmd.diag('text="Issuing doApogeeSkyFlats"')
 
         # Offset
+        cmdVar = actorState.actor.cmdr.call(actor="guider", forUserCmd=cmd,
+                                            cmdStr="off",
+                                            timeLim=actorState.timeout)
+        if cmdVar.didFail:
+            cmd.fail('text="Failed to turn off guiding for sky flats."')
+            return
+        
+        # Offset
         cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd,
                                             cmdStr="offset arc 0.01,0.0",
                                             timeLim=actorState.timeout)
@@ -749,19 +757,35 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         cmdState.setCommandState('done', stateText="failed to move telescope")
         cmd.finish('text="at %s position"' % (name))
 
+    def isSlewingDisabled(self, cmd):
+        actorState = myGlobals.actorState
+        sopState = myGlobals.actorState
+
+        if sopState.survey == sopActor.BOSS:
+            if (sopState.doScience.cmd and sopState.doScience.cmd.isAlive() and
+                not (sopState.doScience.nExpLeft <= 1 and actorState.models["boss"].keyVarDict["exposureState"][0] in ('READING', 'IDLE', 'DONE', 'ABORTED'))):
+            
+                return 'slewing disallowed for BOSS, with %d science exposures left; exposureState=%s' % (sopState.doScience.nExpLeft,
+                                                                                                          actorState.models["boss"].keyVarDict["exposureState"][0])
+            else:
+                return False
+        else:
+            if sopState.doApogeeScience.cmd and sopState.doApogeeScience.cmd.isAlive():
+                return 'slewing disallowed for APOGEE, blocked by active doApogeeScience sequence'
+            else:
+                return False
+            
+        return False
+        
     def gotoInstrumentChange(self, cmd):
         """Go to the instrument change position"""
 
         actorState = myGlobals.actorState
         sopState = myGlobals.actorState
 
-        if (sopState.survey == sopActor.BOSS and
-            sopState.doScience.cmd and sopState.doScience.cmd.isAlive() and
-            not (sopState.doScience.nExpLeft == 1 and actorState.models["boss"].keyVarDict["exposureState"][0] == 'READING')):
-            
-            cmd.warn("text='%d exposures left; exposureState=%s'" % (sopState.doScience.nExpLeft,
-                                                                     actorState.models["boss"].keyVarDict["exposureState"][0]))
-            cmd.fail("text='a BOSS science exposure sequence is running --- will not go to instrument change!")
+        blocked = self.isSlewingDisabled(cmd)
+        if blocked:
+            cmd.fail('text=%s' % (qstr('will not go to instrument change: %s' % (blocked))))
             return
     
         sopState.gotoInstrumentChange.setupCommand("gotoInstrumentChange", cmd, ['slew'])
@@ -772,6 +796,11 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
 
         sopState = myGlobals.actorState
 
+        blocked = self.isSlewingDisabled(cmd)
+        if blocked:
+            cmd.fail('text=%s' % (qstr('will not go to stow position: %s' % (blocked))))
+            return
+    
         sopState.gotoStow.setupCommand("gotoStow", cmd, ['slew'])
         self.gotoPosition(cmd, "stow", sopState.gotoStow, None, 30, rot=None)
         
@@ -781,6 +810,11 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         actorState = myGlobals.actorState
         sopState = myGlobals.actorState
 
+        blocked = self.isSlewingDisabled(cmd)
+        if blocked:
+            cmd.fail('text=%s' % (qstr('will not go to gang change: %s' % (blocked))))
+            return
+    
         alt = float(cmd.cmd.keywords["alt"].values[0]) \
               if "alt" in cmd.cmd.keywords else 45.0
 
@@ -829,34 +863,13 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         actorState.actor.startThreads(actorState, cmd, restart=True,
                                       restartThreads=threads, restartQueues=not keepQueues)
 
-    def scaleChange(self, cmd):
-        """Alias for setScale
-        """
-        self.setScale(cmd)
-
     def setScale(self, cmd):
         """Change telescope scale by a factor of (1 + 0.01*delta), or to scale
         """
 
-        actorState = myGlobals.actorState
-
-        scale = actorState.models["tcc"].keyVarDict["scaleFac"][0]
-
-        if "delta" in cmd.cmd.keywords:
-            delta = float(cmd.cmd.keywords["delta"].values[0])
-
-            newScale = (1 + 0.01*delta)*scale
-        else:
-            newScale = float(cmd.cmd.keywords["scale"].values[0])
-
-        cmd.inform('text="currentScale=%g  newScale=%g"' % (scale, newScale))
-
-        cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd,
-                                            cmdStr="set scale=%.6f" % (newScale))
-        if cmdVar.didFail:
-            cmd.fail('text="Failed to set scale"')
-        else:
-            cmd.finish('text="scale change completed"')
+        cmd.fail('text="Please set scale using the guider command"')
+        return
+    
 
     def reinit(self, cmd):
         """ (engineering command) Recreate the objects which hold the state of the various top-level commands. """
