@@ -166,23 +166,30 @@ class TCCState(object):
                 TCCState.slewing = False
 
     @staticmethod
-    def here(cmd):
+    def obs2Sky(cmd, az=None, alt=None, rotOffset=0.0):
         """ return ra, dec, rot for the current telescope position. """
 
 
         tccDict = myGlobals.actorState.models['tcc'].keyVarDict
         axePos = tccDict['axePos']
+        gotoAz = az if az != None else axePos[0]
+        gotoAlt = alt if alt != None else axePos[1]
 
+        cmd.warn('text="FAKING slew position from az, alt, and rotator offset: %0.1f %0.1f %0.1f"'
+                 % (gotoAz, gotoAlt, rotOffset))
         cmdVar = myGlobals.actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd,
                                                       cmdStr=("convert %0.5f,%0.6f obs icrs" %
-                                                              (axePos[0], axePos[1])))
+                                                              (gotoAz, gotoAlt)))
         if cmdVar.didFail:
             return 0,0,0
         else:
             convPos = tccDict['convPos']
             convAng = tccDict['convAng']
 
+            rotPos = 180.0-convAng[0].getPos()
+            rotPos += rotOffset
+                
             # I think I need to do _something with the axePos rotation angle.
-            return convPos[0].getPos(), convPos[1].getPos(), 180.0-convAng[0].getPos()
+            return convPos[0].getPos(), convPos[1].getPos(), rotPos
         
 

@@ -70,6 +70,8 @@ class SopCmd(object):
                                         keys.Key("seqCount", types.Int(),
                                                  help="number of times to launch sequence"),
                                         keys.Key("comment", types.String(), help="comment for headers"),
+                                        keys.Key("az", types.Float(), help="what azimuth to slew to"),
+                                        keys.Key("rotOffset", types.Float(), help="what rotator offset to add"),
                                         keys.Key("alt", types.Float(), help="what altitude to slew to"),
                                         )
         #
@@ -95,6 +97,7 @@ class SopCmd(object):
             ("gotoGangChange", "[<alt>] [abort] [stop]", self.gotoGangChange),
             ("setScale", "<delta>|<scale>", self.setScale),
             ("scaleChange", "<delta>|<scale>", self.setScale),
+            ("setFakeField", "[<az>] [<alt>] [<rotOffset>]", self.setFakeField),
             ("status", "[geek]", self.status),
             ("reinit", "", self.reinit),
             ]
@@ -502,6 +505,28 @@ class SopCmd(object):
 
         self.status(cmd, threads=False)
 
+    def setFakeField(self, cmd):
+        """ (Re)set the position gotoField slews to if the slewToField bypass is set.
+
+        The az and alt are used directly. RotOffset is added to whatever obj offset is calculated
+        for the az and alt.
+
+        Leaving any of the az, alt, and rotOffset arguments off will set them to the default, which is 'here'.
+        """
+
+        sopState = myGlobals.actorState
+
+        cmd.warn('text="cmd=%s"' % (cmd.cmd.keywords))
+
+        sopState.gotoField.fakeAz = float(cmd.cmd.keywords["az"].values[0]) if "az" in cmd.cmd.keywords else None
+        sopState.gotoField.fakeAlt = float(cmd.cmd.keywords["alt"].values[0]) if "alt" in cmd.cmd.keywords else None
+        sopState.gotoField.fakeRotOffset = float(cmd.cmd.keywords["rotOffset"].values[0]) if "rotOffset" in cmd.cmd.keywords else 0.0
+
+        cmd.finish('text="set fake slew position to az=%s alt=%s rotOffset=%s"'
+                   % (sopState.gotoField.fakeAz,
+                      sopState.gotoField.fakeAlt,
+                      sopState.gotoField.fakeRotOffset))
+        
     def ditheredFlat(self, cmd, finish=True):
         """Take a set of nStep dithered flats, moving the collimator by nTick between exposures"""
 
@@ -680,7 +705,6 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
             sopState.gotoField.doGuiderFlat = (True if (sopState.gotoField.doGuider and
                                                         sopState.gotoField.guiderFlatTime > 0)
                                                else False)
-    
         if survey == sopActor.UNKNOWN:
             cmd.warn('text="No cartridge is known to be loaded; disabling guider"')
             sopState.gotoField.doGuider = False
@@ -689,17 +713,20 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         #
         sopState.gotoField.nArcLeft = sopState.gotoField.nArc; sopState.gotoField.nArcDone = 0
         sopState.gotoField.nFlatLeft = sopState.gotoField.nFlat; sopState.gotoField.nFlatDone = 0
-
+        
         pointingInfo = actorState.models["platedb"].keyVarDict["pointingInfo"]
         sopState.gotoField.ra = pointingInfo[3]
         sopState.gotoField.dec = pointingInfo[4]
         sopState.gotoField.rotang = 0.0                    # Rotator angle; should always be 0.0
-
+        
         if Bypass.get(name='slewToField'):
-            here = actorState.tccState.here(cmd)
-            sopState.gotoField.ra = here[0]
-            sopState.gotoField.dec = here[1]
-            sopState.gotoField.rotang = here[2]
+            fakeSkyPos = actorState.tccState.obs2Sky(cmd,
+                                                     sopState.gotoField.fakeAz,
+                                                     sopState.gotoField.fakeAlt,
+                                                     sopState.gotoField.fakeRotOffset)
+            sopState.gotoField.ra = fakeSkyPos[0]
+            sopState.gotoField.dec = fakeSkyPos[1]
+            sopState.gotoField.rotang = fakeSkyPos[2]
             cmd.warn('text="FAKING RA DEC:  %g, %g /rotang=%g"' % (sopState.gotoField.ra,
                                                                    sopState.gotoField.dec,
                                                                    sopState.gotoField.rotang))
@@ -1036,6 +1063,9 @@ class GotoFieldCmd(CmdState):
                                         flatTime=30,
                                         guiderExpTime=5.0,
                                         guiderFlatTime=0.5))
+        self.fakeAz = None
+        self.fakeAlt = None
+        self.fakeRotOffset = 0.0
 
 class DoCalibsCmd(CmdState):
     def __init__(self):
