@@ -644,8 +644,8 @@ def main(actor, queues):
                     multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=False))
 
                     if not multiCmd.run():
-                        cmd.fail('text="Failed to prepare for arcs"')
                         cmdState.setCommandState('failed', stateText="failed to prepare for arcs")
+                        cmd.fail('text="Failed to prepare for arcs"')
                         continue
                     #
                     # Now take the exposure
@@ -658,8 +658,8 @@ def main(actor, queues):
                             pendingReadout = True
                         else:
                             cmdState.setStageState("calibs", "failed")
-                            cmd.fail('text="Failed to take arcs"')
                             cmdState.setCommandState('failed', stateText="failed to take arcs")
+                            cmd.fail('text="Failed to take arcs"')
                             continue
 
                     cmdState.nArcLeft -= 1
@@ -853,8 +853,8 @@ def main(actor, queues):
                     dRot = rot-thisRot
                     if dRot != 0:
                         dAlt = alt-thisAlt
-                        dAltTime = abs(dAlt) / 1.0 #deg/sec
-                        dRotTime = abs(dRot) / 1.0 #deg/sec
+                        dAltTime = abs(dAlt) / 1.5 #deg/sec
+                        dRotTime = abs(dRot) / 2.0 #deg/sec
                         dCanRot = dRot * min(1.0, dAltTime/dRotTime)
                         rot = thisRot + dCanRot
                 else:                   # Nod up.

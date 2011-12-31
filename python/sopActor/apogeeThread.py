@@ -214,12 +214,14 @@ def main(actor, queues):
                 pass
 
 def script_main(actor, queues):
-    """Main loop for APOGEE ICC thread"""
+    """Main loop for APOGEE scripting thread"""
 
     threadName = "apogeeScript"
     actorState = myGlobals.actorState
     timeout = actorState.timeout
     apogeeFlatCB = ApogeeCB()
+
+    script = None
     
     # Set up readout callback object:
     
@@ -232,6 +234,25 @@ def script_main(actor, queues):
                     msg.cmd.inform("text=\"Exiting thread %s\"" % (threading.current_thread().name))
                 apogeeFlatCB.shutdown()
                 return
+
+            elif msg.type == Msg.NEW_SCRIPT:
+                if self.script:
+                    msg.cmd.warn('text="%s thread is already running a script: %s"' %
+                             (threadName, script.name))
+                    msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
+                self.script = msg.script
+                self.script.genStartKeys()
+                actorState.queues[sopActor.APOGEE_SCRIPT].put(Msg.SCRIPT_STEP, msg.cmd)
+                
+            elif msg.type == Msg.SCRIPT_STEP:
+                pass
+
+            elif msg.type == Msg.STOP_SCRIPT:
+                if not self.script:
+                    msg.cmd.warn('text="%s thread is not running a script, so cannot stop it."' %
+                             (threadName))
+                    msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
+                self.script.
 
             elif msg.type == Msg.POST_FLAT:
                 cmd = msg.cmd
