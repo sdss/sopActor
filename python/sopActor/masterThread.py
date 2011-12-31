@@ -14,7 +14,7 @@ from sopActor import MultiCommand
 class SopPrecondition(Precondition):
     """This class is used to pass preconditions for a command to MultiCmd.  Only if required() returns True
 is the command actually scheduled and then run"""
-    
+
     def __init__(self, queueName, msgId=None, timeout=None, **kwargs):
         Precondition.__init__(self, queueName, msgId, timeout, **kwargs)
         self.queueName = queueName
@@ -52,7 +52,7 @@ desired state, but if it's already in that state no command is required; so retu
         elif self.queueName == sopActor.APOGEE and self.msgId == Msg.APOGEE_SHUTTER:
             # move if we are not where we want to be.
             return self.apogeeShutterIsOpen() != self.kwargs.get('open')
-        
+
         return True
     #
     # Commands to get state from e.g. the MCP
@@ -87,7 +87,7 @@ desired state, but if it's already in that state no command is required; so retu
         elif shutterStatus[1] and not shutterStatus[0]:
             return False
         return None
-    
+
     def lampIsOn(self, queueName):
         """Return (True iff some lamps are on, timeSinceTransition)"""
 
@@ -125,7 +125,7 @@ readoutDuration = 90                    # read the chips
 
 class SopMultiCommand(MultiCommand):
     """A MultiCommand for sop that knows about how long sop commands take to execute"""
-    
+
     def __init__(self, cmd, timeout, label, *args, **kwargs):
         MultiCommand.__init__(self, cmd, timeout, label, *args, **kwargs)
         pass
@@ -175,7 +175,7 @@ def doLamps(cmd, actorState, FF=False, Ne=False, HgCd=False, WHT=False, UV=False
         if cmdVar.didFail:
             cmd.warn('text="Failed to take Hartmann mask out"')
             return False
-    
+
     return multiCmd.run()
 
 #
@@ -188,7 +188,7 @@ def main(actor, queues):
     timeout = myGlobals.actorState.timeout
     overhead = 150                      # overhead per exposure, minimum; seconds
 
-    
+
     def status(cmd, newState=None, oneCommand=""):
         if newState:
             cmdState.setCommandState(newState)
@@ -198,7 +198,7 @@ def main(actor, queues):
     while True:
         try:
             msg = queues[MASTER].get(timeout=timeout)
-            
+
             if msg.type == Msg.EXIT:
                 if msg.cmd:
                     msg.cmd.inform("text=\"Exiting thread %s\"" % (threading.current_thread().name))
@@ -228,7 +228,7 @@ def main(actor, queues):
                 failMsg = ""            # message to use if we've failed
                 while cmdState.nBiasLeft > 0 or cmdState.nDarkLeft > 0 or \
                           cmdState.nFlatLeft > 0 or cmdState.nArcLeft > 0:
-                    
+
                     status(cmdState.cmd, oneCommand="doCalibs")
 
                     if cmdState.nBiasLeft > 0:
@@ -244,7 +244,7 @@ def main(actor, queues):
                         break
 
                     if pendingReadout:
-                        multiCmd = SopMultiCommand(cmd, actorState.timeout + readoutDuration, 
+                        multiCmd = SopMultiCommand(cmd, actorState.timeout + readoutDuration,
                                                    "doCalibs.pendingReadout")
 
                         multiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
@@ -349,7 +349,7 @@ def main(actor, queues):
                 #
                 if failMsg:
                     if pendingReadout:
-                        if not SopMultiCommand(cmd, actorState.timeout + readoutDuration, 
+                        if not SopMultiCommand(cmd, actorState.timeout + readoutDuration,
                                                "doCalibs.readoutCleanup",
                                                sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True).run():
                             cmd.warn('text="%s"' % failMsg)
@@ -419,7 +419,7 @@ def main(actor, queues):
 
                     multiCmd.append(sopActor.BOSS, Msg.EXPOSE,
                                     expTime=expTime, expType="science", readout=True)
-                    
+
                     multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=True))
                     multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON,  on=False))
                     multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON,  on=False))
@@ -472,15 +472,15 @@ def main(actor, queues):
 
                     expTime = cmdState.expTime
                     dither = cmdState.exposureSeq[cmdState.index]
-                    
+
                     multiCmd = SopMultiCommand(cmd,
                                                expTime + actorState.timeout,
                                                cmdState.name)
-                    
+
                     multiCmd.append(sopActor.APOGEE, Msg.EXPOSE,
                                     expTime=expTime, dither=dither,
                                     expType=expType, comment=cmdState.comment)
-                    
+
                     # Really? All of these?
                     if cmdState.index == 0:
                         multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE,        open=True))
@@ -555,7 +555,7 @@ def main(actor, queues):
                         # We can _possibly_ open the APOGEE shutter here. -- CPL.
                         # multiCmd.append(sopActor.FFS,     Msg.FFS_MOVE, open=True)
                         pass
-                    
+
                     if cmdState.nArcLeft > 0 or cmdState.doHartmann:
                         multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=True)
                         multiCmd.append(sopActor.NE_LAMP  , Msg.LAMP_ON, on=True)
@@ -564,7 +564,7 @@ def main(actor, queues):
                     else:
                         if doGuiderFlat and survey == sopActor.MARVELS:
                             multiCmd.append(sopActor.FF_LAMP , Msg.LAMP_ON, on=True)
-                        
+
                     if not multiCmd.run():
                         cmdState.setStageState("slew", "failed")
                         if actorState.tccState.badStat and not Bypass.get(name='axes'):
@@ -595,7 +595,7 @@ def main(actor, queues):
                     status(cmdState.cmd, oneCommand="gotoField")
 
                 #
-                # OK, we're there. 
+                # OK, we're there.
                 #
                 if cmdState.doHartmann:
                     hartmannDelay = 210
@@ -630,7 +630,7 @@ def main(actor, queues):
                        cmdState.nArcDone == 0 and cmdState.nFlatDone == 0:
                     cmdState.setStageState("calibs", "running")
                     doingCalibs = True
-                    
+
                 if cmdState.nArcLeft > 0:
                     timeout = actorState.timeout + myGlobals.warmupTime[sopActor.HGCD_LAMP]
 
@@ -651,7 +651,7 @@ def main(actor, queues):
                     # Now take the exposure
                     #
                     if cmdState.nArcLeft > 0:  # not aborted since we last checked
-                        if SopMultiCommand(cmd, cmdState.arcTime + actorState.timeout,  
+                        if SopMultiCommand(cmd, cmdState.arcTime + actorState.timeout,
                                            "gotoField.calibs.arcExposure",
                                            sopActor.BOSS, Msg.EXPOSE,
                                            expTime=cmdState.arcTime, expType="arc", readout=False,).run():
@@ -685,7 +685,7 @@ def main(actor, queues):
                     multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
                     multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
                     multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=False))
-                    
+
                 if not multiCmd.run():
                     cmdState.setStageState("calibs", "failed")
                     cmdState.setCommandState('failed', stateText="failed to prepare flats")
@@ -810,7 +810,7 @@ def main(actor, queues):
                 else:
                     cmdState.setCommandState('done')
                     cmd.finish('text="on field')
-                
+
 
             elif msg.type == Msg.GOTO_GANG_CHANGE:
                 """ Go to gang change position. """
@@ -818,11 +818,11 @@ def main(actor, queues):
                 actorState = msg.actorState
                 cmdState = msg.cmdState
                 survey = msg.survey
-                
+
                 # Behavior varies depending on where the gang connector is.
                 doCals = actorState.apogeeGang.atCartridge()
 
-                multiCmd = MultiCommand(cmd, actorState.timeout + 100, 
+                multiCmd = MultiCommand(cmd, actorState.timeout + 100,
                                         "gotoGangChange.slew")
 
                 cmdState.setCommandState('running')
@@ -839,7 +839,7 @@ def main(actor, queues):
                         continue
                 else:
                     cmd.warn('text="skipping cals: %s %s"' % (doCals, survey))
-                
+
                 tccDict = actorState.models["tcc"].keyVarDict
 
                 if doCals:              # Heading towards the instrument change pos.
@@ -861,7 +861,7 @@ def main(actor, queues):
                     az = tccDict['axePos'][0]
                     alt = msg.alt
                     rot= tccDict['axePos'][2]
-                    
+
                 slewDuration = 60
                 multiCmd = MultiCommand(cmd, slewDuration + actorState.timeout, None)
 
@@ -880,11 +880,11 @@ def main(actor, queues):
                     cmdState.setCommandState('failed', stateText="failed to move telescope")
                     cmd.fail('text="Failed to slew to gang change"')
                     continue
-        
+
                 cmdState.setStageState("slew", "done")
                 cmdState.setCommandState('done', stateText="moved telescope")
                 cmd.finish('text="at gang change position"')
-            
+
             elif msg.type == Msg.HARTMANN:
                 """Take two arc exposures with the left then the right Hartmann screens in"""
                 cmd = msg.cmd
