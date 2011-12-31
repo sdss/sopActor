@@ -252,7 +252,6 @@ def script_main(actor, queues):
                     msg.cmd.warn('text="%s thread is not running a script, so cannot stop it."' %
                              (threadName))
                     msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
-                self.script.
 
             elif msg.type == Msg.POST_FLAT:
                 cmd = msg.cmd
