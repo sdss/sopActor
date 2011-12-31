@@ -35,7 +35,8 @@ except NameError:
     class GUIDER(): pass                    # command the guider
     class TCC(): pass                       # command the TCC
     class APOGEE_SCRIPT(): pass
-    
+    class SCRIPT(): pass
+
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 try:
@@ -75,7 +76,10 @@ except NameError:
         class APOGEE_SHUTTER(): pass            # control the internal APOGEE shutter 
         class APOGEE_PARK_DARKS(): pass 
         class APOGEE_SKY_FLATS(): pass 
-        
+        class NEW_SCRIPT(): pass
+        class STOP_SCRIPT(): pass
+        class SCRIPT_STEP(): pass
+
         def __init__(self, type, cmd, **data):
             self.type = type
             self.cmd = cmd

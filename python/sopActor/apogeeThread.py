@@ -13,7 +13,7 @@ def twistedSleep(secs):
     d = defer.deferred()
     reactor.callLater(secs, d.callback, None)
     return d
-                
+
 def doDither(cmd, actorState, dither):
     timeLim = 30.0  # seconds
     if True:
@@ -58,7 +58,7 @@ class ApogeeCB(object):
             return
 
         self.count += 1
-        
+
         try:
             #if not self.cmd.isAlive():
             #    self.cmd = myGlobals.actorState.actor.bcast
@@ -94,7 +94,7 @@ class ApogeeCB(object):
         #ret = replyQueue.get()
         #self.cmd.diag('text="wht.off ret: %s"' % (ret))
         self.cmd.diag('text="called wht.off"')
-                               
+
     def flashLamps(self):
         time2flash = 4.0       # seconds
         t0 = time.time()
@@ -123,9 +123,9 @@ def main(actor, queues):
     threadName = "apogee"
     actorState = myGlobals.actorState
     timeout = actorState.timeout
-    
+
     # Set up readout callback object:
-    
+
     while True:
         try:
             msg = actorState.queues[sopActor.APOGEE].get(timeout=timeout)
@@ -137,7 +137,7 @@ def main(actor, queues):
 
             elif msg.type == Msg.DITHER:
                 ret = doDither(msg.cmd, actorState, msg.dither)
-                
+
             elif msg.type == Msg.APOGEE_SHUTTER:
                 action = "open" if msg.open else "close"
                 cmdVar = actorState.actor.cmdr.call(actor="apogee", forUserCmd=msg.cmd,
@@ -148,7 +148,7 @@ def main(actor, queues):
                     msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
                 else:
                     msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
-                
+
             elif msg.type == Msg.EXPOSE:
                 msg.cmd.respond("text=\"starting %s%s exposure\"" % (
                         ((("%gs " % msg.expTime) if msg.expTime > 0 else ""), msg.expType)))
@@ -162,19 +162,19 @@ def main(actor, queues):
                     expType = msg.expType
                 except AttributeError, e:
                     expType = "dark"
-                    
+
                 try:
                     comment = msg.comment
                 except AttributeError, e:
                     comment = ""
-                    
+
                 if dither != None:
                     cmdVar = doDither(msg.cmd, actorState, dither)
                     if cmdVar.didFail:
                         msg.cmd.warn('text="Failed to set dither position to %s"' % (dither))
                         msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
                         continue
-                                      
+
                 # msg.cmd.warn('text="Not issuing a %gs exposure"' % (msg.expTime))
                 timeLim = msg.expTime + 15.0  # seconds
                 if True:                # really take data
@@ -188,7 +188,7 @@ def main(actor, queues):
                 else:
                     msg.cmd.warn('text="Not taking a %gs exposure"' % (msg.expTime))
                     success = True
-                    
+
                 if not success:
                     msg.cmd.warn('text="failed to start %s exposure"' % (expType))
                 else:
@@ -222,9 +222,9 @@ def script_main(actor, queues):
     apogeeFlatCB = ApogeeCB()
 
     script = None
-    
+
     # Set up readout callback object:
-    
+
     while True:
         try:
             msg = actorState.queues[sopActor.APOGEE_SCRIPT].get(timeout=timeout)
@@ -243,7 +243,7 @@ def script_main(actor, queues):
                 self.script = msg.script
                 self.script.genStartKeys()
                 actorState.queues[sopActor.APOGEE_SCRIPT].put(Msg.SCRIPT_STEP, msg.cmd)
-                
+
             elif msg.type == Msg.SCRIPT_STEP:
                 pass
 
@@ -277,10 +277,10 @@ def script_main(actor, queues):
                     success = True
 
                 msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=success)
-                
+
             elif msg.type == Msg.EXPOSURE_FINISHED:
                 msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=msg.success)
-                
+
             elif msg.type == Msg.STATUS:
                 msg.cmd.inform('text="%s thread"' % threadName)
                 msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
@@ -298,4 +298,3 @@ def script_main(actor, queues):
                 msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
             except Exception, e:
                 pass
-
