@@ -1,5 +1,5 @@
 import Queue, threading
-import math, sys, time
+import sys, time
 
 from sopActor import *
 import sopActor
