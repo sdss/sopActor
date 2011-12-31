@@ -4,30 +4,30 @@
 #   ThAr and UNe at both dither A and dither B
 #   1 long darks 
 #  10/1/2011
-apogeecal allOff
-apogee shutter close
-700.0 apogee expose nreads=60 ; object=Dark
-apogee shutter open
-apogeecal shutterOpen
+10.0 apogeecal allOff
+10.0 apogee shutter close
+660.0 apogee expose nreads=60 ; object=Dark
+10.0 apogee shutter open
+10.0 apogeecal shutterOpen
 apogeecal SourceOn source=Quartz
-120.0 apogee expose nreads=10 ; object=QuartzFlat
+110.0 apogee expose nreads=10 ; object=QuartzFlat
 apogeecal SourceOff source=Quartz
 apogee dither namedpos=A
 apogeecal SourceOn source=ThAr
-140.0 apogee expose nreads=12 ; object=ArcLamp
+130.0 apogee expose nreads=12 ; object=ArcLamp
 apogeecal SourceOff source=ThAr
 apogeecal SourceOn source=UNe
-500.0 apogee expose nreads=40 ; object=ArcLamp
+440.0 apogee expose nreads=40 ; object=ArcLamp
 apogeecal SourceOff source=UNe
 apogee dither namedpos=B
 apogeecal SourceOn source=ThAr
-150.0 apogee expose nreads=12 ; object=ArcLamp
+130.0 apogee expose nreads=12 ; object=ArcLamp
 apogeecal SourceOff source=ThAr
 apogeecal SourceOn source=UNe
-500.0 apogee expose nreads=40 ; object=ArcLamp
+450.0 apogee expose nreads=40 ; object=ArcLamp
 apogeecal SourceOff source=UNe
 apogee dither namedpos=A
-apogeecal shutterClose
-apogeecal allOff
-apogee shutter close
-700.0 apogee expose nreads=60 ; object=Dark
+10.0 apogeecal shutterClose
+10.0 apogeecal allOff
+10.0 apogee shutter close
+650.0 apogee expose nreads=60 ; object=Dark
