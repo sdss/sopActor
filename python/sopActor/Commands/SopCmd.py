@@ -69,6 +69,7 @@ class SopCmd(object):
                                         keys.Key("seqCount", types.Int(),
                                                  help="number of times to launch sequence"),
                                         keys.Key("comment", types.String(), help="comment for headers"),
+                                        keys.Key("scriptName", types.String(), help="name of script to run"),
                                         keys.Key("az", types.Float(), help="what azimuth to slew to"),
                                         keys.Key("rotOffset", types.Float(), help="what rotator offset to add"),
                                         keys.Key("alt", types.Float(), help="what altitude to slew to"),
@@ -99,6 +100,7 @@ class SopCmd(object):
             ("setFakeField", "[<az>] [<alt>] [<rotOffset>]", self.setFakeField),
             ("status", "[geek]", self.status),
             ("reinit", "", self.reinit),
+            ("runScript", "<scriptName>", self.runScript),
             ]
     #
     # Declare systems that can be bypassed
@@ -242,7 +244,7 @@ class SopCmd(object):
         sopState.doCalibs.setupCommand("doCalibs", cmd,
                                        ["doCalibs"])
         if not MultiCommand(cmd, 2, None,
-                            sopActor.MASTER, Msg.DO_CALIBS, actorState=actorState, cartridge=cartridge,
+                            sopActor.MASTER, Msg.DO_CALIBS, actorState=sopState, cartridge=cartridge,
                             survey=survey, cmdState=sopState.doCalibs).run():
             cmd.fail('text="Failed to issue doCalibs"')
 
@@ -302,7 +304,7 @@ class SopCmd(object):
         sopState.doScience.setupCommand("doScience", cmd,
                                         ["doScience"])
         if not MultiCommand(cmd, 2, None,
-                            sopActor.MASTER, Msg.DO_SCIENCE, actorState=actorState,
+                            sopActor.MASTER, Msg.DO_SCIENCE, actorState=sopState,
                             cartridge=sopState.cartridge,
                             survey=sopState.survey, cmdState=sopState.doScience).run():
             cmd.fail('text="Failed to issue doScience"')
@@ -378,7 +380,7 @@ class SopCmd(object):
                               ["doApogeeScience"])
         cmd.diag('text="Issuing doApogeeScience"')
         if not MultiCommand(cmd, 2, None,
-                            sopActor.MASTER, Msg.DO_APOGEE_EXPOSURES, actorState=actorState,
+                            sopActor.MASTER, Msg.DO_APOGEE_EXPOSURES, actorState=sopState,
                             expType='object',
                             cartridge=sopState.cartridge,
                             survey=sopState.survey, cmdState=cmdState).run():
@@ -448,7 +450,7 @@ class SopCmd(object):
 
         if not MultiCommand(cmd, 2, None,
                             sopActor.MASTER, Msg.DO_APOGEE_EXPOSURES,
-                            actorState=actorState,
+                            actorState=sopState,
                             expType='object',
                             cartridge=sopState.cartridge,
                             survey=sopState.survey, cmdState=cmdState).run():
@@ -547,7 +549,7 @@ class SopCmd(object):
         expTime = float(cmd.cmd.keywords["expTime"].values[0]) if "expTime" in cmd.cmd.keywords else 30
 
         sopState.queues[sopActor.MASTER].put(Msg.DITHERED_FLAT, cmd, replyQueue=sopState.queues[sopActor.MASTER],
-                                               actorState=actorState,
+                                               actorState=sopState,
                                                expTime=expTime, spN=spN, nStep=nStep, nTick=nTick)
 
     def hartmann(self, cmd, finish=True):
@@ -575,7 +577,7 @@ flat field screens returned to their initial state.
             sp1 = True; sp2 = True;
 
         sopState.queues[sopActor.MASTER].put(Msg.HARTMANN, cmd, replyQueue=sopState.queues[sopActor.MASTER],
-                                               actorState=actorState, expTime=expTime, sp1=sp1, sp2=sp2)
+                                               actorState=sopState, expTime=expTime, sp1=sp1, sp2=sp2)
 
     def gotoField(self, cmd):
         """Slew to the current cartridge/pointing
@@ -734,7 +736,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         sopState.gotoField.setupCommand("gotoField", cmd,
                                         activeStages)
         if not MultiCommand(cmd, 2, None,
-                            sopActor.MASTER, Msg.GOTO_FIELD, actorState=actorState,
+                            sopActor.MASTER, Msg.GOTO_FIELD, actorState=sopState,
                             cartridge=sopState.cartridge,
                             survey=sopState.survey, cmdState=sopState.gotoField).run():
             cmd.fail('text="Failed to issue gotoField"')
@@ -763,7 +765,7 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         if rot == None:
             rot = tccDict['axePos'][2]
 
-        multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState, az=az, alt=alt, rot=rot)
+        multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=sopState, az=az, alt=alt, rot=rot)
 
         if not multiCmd.run():
             cmdState.setStageState("slew", "failed")
@@ -843,8 +845,16 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         cmdState.setupCommand("gotoGangChange", cmd, ['slew'])
 
         sopState.queues[sopActor.MASTER].put(Msg.GOTO_GANG_CHANGE, cmd, replyQueue=sopState.queues[sopActor.MASTER],
-                                               actorState=actorState, cmdState=cmdState,
+                                               actorState=sopState, cmdState=cmdState,
                                                alt=alt, survey=sopState.survey)
+
+    def runScript(self, cmd):
+        sopState = myGlobals.actorState
+
+        sopState.queues[sopActor.SCRIPT].put(Msg.NEW_SCRIPT, cmd, replyQueue=sopState.queues[sopActor.MASTER],
+                                             actorState=sopState,
+                                             survey=sopState.survey,
+                                             scriptName = cmd.cmd.keywords["scriptName"].values[0])
 
     def ping(self, cmd):
         """ Query sop for liveness/happiness. """
@@ -876,8 +886,8 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
         cmd.inform("text=\"Restarting threads\"")
         sopState.restartCmd = cmd
 
-        sopState.actor.startThreads(actorState, cmd, restart=True,
-                                      restartThreads=threads, restartQueues=not keepQueues)
+        sopState.actor.startThreads(sopState, cmd, restart=True,
+                                    restartThreads=threads, restartQueues=not keepQueues)
 
     def setScale(self, cmd):
         """Change telescope scale by a factor of (1 + 0.01*delta), or to scale
@@ -996,12 +1006,12 @@ Slew to the position of the currently loaded cartridge. At the beginning of the 
             sopState.gotoField.setStages(['slew', 'hartmann', 'calibs', 'guider'])
             sopState.validCommands = ['gotoField',
                                       'hartmann', 'doCalibs', 'doScience',
-                                      'gotoStow', 'gotoInstrumentChange']
+                                      'gotoInstrumentChange']
         elif survey == sopActor.MARVELS:
             sopState.gotoField.setStages(['slew', 'guider'])
             sopState.validCommands = ['gotoField',
                                       'doApogeeScience', 'doApogeeSkyFlats',
-                                      'gotoStow', 'gotoGangChange', 'gotoInstrumentChange']
+                                      'gotoGangChange', 'gotoInstrumentChange']
         else:
             sopState.gotoField.setStages(['slew', 'guider'])
             sopState.validCommands = ['gotoStow', 'gotoInstrumentChange']
