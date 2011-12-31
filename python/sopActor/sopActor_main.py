@@ -21,7 +21,8 @@ import gcameraThread
 import ffsThread
 import lampThreads
 import tccThread
-        
+import scriptThread
+
 from sopActor import *
 import sopActor.myGlobals
 #
@@ -133,6 +134,7 @@ class Sop(actorcore.Actor.Actor):
                                                  ("boss",    sopActor.BOSS,      bossThread,    bossThread.main),
                                                  ("apogee",  sopActor.APOGEE,    apogeeThread,  apogeeThread.main),
                                                  ("apogeeScript",  sopActor.APOGEE_SCRIPT, apogeeThread,  apogeeThread.script_main),
+                                                 ("script",  sopActor.SCRIPT,    scriptThread,  scriptThread.main),
                                                  ("guider",  sopActor.GUIDER,    guiderThread,  guiderThread.main),
                                                  ("gcamera", sopActor.GCAMERA,   gcameraThread, gcameraThread.main),
                                                  ("ff",      sopActor.FF_LAMP,   lampThreads,   lampThreads.ff_main),
