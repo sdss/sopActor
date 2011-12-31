@@ -64,7 +64,7 @@ def main(actor, queues):
                                                     cmdStr=cmdStr,
                                                     timeLim=maxTime+15)
                 if cmdVar.didFail:
-                    msg.cmd.fail('text="Failed to run %s %s"' % (actorName, cmdStr))
+                    msg.cmd.fail('text="Script %s failed to run %s %s"' % (runningScript.name, actorName, cmdStr))
                     runningScript = None
                 else:
                     actorState.queues[myQueueName].put(Msg.SCRIPT_STEP, msg.cmd)
