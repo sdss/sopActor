@@ -1,0 +1,43 @@
+# morningcals: takes morning calibration sequence: 
+#   3 long darks 
+#   3 QTH
+#   ThAr and UNe at both dither A and dither B
+#   internal flat field
+#  9/2/2011
+apogeecal allOff
+apogee shutter close
+apogee expose nreads=60 ; object=Dark
+apogee expose nreads=60 ; object=Dark
+apogee expose nreads=60 ; object=Dark
+apogee shutter open
+apogeecal shutterOpen
+apogeecal SourceOn source=Quartz
+apogee expose nreads=10 ; object=QuartzFlat
+apogee expose nreads=10 ; object=QuartzFlat
+apogee expose nreads=10 ; object=QuartzFlat
+apogeecal SourceOff source=Quartz
+apogee dither namedpos=A
+apogeecal SourceOn source=ThAr
+apogee expose nreads=12 ; object=ArcLamp
+apogeecal SourceOff source=ThAr
+apogeecal SourceOn source=UNe
+apogee expose nreads=40 ; object=ArcLamp
+apogeecal SourceOff source=UNe
+apogee dither namedpos=B
+apogeecal SourceOn source=ThAr
+apogee expose nreads=12 ; object=ArcLamp
+apogeecal SourceOff source=ThAr
+apogeecal SourceOn source=UNe
+apogee expose nreads=40 ; object=ArcLamp
+apogeecal SourceOff source=UNe
+apogee dither namedpos=A
+apogeecal shutterClose
+apogeecal allOff
+apogee expose nreads=30 ; object=Dark
+apogee shutter ledControl=15
+apogee expose nreads=30 ; object=InternalFlat
+apogee expose nreads=30 ; object=InternalFlat
+apogee expose nreads=30 ; object=InternalFlat
+apogee shutter ledControl=0
+apogee expose nreads=30 ; object=Dark
+apogee shutter close

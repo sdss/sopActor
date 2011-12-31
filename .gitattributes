@@ -19,5 +19,8 @@ python/sopActor/utils/__init__.py -text
 python/sopActor/utils/gang.py -text
 python/sopActor/utils/guider.py -text
 python/sopActor/utils/tcc.py -text
+scripts/cartchange.inp -text
+scripts/eveningcals.inp -text
+scripts/morningcals.inp -text
 /setup.py -text
 ups/sopActor.table -text

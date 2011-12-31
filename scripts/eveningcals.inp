@@ -1,0 +1,33 @@
+# eveningcals: takes eveningt calibration sequence: 
+#   1 long darks 
+#   1 QTH
+#   ThAr and UNe at both dither A and dither B
+#   1 long darks 
+#  10/1/2011
+apogeecal allOff
+apogee shutter close
+700.0 apogee expose nreads=60 ; object=Dark
+apogee shutter open
+apogeecal shutterOpen
+apogeecal SourceOn source=Quartz
+120.0 apogee expose nreads=10 ; object=QuartzFlat
+apogeecal SourceOff source=Quartz
+apogee dither namedpos=A
+apogeecal SourceOn source=ThAr
+140.0 apogee expose nreads=12 ; object=ArcLamp
+apogeecal SourceOff source=ThAr
+apogeecal SourceOn source=UNe
+500.0 apogee expose nreads=40 ; object=ArcLamp
+apogeecal SourceOff source=UNe
+apogee dither namedpos=B
+apogeecal SourceOn source=ThAr
+150.0 apogee expose nreads=12 ; object=ArcLamp
+apogeecal SourceOff source=ThAr
+apogeecal SourceOn source=UNe
+500.0 apogee expose nreads=40 ; object=ArcLamp
+apogeecal SourceOff source=UNe
+apogee dither namedpos=A
+apogeecal shutterClose
+apogeecal allOff
+apogee shutter close
+700.0 apogee expose nreads=60 ; object=Dark
