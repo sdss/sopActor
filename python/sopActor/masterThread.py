@@ -460,6 +460,13 @@ def main(actor, queues):
                 survey = msg.survey
                 expType = msg.expType
 
+                # Make sure we'd get light!
+                if not actorState.apogeeGang.atCartridge():
+                    failMsg = "gang connector is not at the cartridge!"
+                    cmdState.setCommandState('failed', stateText=failMsg)
+                    cmd.fail('text=%s' % (qstr("not taking APOGEE exposures: %s" % (failMsg))))
+                    return
+
                 #
                 # Tell sop that we've accepted the command
                 #
