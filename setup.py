@@ -8,4 +8,5 @@ import sdss3tools
 
 sdss3tools.setup(
     description = "Code base for SDSS-III SOP actor",
+    data_dirs = ['scripts'],
 )
