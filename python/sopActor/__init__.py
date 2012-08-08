@@ -69,6 +69,7 @@ except NameError:
         class EXPOSURE_FINISHED(): pass
         class REPLY(): pass
         class SLEW(): pass
+        class AXIS_INIT(): pass
         class WAIT_UNTIL(): pass
         class DITHER(): pass
         class GOTO_GANG_CHANGE(): pass
@@ -117,8 +118,10 @@ class Queue(_Queue.PriorityQueue):
         return self.name
 
     def put(self, arg0, *args, **kwds):
-        """Put  messaage onto the queue, calling the superclass's put method
-Expects a Msg, otherwise tries to construct a Msg from its arguments"""
+        """
+        Put  messaage onto the queue, calling the superclass's put method
+        Expects a Msg, otherwise tries to construct a Msg from its arguments
+        """
         
         if isinstance(arg0, Msg):
             msg = arg0
@@ -177,9 +180,10 @@ class Bypass(object):
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 class Precondition(object):
-    """A class to capture a precondition for a MultiCommand;  we require that it be satisfied
-before the non-Precondition actions are begun
-"""
+    """
+    A class to capture a precondition for a MultiCommand; we require
+    that it be satisfied before the non-Precondition actions are begun
+    """
 
     def __init__(self, queue, msgId=None, timeout=None, **kwargs):
         self.queue = queue
@@ -210,6 +214,10 @@ class MultiCommand(object):
         pass
 
     def append(self, queueName, msgId=None, timeout=None, isPrecondition=False, **kwargs):
+        """
+        Append msgId (or Precondition.msgId) to this MultiCommand, to be run
+        under queue queueName (one of the classes under 'try: MASTER' above).
+        """
         if isinstance(queueName, Precondition):
             assert msgId is None
             
@@ -257,7 +265,7 @@ class MultiCommand(object):
                             (self.label, duration, time.time() + duration))
             if self.label:
                 self.cmd.inform('stageState="%s","prepping",0.0,0.0' % (self.label))
-        
+
             if not self.finish(runningPreconditions=True):
                 self.commands = []
                 self.status = False
