@@ -10,6 +10,35 @@ from sopActor.utils.tcc import TCCState
 
 print "Loading TCC thread"
 
+
+def axis_init(msg):
+    """Send 'tcc axis init', and return status."""
+    cmd = msg.cmd
+    cmdState = msg.cmdState
+    
+    cmd.inform('text="sending tcc axis init"')
+    # the semaphore should be owned by the TCC or nobody
+    sem = msg.actorState.models['mcp']['SemaphoreOwner']
+    if sem != 'TCC:0:0' or sem != '':
+        cmd.warn('text="Cannot axis init: Semaphore is owned by '+sem+'"')
+        msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
+        return
+
+    cmdVar = msg.actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd, cmdStr="axis init")
+
+    if cmdVar.didFail:
+        cmd.warn('text="Failed tcc axis init"')
+        # TODO: if the below are bad, we can check [axis]Stat[3] for the exact status:
+        # http://www.apo.nmsu.edu/Telescopes/HardwareControllers/AxisCommands.html
+        if 'badAzStatus' in msg.actorState.models['tcc']:
+            cmd.warn('text="badAzStatus is set: check Azimuth interlocks."')
+        if 'badAltStatus' in msg.actorState.models['tcc']:
+            cmd.warn('text="badAltStatus is set: check Altitude interlocks."')
+        if 'badRotStatus' in msg.actorState.models['tcc']:
+            cmd.warn('text="badRotStatus is set: check Rotator interlocks."')
+        msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
+#...
+
 def main(actor, queues):
     """Main loop for TCC thread"""
 
@@ -27,6 +56,10 @@ def main(actor, queues):
                     msg.cmd.inform("text=\"Exiting thread %s\"" % (threading.current_thread().name))
 
                 return
+
+            elif msg.type == Msg.AXIS_INIT:
+                axis_init(msg)
+                queues[sopActor.TCC].put(Msg.AXIS_INIT, cmd=msg.cmd, replyQueue=msg.replyQueue)
 
             elif msg.type == Msg.SLEW:
                 cmd = msg.cmd
@@ -81,7 +114,7 @@ def main(actor, queues):
                     msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
                 #
                 # Wait for slew to end
-                #                    
+                #
                 queues[sopActor.TCC].put(Msg.SLEW, cmd=msg.cmd, replyQueue=msg.replyQueue, waitForSlewEnd=True)
 
             elif msg.type == Msg.STATUS:
