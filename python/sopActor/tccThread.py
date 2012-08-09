@@ -40,6 +40,8 @@ def axis_init(msg,actorState):
         cmd.warn('text="Aborting GotoField: failed tcc axis init."')
         # TODO: need to send another message describing why we failed.
         msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
+    else:
+        msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
 #...
 
 def main(actor, queues):
@@ -62,7 +64,6 @@ def main(actor, queues):
 
             elif msg.type == Msg.AXIS_INIT:
                 axis_init(msg,actorState)
-                #queues[sopActor.TCC].put(Msg.AXIS_INIT, cmd=msg.cmd, replyQueue=msg.replyQueue)
 
             elif msg.type == Msg.SLEW:
                 cmd = msg.cmd
