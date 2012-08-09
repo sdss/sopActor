@@ -11,31 +11,17 @@ from sopActor import MultiCommand
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def status(cmdState, newState=None, oneCommand=""):
-    """Set cmdState to a new state and actorState status to oneCommand"""
-    if newState:
-        cmdState.setCommandState(newState)
-    if cmd:
-        actorState.actor.commandSets["SopCmd"].status(cmdState.cmd, threads=False, finish=False, oneCommand=oneCommand)
-#...
-
-class SopPrecondition(Precondition): 
-    """
-    This class is used to pass preconditions for a command to
-    MultiCmd.  Only if required() returns True is the command actually
-    scheduled and then run.
-    """
+class SopPrecondition(Precondition):
+    """This class is used to pass preconditions for a command to MultiCmd.  Only if required() returns True
+is the command actually scheduled and then run"""
 
     def __init__(self, queueName, msgId=None, timeout=None, **kwargs):
         Precondition.__init__(self, queueName, msgId, timeout, **kwargs)
         self.queueName = queueName
 
     def required(self):
-        """
-        Here is the real logic.  We're thinking of running a command
-        to get the system into a desired state, but if it's already in
-        that state no command is required; so return False.
-        """
+        """Here is the real logic.  We're thinking of running a command to get the system into a
+desired state, but if it's already in that state no command is required; so return False"""
 
         if self.queueName in myGlobals.warmupTime.keys():
             assert self.msgId == Msg.LAMP_ON
@@ -191,316 +177,6 @@ def doLamps(cmd, actorState, FF=False, Ne=False, HgCd=False, WHT=False, UV=False
             return False
 
     return multiCmd.run()
-#...
-
-def doGotoField(msg):
-    """
-    Perform a gotoField, including hartmanns, flats, lamps, etc.
-    """
-    cmd = msg.cmd
-    actorState = msg.actorState
-    cmdState = msg.cmdState
-    cartridge = msg.cartridge
-    survey = msg.survey
-    #
-    # Tell sop that we've accepted the command
-    #
-    cmdState.setCommandState('running')
-    msg.replyQueue.put(Msg.REPLY, cmd=cmd, success=True)
-    #
-    # Slew to field
-    #
-    slewTimeout = 180
-
-    status(cmdState, oneCommand="gotoField")
-    doGuiderFlat = cmdState.doGuiderFlat
-
-    if cmdState.doSlew:
-        multiCmd = SopMultiCommand(cmd, slewTimeout + actorState.timeout, "gotoField.slew")
-
-        # Start with an axisInit, because we want to be able to immediately start the slew.
-        # NOTE: should check whether axisInit fails immediately.
-        # this could be part of the precondition.requires() check -- possibly even running it twice
-        # if it fails the first time.
-        # this probably happens inside MultiCommand.run()
-        # Will we need to add a check for tcc axis init status?
-
-        multiCmd.append(SopPrecondition(sopActor.TCC, Msg.AXIS_INIT))
-        #multiCmd = SopMultiCommand(sopActor.TCC, slewTimeout + actorState.timeout, "gotoField.slew")
-        # going to look something like this:
-        # sopState.actor.cmdr.call(actor="tcc", forUserCmd=cmd, cmdStr="axis stop")
-                
-        cmdState.setStageState("slew", "running")
-
-        if not 'RHL debug':
-            multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState,
-                            ra=cmdState.ra, dec=cmdState.dec, rot=cmdState.rotang,
-                            keepOffsets=cmdState.keepOffsets)
-        else:
-            cmd.warn('text="RHL is skipping the slew"')
-
-        if (cmdState.nArcLeft > 0 or cmdState.nFlatLeft > 0 or cmdState.doHartmann or doGuiderFlat):
-            multiCmd.append(sopActor.FFS,     Msg.FFS_MOVE, open=False)
-        else:
-            # TODO: We can _possibly_ open the APOGEE shutter here. -- CPL.
-            # multiCmd.append(sopActor.FFS,     Msg.FFS_MOVE, open=True)
-            pass
-
-        if cmdState.nArcLeft > 0 or cmdState.doHartmann:
-            multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=True)
-            multiCmd.append(sopActor.NE_LAMP  , Msg.LAMP_ON, on=True)
-            multiCmd.append(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False)
-            multiCmd.append(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False)
-        else:
-            if doGuiderFlat and survey == sopActor.MARVELS:
-                multiCmd.append(sopActor.FF_LAMP , Msg.LAMP_ON, on=True)
-
-        if not multiCmd.run():
-            cmdState.setStageState("slew", "failed")
-            if actorState.tccState.badStat and not Bypass.get(name='axes'):
-                cmd.warn('text="Some axis status is bad!!! Cannot slew!"')
-            cmdState.setCommandState('failed', stateText="Some axis status is bad!")
-            cmd.fail('text="Failed to close screens, warm up lamps, and slew to field"')
-            continue
-
-        # For bright plates (no hartmann or calibs), take the guider flat as part of the slew stage.
-        if doGuiderFlat and survey == sopActor.MARVELS:
-            guiderDelay = 20
-            multiCmd = SopMultiCommand(cmd, actorState.timeout + guiderDelay, "gotoField.slew.guiderFlat")
-            cmd.inform('text="commanding guider flat"')
-            multiCmd.append(SopPrecondition(sopActor.FF_LAMP, Msg.LAMP_ON, on=True))
-            multiCmd.append(SopPrecondition(sopActor.FFS,     Msg.FFS_MOVE, open=False))
-            multiCmd.append(sopActor.GUIDER, Msg.EXPOSE,
-                expTime=cmdState.guiderFlatTime, expType="flat")
-            doGuiderFlat = False
-
-            if not multiCmd.run():
-                cmdState.setStageState("slew", "failed")
-                cmdState.setCommandState('failed', stateText="failed to take guider flat")
-                cmd.fail('text="Failed to take a guider flat')
-                continue
-
-        # Umm is cmd == cmdState.cmd? If so, the .fail above will cause trouble.
-        cmdState.setStageState("slew", "done")
-        status(cmdState, oneCommand="gotoField")
-
-    #
-    # OK, we're there.
-    #
-    if cmdState.doHartmann:
-        hartmannDelay = 210
-        cmdState.setStageState("hartmann", "running")
-        multiCmd = SopMultiCommand(cmd, actorState.timeout + hartmannDelay, "gotoField.hartmann")
-
-        multiCmd.append(sopActor.BOSS, Msg.HARTMANN)
-
-        multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False))
-        # N.b. not a precondition on HgCd as we don't want to wait for warmup (we'll wait for Ne)
-        # Yeah, but we would like to turn the HgCd on ASAP...
-        multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=True)
-        multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=True))
-        multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
-        multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
-        multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=False))
-
-        if not multiCmd.run():
-            cmdState.setStageState("hartmann", "failed")
-            cmdState.setCommandState('failed', stateText="failed to take hartmann sequence")
-            cmd.fail('text="Failed to do Hartmann sequence"')
-            continue
-
-        cmdState.setStageState("hartmann", "done")
-        status(cmdState, oneCommand="gotoField")
-    #
-    # Calibs.  Arcs first
-    #
-    pendingReadout = False
-    doingCalibs = False
-
-    if (cmdState.nArcLeft > 0 or cmdState.nFlatLeft > 0) and \
-        cmdState.nArcDone == 0 and cmdState.nFlatDone == 0:
-        cmdState.setStageState("calibs", "running")
-        doingCalibs = True
-
-    if cmdState.nArcLeft > 0:
-        timeout = actorState.timeout + myGlobals.warmupTime[sopActor.HGCD_LAMP]
-
-        multiCmd = SopMultiCommand(cmd, timeout, "gotoField.calibs.arcs")
-
-        multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False))
-        multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=True))
-        multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=True))
-        multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
-        multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
-        multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=False))
-
-        if not multiCmd.run():
-            cmdState.setCommandState('failed', stateText="failed to prepare for arcs")
-            cmd.fail('text="Failed to prepare for arcs"')
-            continue
-                    #
-                    # Now take the exposure
-                    #
-        if cmdState.nArcLeft > 0:  # not aborted since we last checked
-            if SopMultiCommand(cmd, cmdState.arcTime + actorState.timeout,
-               "gotoField.calibs.arcExposure",sopActor.BOSS, Msg.EXPOSE,
-               expTime=cmdState.arcTime, expType="arc", readout=False,).run():
-                pendingReadout = True
-            else:
-                cmdState.setStageState("calibs", "failed")
-                cmdState.setCommandState('failed', stateText="failed to take arcs")
-                cmd.fail('text="Failed to take arcs"')
-                continue
-
-        cmdState.nArcLeft -= 1
-        cmdState.nArcDone += 1
-
-        status(cmdState, oneCommand="gotoField")
-
-    #
-    # Now the flats
-    #
-    multiCmd = SopMultiCommand(cmd,
-                               actorState.timeout + (readoutDuration if pendingReadout else 0),
-                               "gotoField.calibs.flats")
-    if pendingReadout:
-        multiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
-        pendingReadout = False
-
-    doGuiderFlat = True if (doGuiderFlat and cmdState.doGuider and cmdState.guiderFlatTime > 0) else False
-    if cmdState.nFlatLeft > 0 or doGuiderFlat:
-        multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=True))
-        multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=False))
-        multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=False))
-        multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
-        multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
-        multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=False))
-
-    if not multiCmd.run():
-        cmdState.setStageState("calibs", "failed")
-        cmdState.setCommandState('failed', stateText="failed to prepare flats")
-        cmd.fail('text="Failed to prepare for flats"')
-        continue
-    #
-    # Now take the exposure
-    #
-    if cmdState.nFlatLeft > 0 or doGuiderFlat:
-        multiCmd = SopMultiCommand(cmd, cmdState.flatTime + actorState.timeout + 30,
-            "gotoField.calibs.flatExposure")
-
-        if cmdState.nFlatLeft > 0:
-            pendingReadout = True
-            multiCmd.append(sopActor.BOSS, Msg.EXPOSE,
-                expTime=cmdState.flatTime, expType="flat", readout=False)
-
-        if cmdState.doGuider and cmdState.guiderFlatTime > 0:
-            multiCmd.append(sopActor.GUIDER, Msg.EXPOSE,
-                expTime=cmdState.guiderFlatTime, expType="flat")
-
-        if not multiCmd.run():
-            if pendingReadout:
-                SopMultiCommand(cmd, actorState.timeout + readoutDuration,
-                    "gotoField.calibs.flatReadout",
-                    sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True).run()
-
-            cmdState.setStageState("calibs", "failed")
-            cmdState.setCommandState('failed', stateText="failed to take flats")
-            cmd.fail('text="Failed to take flats"')
-            continue
-
-        cmdState.nFlatLeft -= 1
-        cmdState.nFlatDone += 1
-
-        status(cmdState, oneCommand="gotoField")
-                #
-                # Readout any pending data and prepare to guide
-                #
-    if pendingReadout:
-        readoutMultiCmd = SopMultiCommand(cmd, readoutDuration + actorState.timeout,
-            "gotoField.calibs.lastFlatReadout")
-
-        readoutMultiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
-        pendingReadout = False
-
-        readoutMultiCmd.start()
-    else:
-        if doingCalibs:
-            cmdState.setStageState("calibs", "done")
-
-        readoutMultiCmd = None
-
-    # TODO: Hmm. I think this whole multiCmd section is vestigial, but needs to be _carefully_ taken out. -- CPL
-    multiCmd = SopMultiCommand(cmd,
-                               actorState.timeout + (readoutDuration if pendingReadout else 0),
-                               "gotoField.guide.prep")
-
-    # Can't trivially pull this stanza due to the deferred readoutMultiCmd possibly failing.
-    # Still, there is stupid repetition here. -- CPL
-    multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False))
-    multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=False))
-    multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=False))
-    multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
-    multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
-
-    if cmdState.doGuider:
-        # Should be a Precondition, I think. -- CPL
-        multiCmd.append(sopActor.FFS, Msg.FFS_MOVE, open=True)
-
-    if not multiCmd.run():
-        if readoutMultiCmd:
-            readoutMultiCmd.finish()
-
-        cmdState.setCommandState('failed', stateText="failed to prepare to guide")
-        cmd.fail('text="Failed to prepare to guide"')
-        continue
-    #
-    # Start the guider
-    #
-    if cmdState.doGuider:
-        cmdState.setStageState("guider", "running")
-        multiCmd = SopMultiCommand(cmd, actorState.timeout + cmdState.guiderTime,
-            "gotoField.guide.start")
-
-        multiCmd.append(sopActor.GUIDER, Msg.START, on=True,
-            expTime=cmdState.guiderTime, clearCorrections=True)
-
-        multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False))
-        multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=False))
-        multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=False))
-        multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
-        multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
-        multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=True))
-
-        if not multiCmd.run():
-            cmdState.setStageState("guider", "failed")
-            cmdState.setCommandState('failed', stateText="failed to start the guider")
-            cmd.fail('text="Failed to start guiding"')
-            continue
-
-        startedGuider = True
-        cmdState.setStageState("guider", "done")
-        status(cmdState, oneCommand="gotoField")
-    #
-    # Catch the last readout's completion
-    #
-    if readoutMultiCmd:
-        if not readoutMultiCmd.finish():
-            cmdState.setStageState("calibs", "failed")
-            cmdState.setCommandState('failed', stateText="failed to readout last exposure")
-            cmd.fail('text="Failed to readout last exposure"')
-            continue
-        else:
-            cmdState.setStageState("calibs", "done")
-    #
-    # We're done
-    #
-    if actorState.aborting:
-        cmdState.setCommandState('aborted')
-        cmd.fail('text="gotoField was aborted"')
-    else:
-        cmdState.setCommandState('done')
-        cmd.finish('text="on field')
-#...
 
 #
 # Define the command that we use to communicate our state to e.g. STUI
@@ -512,6 +188,13 @@ def main(actor, queues):
     timeout = myGlobals.actorState.timeout
     overhead = 150                      # overhead per exposure, minimum; seconds
 
+
+    def status(cmd, newState=None, oneCommand=""):
+        if newState:
+            cmdState.setCommandState(newState)
+        if cmd:
+            actorState.actor.commandSets["SopCmd"].status(cmd, threads=False, finish=False,
+                                                          oneCommand=oneCommand)
     while True:
         try:
             msg = queues[MASTER].get(timeout=timeout)
@@ -546,7 +229,7 @@ def main(actor, queues):
                 while cmdState.nBiasLeft > 0 or cmdState.nDarkLeft > 0 or \
                           cmdState.nFlatLeft > 0 or cmdState.nArcLeft > 0:
 
-                    status(cmdState, oneCommand="doCalibs")
+                    status(cmdState.cmd, oneCommand="doCalibs")
 
                     if cmdState.nBiasLeft > 0:
                         expTime, expType = 0.0, "bias"
@@ -726,7 +409,7 @@ def main(actor, queues):
 
                 failMsg = ""            # message to use if we've failed
                 while cmdState.nExpLeft > 0:
-                    status(cmdState, oneCommand="doScience")
+                    status(cmdState.cmd, oneCommand="doScience")
 
                     expTime = cmdState.expTime
 
@@ -792,7 +475,7 @@ def main(actor, queues):
 
                 failMsg = ""            # message to use if we've failed
                 while cmdState.index < len(cmdState.exposureSeq):
-                    status(cmdState, oneCommand=cmdState.name)
+                    status(cmdState.cmd, oneCommand=cmdState.name)
 
                     expTime = cmdState.expTime
                     dither = cmdState.exposureSeq[cmdState.index]
@@ -843,7 +526,302 @@ def main(actor, queues):
                     cmd.finish('text="Your Nobel Prize is a little closer, sir')
 
             elif msg.type == Msg.GOTO_FIELD:
-                doGotoField(msg)
+                cmd = msg.cmd
+                actorState = msg.actorState
+                cmdState = msg.cmdState
+                cartridge = msg.cartridge
+                survey = msg.survey
+                #
+                # Tell sop that we've accepted the command
+                #
+                cmdState.setCommandState('running')
+                msg.replyQueue.put(Msg.REPLY, cmd=cmd, success=True)
+                #
+                # Slew to field
+                #
+                slewTimeout = 180
+
+                status(cmdState.cmd, oneCommand="gotoField")
+                doGuiderFlat = cmdState.doGuiderFlat
+
+                if cmdState.doSlew:
+                    multiCmd = SopMultiCommand(cmd, slewTimeout + actorState.timeout, "gotoField.slew")
+
+                    # start with an axis init
+                    multiCmd.append(SopPrecondition(sopActor.TCC, Msg.AXIS_INIT))
+
+                    cmdState.setStageState("slew", "running")
+
+                    if True:
+                        multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState,
+                                        ra=cmdState.ra, dec=cmdState.dec, rot=cmdState.rotang,
+                                        keepOffsets=cmdState.keepOffsets)
+                    else:
+                        cmd.warn('text="RHL is skipping the slew"')
+
+                    if (cmdState.nArcLeft > 0 or cmdState.nFlatLeft > 0 or cmdState.doHartmann
+                        or doGuiderFlat):
+                        multiCmd.append(sopActor.FFS,     Msg.FFS_MOVE, open=False)
+                    else:
+                        # We can _possibly_ open the APOGEE shutter here. -- CPL.
+                        # multiCmd.append(sopActor.FFS,     Msg.FFS_MOVE, open=True)
+                        pass
+
+                    if cmdState.nArcLeft > 0 or cmdState.doHartmann:
+                        multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=True)
+                        multiCmd.append(sopActor.NE_LAMP  , Msg.LAMP_ON, on=True)
+                        multiCmd.append(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False)
+                        multiCmd.append(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False)
+                    else:
+                        if doGuiderFlat and survey == sopActor.MARVELS:
+                            multiCmd.append(sopActor.FF_LAMP , Msg.LAMP_ON, on=True)
+
+                    if not multiCmd.run():
+                        cmdState.setStageState("slew", "failed")
+                        if actorState.tccState.badStat and not Bypass.get(name='axes'):
+                            cmd.warn('text="Some axis status is bad!!! Cannot slew!"')
+                        cmdState.setCommandState('failed', stateText="Some axis status is bad!")
+                        cmd.fail('text="Failed to close screens, warm up lamps, and slew to field"')
+                        continue
+
+                    # For bright plates (no hartmann or calibs), take the guider flat as part of the slew stage.
+                    if doGuiderFlat and survey == sopActor.MARVELS:
+                        guiderDelay = 20
+                        multiCmd = SopMultiCommand(cmd, actorState.timeout + guiderDelay, "gotoField.slew.guiderFlat")
+                        cmd.inform('text="commanding guider flat"')
+                        multiCmd.append(SopPrecondition(sopActor.FF_LAMP, Msg.LAMP_ON, on=True))
+                        multiCmd.append(SopPrecondition(sopActor.FFS,     Msg.FFS_MOVE, open=False))
+                        multiCmd.append(sopActor.GUIDER, Msg.EXPOSE,
+                                        expTime=cmdState.guiderFlatTime, expType="flat")
+                        doGuiderFlat = False
+
+                        if not multiCmd.run():
+                            cmdState.setStageState("slew", "failed")
+                            cmdState.setCommandState('failed', stateText="failed to take guider flat")
+                            cmd.fail('text="Failed to take a guider flat')
+                            continue
+
+                    # Umm is cmd == cmdState.cmd? If so, the .fail above will cause trouble.
+                    cmdState.setStageState("slew", "done")
+                    status(cmdState.cmd, oneCommand="gotoField")
+
+                #
+                # OK, we're there.
+                #
+                if cmdState.doHartmann:
+                    hartmannDelay = 210
+                    cmdState.setStageState("hartmann", "running")
+                    multiCmd = SopMultiCommand(cmd, actorState.timeout + hartmannDelay, "gotoField.hartmann")
+
+                    multiCmd.append(sopActor.BOSS, Msg.HARTMANN)
+
+                    multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False))
+                    # N.b. not a precondition on HgCd as we don't want to wait for warmup (we'll wait for Ne)
+                    # Yeah, but we would like to turn the HgCd on ASAP...
+                    multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=True)
+                    multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=True))
+                    multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=False))
+
+                    if not multiCmd.run():
+                        cmdState.setStageState("hartmann", "failed")
+                        cmdState.setCommandState('failed', stateText="failed to take hartmann sequence")
+                        cmd.fail('text="Failed to do Hartmann sequence"')
+                        continue
+
+                    cmdState.setStageState("hartmann", "done")
+                    status(cmdState.cmd, oneCommand="gotoField")
+                #
+                # Calibs.  Arcs first
+                #
+                pendingReadout = False
+                doingCalibs = False
+                if (cmdState.nArcLeft > 0 or cmdState.nFlatLeft > 0) and \
+                       cmdState.nArcDone == 0 and cmdState.nFlatDone == 0:
+                    cmdState.setStageState("calibs", "running")
+                    doingCalibs = True
+
+                if cmdState.nArcLeft > 0:
+                    timeout = actorState.timeout + myGlobals.warmupTime[sopActor.HGCD_LAMP]
+
+                    multiCmd = SopMultiCommand(cmd, timeout, "gotoField.calibs.arcs")
+
+                    multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=True))
+                    multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=True))
+                    multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=False))
+
+                    if not multiCmd.run():
+                        cmdState.setCommandState('failed', stateText="failed to prepare for arcs")
+                        cmd.fail('text="Failed to prepare for arcs"')
+                        continue
+                    #
+                    # Now take the exposure
+                    #
+                    if cmdState.nArcLeft > 0:  # not aborted since we last checked
+                        if SopMultiCommand(cmd, cmdState.arcTime + actorState.timeout,
+                                           "gotoField.calibs.arcExposure",
+                                           sopActor.BOSS, Msg.EXPOSE,
+                                           expTime=cmdState.arcTime, expType="arc", readout=False,).run():
+                            pendingReadout = True
+                        else:
+                            cmdState.setStageState("calibs", "failed")
+                            cmdState.setCommandState('failed', stateText="failed to take arcs")
+                            cmd.fail('text="Failed to take arcs"')
+                            continue
+
+                    cmdState.nArcLeft -= 1
+                    cmdState.nArcDone += 1
+
+                    status(cmdState.cmd, oneCommand="gotoField")
+
+                #
+                # Now the flats
+                #
+                multiCmd = SopMultiCommand(cmd,
+                                           actorState.timeout + (readoutDuration if pendingReadout else 0),
+                                           "gotoField.calibs.flats")
+                if pendingReadout:
+                    multiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
+                    pendingReadout = False
+
+                doGuiderFlat = True if (doGuiderFlat and cmdState.doGuider and cmdState.guiderFlatTime > 0) else False
+                if cmdState.nFlatLeft > 0 or doGuiderFlat:
+                    multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=True))
+                    multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=False))
+
+                if not multiCmd.run():
+                    cmdState.setStageState("calibs", "failed")
+                    cmdState.setCommandState('failed', stateText="failed to prepare flats")
+                    cmd.fail('text="Failed to prepare for flats"')
+                    continue
+                #
+                # Now take the exposure
+                #
+                if cmdState.nFlatLeft > 0 or doGuiderFlat:
+                    multiCmd = SopMultiCommand(cmd, cmdState.flatTime + actorState.timeout + 30,
+                                               "gotoField.calibs.flatExposure")
+
+                    if cmdState.nFlatLeft > 0:
+                        pendingReadout = True
+                        multiCmd.append(sopActor.BOSS, Msg.EXPOSE,
+                                        expTime=cmdState.flatTime, expType="flat", readout=False)
+
+                    if cmdState.doGuider and cmdState.guiderFlatTime > 0:
+                        multiCmd.append(sopActor.GUIDER, Msg.EXPOSE,
+                                        expTime=cmdState.guiderFlatTime, expType="flat")
+
+                    if not multiCmd.run():
+                        if pendingReadout:
+                            SopMultiCommand(cmd, actorState.timeout + readoutDuration,
+                                            "gotoField.calibs.flatReadout",
+                                            sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True).run()
+
+                        cmdState.setStageState("calibs", "failed")
+                        cmdState.setCommandState('failed', stateText="failed to take flats")
+                        cmd.fail('text="Failed to take flats"')
+                        continue
+
+                    cmdState.nFlatLeft -= 1
+                    cmdState.nFlatDone += 1
+
+                    status(cmdState.cmd, oneCommand="gotoField")
+                #
+                # Readout any pending data and prepare to guide
+                #
+                if pendingReadout:
+                    readoutMultiCmd = SopMultiCommand(cmd, readoutDuration + actorState.timeout,
+                                                      "gotoField.calibs.lastFlatReadout")
+
+                    readoutMultiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
+                    pendingReadout = False
+
+                    readoutMultiCmd.start()
+                else:
+                    if doingCalibs:
+                        cmdState.setStageState("calibs", "done")
+
+                    readoutMultiCmd = None
+
+                # Hmm. I think this whole multiCmd section is vestigial, but needs to be _carefully_ taken out. -- CPL
+                multiCmd = SopMultiCommand(cmd,
+                                           actorState.timeout + (readoutDuration if pendingReadout else 0),
+                                           "gotoField.guide.prep")
+
+                # Can't trivially pull this stanza due to the deferred readoutMultiCmd possibly failing.
+                # Still, there is stupid repetition here. -- CPL
+                multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False))
+                multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=False))
+                multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=False))
+                multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
+                multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
+
+                if cmdState.doGuider:
+                    # Should be a Precondition, I think. -- CPL
+                    multiCmd.append(sopActor.FFS, Msg.FFS_MOVE, open=True)
+
+                if not multiCmd.run():
+                    if readoutMultiCmd:
+                        readoutMultiCmd.finish()
+
+                    cmdState.setCommandState('failed', stateText="failed to prepare to guide")
+                    cmd.fail('text="Failed to prepare to guide"')
+                    continue
+                #
+                # Start the guider
+                #
+                if cmdState.doGuider:
+                    cmdState.setStageState("guider", "running")
+                    multiCmd = SopMultiCommand(cmd, actorState.timeout + cmdState.guiderTime,
+                                               "gotoField.guide.start")
+
+                    multiCmd.append(sopActor.GUIDER, Msg.START, on=True,
+                                    expTime=cmdState.guiderTime, clearCorrections=True)
+
+                    multiCmd.append(SopPrecondition(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False))
+                    multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=True))
+
+                    if not multiCmd.run():
+                        cmdState.setStageState("guider", "failed")
+                        cmdState.setCommandState('failed', stateText="failed to start the guider")
+                        cmd.fail('text="Failed to start guiding"')
+                        continue
+
+                    startedGuider = True
+                    cmdState.setStageState("guider", "done")
+                    status(cmdState.cmd, oneCommand="gotoField")
+                #
+                # Catch the last readout's completion
+                #
+                if readoutMultiCmd:
+                    if not readoutMultiCmd.finish():
+                        cmdState.setStageState("calibs", "failed")
+                        cmdState.setCommandState('failed', stateText="failed to readout last exposure")
+                        cmd.fail('text="Failed to readout last exposure"')
+                        continue
+                    else:
+                        cmdState.setStageState("calibs", "done")
+                #
+                # We're done
+                #
+                if actorState.aborting:
+                    cmdState.setCommandState('aborted')
+                    cmd.fail('text="gotoField was aborted"')
+                else:
+                    cmdState.setCommandState('done')
+                    cmd.finish('text="on field')
+
 
             elif msg.type == Msg.GOTO_GANG_CHANGE:
                 """ Go to gang change position. """

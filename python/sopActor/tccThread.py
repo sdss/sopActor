@@ -11,31 +11,34 @@ from sopActor.utils.tcc import TCCState
 print "Loading TCC thread"
 
 
-def axis_init(msg):
+def axis_init(msg,actorState):
     """Send 'tcc axis init', and return status."""
     cmd = msg.cmd
-    cmdState = msg.cmdState
-    
+
+    # need to send an axis status first, just to make sure bits have cleared
+    cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd, cmdStr="axis status")
+
+    # TODO: if the below are bad, we can check [axis]Stat[3] for the exact status:
+    # http://www.apo.nmsu.edu/Telescopes/HardwareControllers/AxisCommands.html
+    if (actorState.models['tcc'].keyVarDict['azStat'][3] & 0x2000) | \
+       (actorState.models['tcc'].keyVarDict['altStat'][3] & 0x2000) | \
+       (actorState.models['tcc'].keyVarDict['rotStat'][3] & 0x2000):
+        cmd.warn('text="Bad axis status: Check stop buttons."')
+        msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
+        return
     cmd.inform('text="sending tcc axis init"')
     # the semaphore should be owned by the TCC or nobody
-    sem = msg.actorState.models['mcp']['SemaphoreOwner']
-    if sem != 'TCC:0:0' or sem != '':
+    sem = actorState.models['mcp'].keyVarDict['semaphoreOwner'][0]
+    if (sem != 'TCC:0:0') and (sem != '') and (sem != 'None') and (sem != None):
         cmd.warn('text="Cannot axis init: Semaphore is owned by '+sem+'"')
         msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
         return
 
-    cmdVar = msg.actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd, cmdStr="axis init")
+    cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd, cmdStr="axis init")
 
     if cmdVar.didFail:
-        cmd.warn('text="Failed tcc axis init"')
-        # TODO: if the below are bad, we can check [axis]Stat[3] for the exact status:
-        # http://www.apo.nmsu.edu/Telescopes/HardwareControllers/AxisCommands.html
-        if 'badAzStatus' in msg.actorState.models['tcc']:
-            cmd.warn('text="badAzStatus is set: check Azimuth interlocks."')
-        if 'badAltStatus' in msg.actorState.models['tcc']:
-            cmd.warn('text="badAltStatus is set: check Altitude interlocks."')
-        if 'badRotStatus' in msg.actorState.models['tcc']:
-            cmd.warn('text="badRotStatus is set: check Rotator interlocks."')
+        cmd.warn('text="Aborting GotoField: failed tcc axis init."')
+        # TODO: need to send another message describing why we failed.
         msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
 #...
 
@@ -58,8 +61,8 @@ def main(actor, queues):
                 return
 
             elif msg.type == Msg.AXIS_INIT:
-                axis_init(msg)
-                queues[sopActor.TCC].put(Msg.AXIS_INIT, cmd=msg.cmd, replyQueue=msg.replyQueue)
+                axis_init(msg,actorState)
+                #queues[sopActor.TCC].put(Msg.AXIS_INIT, cmd=msg.cmd, replyQueue=msg.replyQueue)
 
             elif msg.type == Msg.SLEW:
                 cmd = msg.cmd

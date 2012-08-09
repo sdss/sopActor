@@ -155,7 +155,9 @@ class TCCState(object):
 
         if axisStat is not None:
             axisMask = TCCState.axisMask(keyVar.name[:-4])
-            if not axisStat & TCCState.axisBadStatusMask: # or Bypass.get(name="axes"):
+            # NOTE: this may cause an exception when starting sopActor, as
+            # axisBadStatusMask may not be populated yet.
+            if not (axisStat & TCCState.axisBadStatusMask): # or Bypass.get(name="axes"):
                 logging.info("clearing some axis failure (%s: %08x)" % (keyVar.name, axisStat))
                 TCCState.badStat &= ~axisMask
             else:
