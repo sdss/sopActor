@@ -15,22 +15,26 @@ def axis_init(msg,actorState):
     """Send 'tcc axis init', and return status."""
     cmd = msg.cmd
 
-    # need to send an axis status first, just to make sure bits have cleared
+    # need to send an axis status first, just to make sure the status bits have cleared
     cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd, cmdStr="axis status")
-
-    # TODO: if the below are bad, we can check [axis]Stat[3] for the exact status:
+    # TODO: do I need to check whether tcc axis status fails?
+    
+    # You can check [az,alt,rot]Stat[3] for the exact status:
     # http://www.apo.nmsu.edu/Telescopes/HardwareControllers/AxisCommands.html
     if (actorState.models['tcc'].keyVarDict['azStat'][3] & 0x2000) | \
        (actorState.models['tcc'].keyVarDict['altStat'][3] & 0x2000) | \
        (actorState.models['tcc'].keyVarDict['rotStat'][3] & 0x2000):
-        cmd.warn('text="Bad axis status: Check stop buttons."')
+        cmd.warn('text="Cannot tcc axis init because of bad axis status: Check stop buttons."')
         msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
         return
+
     cmd.inform('text="sending tcc axis init"')
     # the semaphore should be owned by the TCC or nobody
     sem = actorState.models['mcp'].keyVarDict['semaphoreOwner'][0]
     if (sem != 'TCC:0:0') and (sem != '') and (sem != 'None') and (sem != None):
         cmd.warn('text="Cannot axis init: Semaphore is owned by '+sem+'"')
+        cmd.warn('text="If you are the owner (e.g., via MCP Menu), release it and try again."')
+        cmd.warn('text="If you are not the owner, confirm that you can steal it from them: mcp sem.steal"')
         msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
         return
 
@@ -38,7 +42,8 @@ def axis_init(msg,actorState):
 
     if cmdVar.didFail:
         cmd.warn('text="Aborting GotoField: failed tcc axis init."')
-        # TODO: need to send another message describing why we failed.
+        cmd.warn('text="Aborting GotoField: check and clear interlocks?"')
+        # TODO: Should we send another message describing why we failed, or is this enough?
         msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
     else:
         msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
