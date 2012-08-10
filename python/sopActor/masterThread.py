@@ -12,16 +12,22 @@ from sopActor import MultiCommand
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 class SopPrecondition(Precondition):
-    """This class is used to pass preconditions for a command to MultiCmd.  Only if required() returns True
-is the command actually scheduled and then run"""
+    """
+    This class is used to pass preconditions for a command to
+    MultiCmd.  Only if required() returns True is the command actually
+    scheduled and then run.
+    """
 
     def __init__(self, queueName, msgId=None, timeout=None, **kwargs):
         Precondition.__init__(self, queueName, msgId, timeout, **kwargs)
         self.queueName = queueName
 
     def required(self):
-        """Here is the real logic.  We're thinking of running a command to get the system into a
-desired state, but if it's already in that state no command is required; so return False"""
+        """
+        Here is the real logic.  We're thinking of running a command
+        to get the system into a desired state, but if it's already in
+        that state no command is required; so return False.
+        """
 
         if self.queueName in myGlobals.warmupTime.keys():
             assert self.msgId == Msg.LAMP_ON
@@ -154,7 +160,11 @@ class SopMultiCommand(MultiCommand):
 
 def doLamps(cmd, actorState, FF=False, Ne=False, HgCd=False, WHT=False, UV=False,
             openFFS=None, openHartmann=None):
-    """Turn all the lamps on/off"""
+    """
+    Turn each lamp on (True) or off (False),
+    and open (True), close (False), or do not change (None) the flat field screen,
+    and open (True) the Hartmanns.
+    """
 
     multiCmd = SopMultiCommand(cmd, actorState.timeout, ".doLamps")
 

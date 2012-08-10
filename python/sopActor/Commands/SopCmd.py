@@ -13,7 +13,9 @@ from sopActor import *
 import sopActor
 import sopActor.myGlobals as myGlobals
 from sopActor import MultiCommand
-if not False:
+# The below is useful if you are reloading this file for debugging.
+# Normally, reloading SopCmd doesn't reload the rest of sopActor
+if not 'debugging':
     oldPrecondition = sopActor.Precondition
     oldMultiCommand = sopActor.MultiCommand
     print "Reloading sopActor"
@@ -553,15 +555,19 @@ class SopCmd(object):
                                                expTime=expTime, spN=spN, nStep=nStep, nTick=nTick)
 
     def hartmann(self, cmd, finish=True):
-        """Take two arc exposures, one with the Hartmann left screen in and one with the right one in.
+        """
+        Take two arc exposures, one with the Hartmann left screen in
+        and one with the right one in.
 
-If the flat field screens are initially open they are closed, and the Ne/HgCd lamps are turned on.
-You may specify using only one spectrograph with sp1 or sp2; the default is both.
-The exposure time is set by expTime
+        If the flat field screens are initially open they are closed,
+        and the Ne/HgCd lamps are turned on. You may specify using
+        only one spectrograph with sp1 or sp2; the default is both.
+        The exposure time is set by expTime
 
-When the sequence is finished the Hartmann screens are moved out of the beam, the lamps turned off, and the
-flat field screens returned to their initial state.
-"""
+        When the sequence is finished the Hartmann screens are moved
+        out of the beam, the lamps turned off, and the flat field
+        screens returned to their initial state.
+        """
         sopState = myGlobals.actorState
         if sopState.doScience.cmd and sopState.doScience.cmd.isAlive():
             cmd.fail("text='a science exposure sequence is running -- will not start a hartmann sequence!")
@@ -582,7 +588,11 @@ flat field screens returned to their initial state.
     def gotoField(self, cmd):
         """Slew to the current cartridge/pointing
 
-Slew to the position of the currently loaded cartridge. At the beginning of the slew all the lamps are turned on and the flat field screen petals are closed.  When you arrive at the field, all the lamps are turned off again and the flat field petals are opened if you specified openFFS.
+        Slew to the position of the currently loaded cartridge. At the
+        beginning of the slew all the lamps are turned on and the flat
+        field screen petals are closed.  When you arrive at the field,
+        all the lamps are turned off again and the flat field petals
+        are opened if you specified openFFS.
         """
 
         sopState = myGlobals.actorState
