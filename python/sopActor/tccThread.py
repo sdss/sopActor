@@ -24,7 +24,7 @@ def axis_init(msg,actorState):
     if (actorState.models['tcc'].keyVarDict['azStat'][3] & 0x2000) | \
        (actorState.models['tcc'].keyVarDict['altStat'][3] & 0x2000) | \
        (actorState.models['tcc'].keyVarDict['rotStat'][3] & 0x2000):
-        cmd.warn('text="Cannot tcc axis init because of bad axis status: Check stop buttons."')
+        cmd.fail('text="Cannot tcc axis init because of bad axis status: Check stop buttons on Interlocks panel."')
         msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
         return
 
@@ -32,17 +32,17 @@ def axis_init(msg,actorState):
     # the semaphore should be owned by the TCC or nobody
     sem = actorState.models['mcp'].keyVarDict['semaphoreOwner'][0]
     if (sem != 'TCC:0:0') and (sem != '') and (sem != 'None') and (sem != None):
-        cmd.warn('text="Cannot axis init: Semaphore is owned by '+sem+'"')
-        cmd.warn('text="If you are the owner (e.g., via MCP Menu), release it and try again."')
-        cmd.warn('text="If you are not the owner, confirm that you can steal it from them: mcp sem.steal"')
+        cmd.fail('text="Cannot axis init: Semaphore is owned by '+sem+'"')
+        cmd.fail('text="If you are the owner (e.g., via MCP Menu), release it and try again."')
+        cmd.fail('text="If you are not the owner, confirm that you can steal it from them: mcp sem.steal"')
         msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
         return
 
     cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd, cmdStr="axis init")
 
     if cmdVar.didFail:
-        cmd.warn('text="Aborting GotoField: failed tcc axis init."')
-        cmd.warn('text="Aborting GotoField: check and clear interlocks?"')
+        cmd.fail('text="Aborting GotoField: failed tcc axis init."')
+        cmd.fail('text="Aborting GotoField: check and clear interlocks?"')
         # TODO: Should we send another message describing why we failed, or is this enough?
         msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
     else:
