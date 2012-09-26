@@ -28,17 +28,25 @@ def axis_init(msg,actorState):
         msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
         return
 
-    cmd.inform('text="sending tcc axis init"')
     # the semaphore should be owned by the TCC or nobody
     sem = actorState.models['mcp'].keyVarDict['semaphoreOwner'][0]
     if (sem != 'TCC:0:0') and (sem != '') and (sem != 'None') and (sem != None):
         cmd.fail('text="Cannot axis init: Semaphore is owned by '+sem+'"')
         cmd.fail('text="If you are the owner (e.g., via MCP Menu), release it and try again."')
-        cmd.fail('text="If you are not the owner, confirm that you can steal it from them: mcp sem.steal"')
+        cmd.fail('text="If you are not the owner, confirm that you can steal it from them, then issue: mcp sem.steal"')
         msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
         return
 
-    cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd, cmdStr="axis init")
+    if sem == 'TCC:0:0' and
+       ((actorState.models['tcc'].keyVarDict['azStat'][3] > 0) and
+       (actorState.models['tcc'].keyVarDict['altStat'][3] > 0) and
+       (actorState.models['tcc'].keyVarDict['rotStat'][3] > 0)):
+        cmd.inform('text="Axes clear and TCC has semaphore. No axis init needed, so none sent."')
+        msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
+        return
+    else:
+        cmd.inform('text="Sending tcc axis init."')
+        cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd, cmdStr="axis init")
 
     if cmdVar.didFail:
         cmd.fail('text="Aborting GotoField: failed tcc axis init."')
