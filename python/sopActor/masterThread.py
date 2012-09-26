@@ -475,7 +475,7 @@ def main(actor, queues):
                     failMsg = "gang connector is not at the cartridge!"
                     cmdState.setCommandState('failed', stateText=failMsg)
                     cmd.fail('text=%s' % (qstr("not taking APOGEE exposures: %s" % (failMsg))))
-                    return
+                    continue
 
                 #
                 # Tell sop that we've accepted the command
@@ -880,10 +880,7 @@ def main(actor, queues):
                         dRotTime = abs(dRot) / 2.0 #deg/sec
                         dCanRot = dRot * min(1.0, dAltTime/dRotTime)
                         rot = thisRot + dCanRot
-                else:                   # Nod up.                    
-                    # start with an axis init, in case the axes are not clear.
-                    multiCmd.append(SopPrecondition(sopActor.TCC, Msg.AXIS_INIT))
-
+                else:                   # Nod up.
                     # going to the commanded altitude, leaving az and rot where they are.
                     az = tccDict['axePos'][0]
                     alt = msg.alt
@@ -894,6 +891,8 @@ def main(actor, queues):
 
                 cmd.warn('text="might slew to %.1f,%.1f,%.1f"' % (az,alt,rot))
                 if True:
+                    # start with an axis init, in case the axes are not clear.
+                    multiCmd.append(SopPrecondition(sopActor.TCC, Msg.AXIS_INIT))
                     if survey != sopActor.BOSS:
                         # Convert this to a non Precondition this if we want the shutter to be closed during the slew
                         multiCmd.append(SopPrecondition(sopActor.APOGEE, Msg.APOGEE_SHUTTER, open=False))
