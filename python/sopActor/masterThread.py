@@ -841,6 +841,7 @@ def main(actor, queues):
                 survey = msg.survey
 
                 # Behavior varies depending on where the gang connector is.
+                # doCals == True if we are on the cartridge.
                 doCals = actorState.apogeeGang.atCartridge()
 
                 multiCmd = MultiCommand(cmd, actorState.timeout + 100,
@@ -848,6 +849,7 @@ def main(actor, queues):
 
                 cmdState.setCommandState('running')
                 cmdState.setStageState("slew", "running")
+
                 if doCals and survey != sopActor.BOSS:
                     cmd.warn('text="scheduling cals: %s %s"' % (doCals, survey))
                     multiCmd.append(SopPrecondition(sopActor.FFS, Msg.FFS_MOVE, open=False))
@@ -878,10 +880,14 @@ def main(actor, queues):
                         dRotTime = abs(dRot) / 2.0 #deg/sec
                         dCanRot = dRot * min(1.0, dAltTime/dRotTime)
                         rot = thisRot + dCanRot
-                else:                   # Nod up.
+                else:                   # Nod up.                    
+                    # start with an axis init, in case the axes are not clear.
+                    multiCmd.append(SopPrecondition(sopActor.TCC, Msg.AXIS_INIT))
+
+                    # going to the commanded altitude, leaving az and rot where they are.
                     az = tccDict['axePos'][0]
                     alt = msg.alt
-                    rot= tccDict['axePos'][2]
+                    rot = tccDict['axePos'][2]
 
                 slewDuration = 60
                 multiCmd = MultiCommand(cmd, slewDuration + actorState.timeout, None)
