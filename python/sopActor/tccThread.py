@@ -37,12 +37,12 @@ def axis_init(msg,actorState):
         msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
         return
 
-    if sem == 'TCC:0:0' and
-       ((actorState.models['tcc'].keyVarDict['azStat'][3] > 0) and
-       (actorState.models['tcc'].keyVarDict['altStat'][3] > 0) and
-       (actorState.models['tcc'].keyVarDict['rotStat'][3] > 0)):
+    if sem == 'TCC:0:0' and \
+       ((actorState.models['tcc'].keyVarDict['azStat'][3] == 0) and \
+       (actorState.models['tcc'].keyVarDict['altStat'][3] == 0) and \
+       (actorState.models['tcc'].keyVarDict['rotStat'][3] == 0)):
         cmd.inform('text="Axes clear and TCC has semaphore. No axis init needed, so none sent."')
-        msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
+        msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
         return
     else:
         cmd.inform('text="Sending tcc axis init."')
