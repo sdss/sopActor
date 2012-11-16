@@ -1,5 +1,5 @@
 import Queue, threading
-import math, numpy
+import math, time,  numpy
 
 from sopActor import *
 import sopActor.myGlobals
@@ -10,6 +10,16 @@ from sopActor.utils.tcc import TCCState
 
 print "Loading TCC thread"
 
+def check_stop_in(actorState):
+    """
+    Return true if any stop bit is set in the <axis>Stat TCC keywords.
+    The [az,alt,rot]Stat[3] bits show the exact status:
+    http://www.apo.nmsu.edu/Telescopes/HardwareControllers/AxisCommands.html
+    """
+    return (actorState.models['tcc'].keyVarDict['azStat'][3] & 0x2000) | \
+           (actorState.models['tcc'].keyVarDict['altStat'][3] & 0x2000) | \
+           (actorState.models['tcc'].keyVarDict['rotStat'][3] & 0x2000)
+#...
 
 def axis_init(msg,actorState):
     """Send 'tcc axis init', and return status."""
@@ -17,16 +27,27 @@ def axis_init(msg,actorState):
 
     # need to send an axis status first, just to make sure the status bits have cleared
     cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd, cmdStr="axis status")
-    # TODO: do I need to check whether tcc axis status fails?
-    
-    # You can check [az,alt,rot]Stat[3] for the exact status:
-    # http://www.apo.nmsu.edu/Telescopes/HardwareControllers/AxisCommands.html
-    if (actorState.models['tcc'].keyVarDict['azStat'][3] & 0x2000) | \
-       (actorState.models['tcc'].keyVarDict['altStat'][3] & 0x2000) | \
-       (actorState.models['tcc'].keyVarDict['rotStat'][3] & 0x2000):
-        cmd.fail('text="Cannot tcc axis init because of bad axis status: Check stop buttons on Interlocks panel."')
+    # "tcc axis status" should never fail!
+    if cmdVar.didFail:
+        cmd.fail('text="Cannot check axis status. Something is very wrong!"')
+        cmd.fail('text="Is the TCC in a responsive state?"')
         msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
         return
+
+    # TBD: Another (cleaner?) solution would be to check the mcp
+    # "sdssdc.status.i6.il0.*_stop" bits directly. See mcp/src/axis_cmds.c:check_stop_in()
+    # for a list of the different stop bits.
+
+    # if a stop button is in, we can't slew at all.
+    if check_stop_in(actorState):
+        # wait a couple seconds, then try again: the stop bits behave like sticky bits,
+        # and may require two "tcc axis status" queries to fully clear.
+        time.sleep(2)
+        cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd, cmdStr="axis status")
+        if check_stop_in(actorState):
+            cmd.fail('text="Cannot tcc axis init because of bad axis status: Check stop buttons on Interlocks panel."')
+            msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
+            return
 
     # the semaphore should be owned by the TCC or nobody
     sem = actorState.models['mcp'].keyVarDict['semaphoreOwner'][0]
@@ -51,7 +72,6 @@ def axis_init(msg,actorState):
     if cmdVar.didFail:
         cmd.fail('text="Aborting GotoField: failed tcc axis init."')
         cmd.fail('text="Aborting GotoField: check and clear interlocks?"')
-        # TODO: Should we send another message describing why we failed, or is this enough?
         msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
     else:
         msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
@@ -100,7 +120,7 @@ def main(actor, queues):
                         msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=not tccState.halted)
                         continue
                     
-                    import time; time.sleep(1)
+                    time.sleep(1)
                     queues[sopActor.TCC].put(Msg.SLEW, cmd=msg.cmd,
                                              replyQueue=msg.replyQueue, waitForSlewEnd=True)
                     continue
