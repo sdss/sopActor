@@ -751,9 +751,10 @@ class SopCmd(object):
                             survey=sopState.survey, cmdState=sopState.gotoField).run():
             cmd.fail('text="Failed to issue gotoField"')
 
-        # self.status(cmd, threads=False, finish=False, oneCommand="gotoField")
+        # self.status(cmd, threads=False, finish=False, oneCommand=gotoField")
 
     def gotoPosition(self, cmd, name, cmdState, az, alt, rot=0):
+        """Goto a specified alt/az/[rot] position, named 'name'."""
         sopState = myGlobals.actorState
 
         cmdState.setCommandState('running')
@@ -788,6 +789,7 @@ class SopCmd(object):
         cmd.finish('text="at %s position"' % (name))
 
     def isSlewingDisabled(self, cmd):
+        """Return False if we can slew, otherwise return a string describing why we cannot."""
         sopState = myGlobals.actorState
 
         if sopState.survey == sopActor.BOSS:
@@ -859,6 +861,7 @@ class SopCmd(object):
                                                alt=alt, survey=sopState.survey)
 
     def runScript(self, cmd):
+        """ Run the specified script. """
         sopState = myGlobals.actorState
 
         sopState.queues[sopActor.SCRIPT].put(Msg.NEW_SCRIPT, cmd, replyQueue=sopState.queues[sopActor.MASTER],
@@ -920,7 +923,11 @@ class SopCmd(object):
         cmd.finish('')
 
     def status(self, cmd, threads=False, finish=True, oneCommand=None):
-        """ Return sop status.  If threads is true report on SOP's threads; if finish complete the command"""
+        """Return sop status. 
+        
+        If threads is true report on SOP's threads; 
+        If finish complete the command.
+        """
 
         sopState = myGlobals.actorState
 
@@ -983,6 +990,7 @@ class SopCmd(object):
             cmd.finish("")
 
     def initCommands(self):
+        """ Recreate the objects that hold the state of the various commands. """
         sopState = myGlobals.actorState
 
         sopState.gotoField = GotoFieldCmd()
@@ -1029,7 +1037,7 @@ class SopCmd(object):
         self.status(cmd, threads=False, finish=False)
 
     def classifyCartridge(self, cmd, cartridge):
-        """Return the survey type corresponding to this cartridge"""
+        """Return the survey type corresponding to this cartridge."""
 
         if Bypass.get(name='brightPlate'):
             cmd.warn('text="We are lying about this being a Boss cartridge"')
