@@ -254,6 +254,9 @@ def main(actor, queues):
                         break
 
                     if pendingReadout:
+                        # We will only get here if the next exposure to be taken is an arc or flat.
+                        # Darks/biases don't have pending readout: we don't want lamps 
+                        # turning on while a dark is reading out!
                         multiCmd = SopMultiCommand(cmd, actorState.timeout + readoutDuration,
                                                    "doCalibs.pendingReadout")
 
@@ -262,21 +265,26 @@ def main(actor, queues):
 
                         multiCmd.append(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False)
                         multiCmd.append(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False)
-
-                        if expType in ("arc"):
+                        
+                        if expType == "arc":
                             multiCmd.append(sopActor.FFS      , Msg.FFS_MOVE, open=False)
                             multiCmd.append(sopActor.FF_LAMP  , Msg.LAMP_ON,  on=False)
                             multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON,  on=True)
                             multiCmd.append(sopActor.NE_LAMP  , Msg.LAMP_ON,  on=True)
+                        elif expType == "flat":
+                            multiCmd.append(sopActor.FFS      , Msg.FFS_MOVE, open=False)
+                            multiCmd.append(sopActor.FF_LAMP  , Msg.LAMP_ON,  on=True)
+                            multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON,  on=False)
+                            multiCmd.append(sopActor.NE_LAMP  , Msg.LAMP_ON,  on=False)
                         else:
-                            failMsg = "Impossible condition: exposure type is not arc!"
+                            failMsg = "Impossible condition: exposure type is not arc or flat!"
                             break
 
                         if not multiCmd.run():
                             failMsg = "Failed to prepare for %s" % expType
                             break
                     #
-                    # Now take the exposure
+                    # Queue the exposure
                     #
                     timeout = flushDuration + expTime + actorState.timeout
                     if expType in ("bias", "dark"):
@@ -352,7 +360,7 @@ def main(actor, queues):
                         cmdState.nArcDone += 1
                         cmdState.nArcLeft -= 1
                     else:
-                        failMsg = "Impossible condition: unknow exposure type when determining exposures remaining!"
+                        failMsg = "Impossible condition: unknown exposure type when determining exposures remaining!"
                         break
                 #
                 # Did we break out of the while loop?
