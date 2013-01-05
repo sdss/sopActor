@@ -250,7 +250,7 @@ def main(actor, queues):
                     elif cmdState.nArcLeft > 0:
                         expTime, expType = cmdState.arcTime, "arc"
                     else:
-                        failMsg = "Impossible condition; complain to RHL"
+                        failMsg = "Impossible condition: no exposures left after restart of while loop!"
                         break
 
                     if pendingReadout:
@@ -269,7 +269,7 @@ def main(actor, queues):
                             multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON,  on=True)
                             multiCmd.append(sopActor.NE_LAMP  , Msg.LAMP_ON,  on=True)
                         else:
-                            failMsg = "Impossible condition; complain to RHL"
+                            failMsg = "Impossible condition: exposure type is not arc!"
                             break
 
                         if not multiCmd.run():
@@ -326,7 +326,7 @@ def main(actor, queues):
                         multiCmd.append(SopPrecondition(sopActor.HGCD_LAMP, Msg.LAMP_ON,  on=False))
                         multiCmd.append(SopPrecondition(sopActor.NE_LAMP  , Msg.LAMP_ON,  on=False))
                     else:
-                        failMsg = "Impossible condition; complain to RHL"
+                        failMsg = "Impossible condition: unknown exposure type when setting up for next exposure!"
                         break
 
                     cmd.inform('text="Taking %s %s exposure"' %
@@ -352,10 +352,10 @@ def main(actor, queues):
                         cmdState.nArcDone += 1
                         cmdState.nArcLeft -= 1
                     else:
-                        failMsg = "Impossible condition; complain to RHL"
+                        failMsg = "Impossible condition: unknow exposure type when determining exposures remaining!"
                         break
                 #
-                # Did we break out of that loop?
+                # Did we break out of the while loop?
                 #
                 if failMsg:
                     if pendingReadout:
