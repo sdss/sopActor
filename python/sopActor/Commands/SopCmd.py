@@ -9,6 +9,8 @@ import opscore.protocols.types as types
 
 from opscore.utility.qstr import qstr
 
+import glob, os
+
 from sopActor import *
 import sopActor
 import sopActor.myGlobals as myGlobals
@@ -103,6 +105,7 @@ class SopCmd(object):
             ("status", "[geek]", self.status),
             ("reinit", "", self.reinit),
             ("runScript", "<scriptName>", self.runScript),
+            ("listScripts", self.listScripts),
             ]
     #
     # Declare systems that can be bypassed
@@ -861,7 +864,7 @@ class SopCmd(object):
                                                alt=alt, survey=sopState.survey)
 
     def runScript(self, cmd):
-        """ Run the specified script. """
+        """ Run the named script from the SOPACTOR_DIR/scripts directory. """
         sopState = myGlobals.actorState
 
         sopState.queues[sopActor.SCRIPT].put(Msg.NEW_SCRIPT, cmd, replyQueue=sopState.queues[sopActor.MASTER],
@@ -869,6 +872,14 @@ class SopCmd(object):
                                              survey=sopState.survey,
                                              scriptName = cmd.cmd.keywords["scriptName"].values[0])
 
+    def listScripts(self, cmd):
+        """ List available script names for the runScript command."""
+        path = os.path.join(os.environ['SOPACTOR_DIR'],'scripts','*.inp')
+        scripts = glob.glob(path)
+        scripts = ','.join(os.path.splitext(os.path.basename(s))[0] for s in scripts)
+        cmd.inform('availableScripts="%s"'%scripts)
+        cmd.finish('')
+        
     def ping(self, cmd):
         """ Query sop for liveness/happiness. """
 

@@ -7,6 +7,11 @@ import sys
 from opscore.utility.qstr import qstr
 
 class Script(object):
+    """
+    Load and run a list of commands, including optional maximum timeouts for each.
+    
+    Default scripts reside in SOPACTOR_DIR/scripts
+    """
     def __init__(self, cmd, scriptName, loadFromText=None):
         self.cmd = cmd
         self.name = scriptName
