@@ -14,21 +14,32 @@ def twistedSleep(secs):
     reactor.callLater(secs, d.callback, None)
     return d
 
-def doDither(cmd, actorState, dither):
-    timeLim = 30.0  # seconds
-    if True:
-        cmdVar = actorState.actor.cmdr.call(actor="apogee", forUserCmd=cmd,
-                                            cmdStr=("dither namedpos=%s" % dither),
-                                            keyVars=[], timeLim=timeLim)
+def checkFail(msg,cmdVar,failmsg):
+    """Test whether a command has failed, and if so issue failmsg as a 'warn' level text."""
+    if cmdVar.didFail:
+        msg.cmd.warn('text=%s'%qstr(failmsg))
+        msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
     else:
-        cmd.warn('text="Not setting dither to %s"' % dither)
+        msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)        
+#...
 
-        class Foo(object):
-            @property
-            def didFail(self): return False
-        cmdVar = Foo()
+def doDither(cmd, actorState, dither):
+    """Move the APOGEE dither position."""
+    timeLim = 30.0  # seconds
+    msg.diag
+    cmdVar = actorState.actor.cmdr.call(actor="apogee", forUserCmd=cmd,
+                                        cmdStr=("dither namedpos=%s" % dither),
+                                        keyVars=[], timeLim=timeLim)
+    checkFailure(msg,cmdVar,"Failed to move APOGEE dither to %s position."%(dither))
+#...
 
-    return cmdVar
+def doShutter(msg,actorState,position):
+    """Move the APOGEE shutter position."""
+    cmdVar = actorState.actor.cmdr.call(actor="apogee", forUserCmd=msg.cmd,
+                                        cmdStr="shutter %s" % (position),
+                                        timeLim=20)
+    checkFailure(msg,cmdVar,"Failed to %s APOGEE internal shutter."%(position))
+#...
 
 class ApogeeCB(object):
     def __init__(self):
@@ -129,25 +140,18 @@ def main(actor, queues):
     while True:
         try:
             msg = actorState.queues[sopActor.APOGEE].get(timeout=timeout)
-
+            
             if msg.type == Msg.EXIT:
                 if msg.cmd:
                     msg.cmd.inform("text=\"Exiting thread %s\"" % (threading.current_thread().name))
                 return
 
             elif msg.type == Msg.DITHER:
-                ret = doDither(msg.cmd, actorState, msg.dither)
-
+                doDither(msg.cmd, actorState, msg.dither)
+                
             elif msg.type == Msg.APOGEE_SHUTTER:
-                action = "open" if msg.open else "close"
-                cmdVar = actorState.actor.cmdr.call(actor="apogee", forUserCmd=msg.cmd,
-                                                    cmdStr="shutter %s" % (action),
-                                                    timeLim=20)
-                if cmdVar.didFail:
-                    msg.cmd.warn('text="Failed to %s internal shutter"' % (action))
-                    msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
-                else:
-                    msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
+                position = "open" if msg.open else "close"
+                doShutter(msg.cmd, actorState, position)
 
             elif msg.type == Msg.EXPOSE:
                 msg.cmd.respond("text=\"starting %s%s exposure\"" % (

@@ -496,8 +496,16 @@ def main(actor, queues):
                     status(cmdState.cmd, oneCommand=cmdState.name)
 
                     expTime = cmdState.expTime
-                    dither = cmdState.exposureSeq[cmdState.index]
-
+                    newDither = cmdState.exposureSeq[cmdState.index]
+                    currentDither = actorState.models['apogee'].keyVarDict["ditherPosition"][0]
+                    # Per ticket #1756, APOGEE now does not want dither move requests
+                    # unless necessary, except at the start of an exposure sequence.
+                    if cmdState.index != 0 and newDither == currentDither:
+                        dither = None
+                        cmd.inform('text="APOGEE dither already at desired position %s: not commanding move."'%(dither))
+                    else:
+                        dither = newDither
+                    
                     multiCmd = SopMultiCommand(cmd,
                                                expTime + actorState.timeout,
                                                cmdState.name)

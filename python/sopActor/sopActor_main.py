@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""An actor to run the guider"""
+"""An actor to run SOP."""
 
 import inspect, os, re, sys
 import Queue, threading
