@@ -497,7 +497,7 @@ def main(actor, queues):
 
                     expTime = cmdState.expTime
                     newDither = cmdState.exposureSeq[cmdState.index]
-                    currentDither = actorState.models['apogee'].keyVarDict["ditherPosition"][0]
+                    currentDither = actorState.models['apogee'].keyVarDict["ditherPosition"][1]
                     # Per ticket #1756, APOGEE now does not want dither move requests
                     # unless necessary, except at the start of an exposure sequence.
                     if cmdState.index != 0 and newDither == currentDither:
