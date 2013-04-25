@@ -314,6 +314,21 @@ class SopCmd(object):
                             survey=sopState.survey, cmdState=sopState.doScience).run():
             cmd.fail('text="Failed to issue doScience"')
 
+    def stopApogeeSequence(self,cmd,cmdState,sopState,name):
+        """Stop a currently running APOGEE science/skyflat sequence."""
+        if cmdState.cmd and cmdState.cmd.isAlive():
+            cmd.warn('text="%s will cancel pending exposures and stop any running one."'%(name))
+            cmdState.exposureSeq = cmdState.exposureSeq[:cmdState.index]
+            # Need to work out seqCount/seqDone -- CPL
+            cmdVar = sopState.actor.cmdr.call(actor="apogee", forUserCmd=cmd, cmdStr="expose stop")
+            if cmdVar.didFail:
+                cmd.warn('text="Failed to stop running exposure"')
+                
+            cmdState.abortStages()
+            self.status(cmd, threads=False, finish=True, oneCommand=name)
+        else:
+            cmd.fail('text="No %s command is active"'%(name))
+
     def doApogeeScience(self, cmd):
         """Take a sequence of dithered APOGEE science frames, or stop or modify a running sequence."""
 
@@ -322,41 +337,34 @@ class SopCmd(object):
 
         sopState.aborting = False
 
-        if "stop" in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
-            if cmdState.cmd and cmdState.cmd.isAlive():
-                cmd.warn('text="doApogeeScience will cancel pending exposures and stopping any running one."')
-
-                cmdState.exposureSeq = cmdState.exposureSeq[:cmdState.index]
-                # Need to work out seqCount/seqDone -- CPL
-
-                cmdVar = sopState.actor.cmdr.call(actor="apogee", forUserCmd=cmd, cmdStr="expose stop")
-                if cmdVar.didFail:
-                    cmd.warn('text="Failed to stop running exposure"')
-
-                cmdState.abortStages()
-                self.status(cmd, threads=False, finish=True, oneCommand='doApogeeScience')
-            else:
-                cmd.fail('text="No doApogeeScience command is active"')
-            return
-
         cmdState.expTime = float(cmd.cmd.keywords["expTime"].values[0]) if \
                                                "expTime" in cmd.cmd.keywords else 10*60.0
+        
+        if "stop" in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
+            self.stopApogeeSequence(cmd,cmdState,sopState,"doApogeeScience")
+            return
 
+        # Modify running doApogeeScience command
         if cmdState.cmd and cmdState.cmd.isAlive():
-            # Modify running doApogeeScience command
-            if ("ditherSeq" in cmd.cmd.keywords
-                and cmd.cmd.keywords['ditherSeq'].values[0] != cmdState.ditherSeq):
-                cmd.fail('text="Cannot modify dither sequence"')
-                return
-
+            ditherSeq = cmdState.ditherSeq
+            seqCount = cmdState.seqCount
+            if "ditherSeq" in cmd.cmd.keywords:
+                if cmdState.seqCount > 1:
+                    cmd.fail('text="Cannot modify dither sequence if current sequence count is > 1."')
+                    return
+                ditherSeq = cmd.cmd.keywords['ditherSeq'].values[0]
+            
             if "seqCount" in cmd.cmd.keywords:
                 seqCount = int(cmd.cmd.keywords["seqCount"].values[0])
-                exposureSeq = cmdState.ditherSeq * seqCount
-                cmdState.seqCount = seqCount
-                cmdState.exposureSeq = exposureSeq
-                if cmdState.index > len(cmdState.exposureSeq):
-                    cmd.warn('text="truncating previous exposure sequence, but NOT trying to stop current exposure"')
-                    cmdState.index = len(cmdState.exposureSeq)
+
+            exposureSeq = ditherSeq * seqCount
+            cmdState.ditherSeq = ditherSeq
+            cmdState.seqCount = seqCount
+            cmdState.exposureSeq = exposureSeq
+            
+            if cmdState.index > len(cmdState.exposureSeq):
+                cmd.warn('text="Truncating previous exposure sequence, but NOT trying to stop current exposure"')
+                cmdState.index = len(cmdState.exposureSeq)
 
             self.status(cmd, threads=False, finish=True, oneCommand='doApogeeScience')
             return
@@ -398,22 +406,9 @@ class SopCmd(object):
         cmdState = sopState.doApogeeSkyFlats
 
         if "stop" in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
-            if cmdState.cmd and cmdState.cmd.isAlive():
-                cmd.warn('text="doApogeeSkyFlats will cancel pending exposures and stopping any running one."')
-
-                cmdState.exposureSeq = cmdState.exposureSeq[:cmdState.index]
-                # Need to work out seqCount/seqDone -- CPL
-
-                cmdVar = sopState.actor.cmdr.call(actor="apogee", forUserCmd=cmd, cmdStr="expose stop")
-                if cmdVar.didFail:
-                    cmd.warn('text="Failed to stop running exposure"')
-
-                cmdState.abortStages()
-                self.status(cmd, threads=False, finish=True, oneCommand='doApogeeScience')
-            else:
-                cmd.fail('text="No doApogeeScience command is active"')
+            self.stopApogeeSequence(cmd,cmdState,sopState,"doApogeeSkyFlats")
             return
-
+        
         cmdState.expTime = float(cmd.cmd.keywords["expTime"].values[0]) if \
                            "expTime" in cmd.cmd.keywords else 150.0
         seqCount = 1
