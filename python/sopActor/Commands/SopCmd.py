@@ -105,7 +105,7 @@ class SopCmd(object):
             ("status", "[geek]", self.status),
             ("reinit", "", self.reinit),
             ("runScript", "<scriptName>", self.runScript),
-            ("listScripts", self.listScripts),
+            ("listScripts", "", self.listScripts),
             ]
     #
     # Declare systems that can be bypassed

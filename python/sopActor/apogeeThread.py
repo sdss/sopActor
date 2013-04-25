@@ -14,7 +14,7 @@ def twistedSleep(secs):
     reactor.callLater(secs, d.callback, None)
     return d
 
-def checkFail(msg,cmdVar,failmsg):
+def checkFailure(msg,cmdVar,failmsg):
     """Test whether a command has failed, and if so issue failmsg as a 'warn' level text."""
     if cmdVar.didFail:
         msg.cmd.warn('text=%s'%qstr(failmsg))
@@ -23,14 +23,14 @@ def checkFail(msg,cmdVar,failmsg):
         msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)        
 #...
 
-def doDither(cmd, actorState, dither):
+def doDither(msg, actorState, dither):
     """Move the APOGEE dither position."""
     timeLim = 30.0  # seconds
-    msg.diag
-    cmdVar = actorState.actor.cmdr.call(actor="apogee", forUserCmd=cmd,
+    cmdVar = actorState.actor.cmdr.call(actor="apogee", forUserCmd=msg.cmd,
                                         cmdStr=("dither namedpos=%s" % dither),
                                         keyVars=[], timeLim=timeLim)
     checkFailure(msg,cmdVar,"Failed to move APOGEE dither to %s position."%(dither))
+    return cmdVar
 #...
 
 def doShutter(msg,actorState,position):
@@ -39,6 +39,7 @@ def doShutter(msg,actorState,position):
                                         cmdStr="shutter %s" % (position),
                                         timeLim=20)
     checkFailure(msg,cmdVar,"Failed to %s APOGEE internal shutter."%(position))
+    return cmdVar
 #...
 
 class ApogeeCB(object):
@@ -147,11 +148,11 @@ def main(actor, queues):
                 return
 
             elif msg.type == Msg.DITHER:
-                doDither(msg.cmd, actorState, msg.dither)
+                doDither(msg, actorState, msg.dither)
                 
             elif msg.type == Msg.APOGEE_SHUTTER:
                 position = "open" if msg.open else "close"
-                doShutter(msg.cmd, actorState, position)
+                doShutter(msg, actorState, position)
 
             elif msg.type == Msg.EXPOSE:
                 msg.cmd.respond("text=\"starting %s%s exposure\"" % (
@@ -159,24 +160,22 @@ def main(actor, queues):
 
                 try:
                     dither = msg.dither
-                except AttributeError, e:
+                except AttributeError as e:
                     dither = None
 
                 try:
                     expType = msg.expType
-                except AttributeError, e:
+                except AttributeError as e:
                     expType = "dark"
 
                 try:
                     comment = msg.comment
-                except AttributeError, e:
+                except AttributeError as e:
                     comment = ""
 
                 if dither != None:
-                    cmdVar = doDither(msg.cmd, actorState, dither)
+                    cmdVar = doDither(msg, actorState, dither)
                     if cmdVar.didFail:
-                        msg.cmd.warn('text="Failed to set dither position to %s"' % (dither))
-                        msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
                         continue
 
                 # msg.cmd.warn('text="Not issuing a %gs exposure"' % (msg.expTime))
@@ -207,7 +206,7 @@ def main(actor, queues):
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
         except Queue.Empty:
             actor.bcast.diag('text="%s alive"' % threadName)
-        except Exception, e:
+        except Exception as e:
             errMsg = "Unexpected exception %s in sop %s thread" % (e, threadName)
             actor.bcast.warn('text="%s"' % errMsg)
             tback(errMsg, e)

@@ -502,7 +502,7 @@ def main(actor, queues):
                     # unless necessary, except at the start of an exposure sequence.
                     if cmdState.index != 0 and newDither == currentDither:
                         dither = None
-                        cmd.inform('text="APOGEE dither already at desired position %s: not commanding move."'%(dither))
+                        cmd.inform('text="APOGEE dither already at desired position %s: not commanding move."'%(newDither))
                     else:
                         dither = newDither
                     
