@@ -334,16 +334,15 @@ class SopCmd(object):
 
         sopState = myGlobals.actorState
         cmdState = sopState.doApogeeScience
-
         sopState.aborting = False
 
-        cmdState.expTime = float(cmd.cmd.keywords["expTime"].values[0]) if \
-                                               "expTime" in cmd.cmd.keywords else 10*60.0
-        
         if "stop" in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
             self.stopApogeeSequence(cmd,cmdState,sopState,"doApogeeScience")
             return
 
+        cmdState.expTime = float(cmd.cmd.keywords["expTime"].values[0]) if \
+                                               "expTime" in cmd.cmd.keywords else 10*60.0
+        
         # Modify running doApogeeScience command
         if cmdState.cmd and cmdState.cmd.isAlive():
             ditherSeq = cmdState.ditherSeq
