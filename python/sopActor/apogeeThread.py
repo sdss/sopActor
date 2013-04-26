@@ -14,13 +14,21 @@ def twistedSleep(secs):
     reactor.callLater(secs, d.callback, None)
     return d
 
-def checkFailure(msg,cmdVar,failmsg):
-    """Test whether a command has failed, and if so issue failmsg as a 'warn' level text."""
+def checkFailure(msg,cmdVar,failmsg,finish=True):
+    """
+    Test whether cmdVar has failed, and if so issue failmsg as a 'warn' level text.
+    Returns True if cmdVar failed, False if not.
+    Send a success=True REPLY, if finish is True and we cmdVar didn't fail.
+    Always send success=False if it did fail.
+    """
     if cmdVar.didFail:
         msg.cmd.warn('text=%s'%qstr(failmsg))
         msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
+        return True
     else:
-        msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)        
+        if finish:
+            msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
+        return False
 #...
 
 def doDither(msg, actorState, dither):
@@ -29,7 +37,6 @@ def doDither(msg, actorState, dither):
     cmdVar = actorState.actor.cmdr.call(actor="apogee", forUserCmd=msg.cmd,
                                         cmdStr=("dither namedpos=%s" % dither),
                                         keyVars=[], timeLim=timeLim)
-    checkFailure(msg,cmdVar,"Failed to move APOGEE dither to %s position."%(dither))
     return cmdVar
 #...
 
@@ -38,7 +45,6 @@ def doShutter(msg,actorState,position):
     cmdVar = actorState.actor.cmdr.call(actor="apogee", forUserCmd=msg.cmd,
                                         cmdStr="shutter %s" % (position),
                                         timeLim=20)
-    checkFailure(msg,cmdVar,"Failed to %s APOGEE internal shutter."%(position))
     return cmdVar
 #...
 
@@ -149,10 +155,12 @@ def main(actor, queues):
 
             elif msg.type == Msg.DITHER:
                 doDither(msg, actorState, msg.dither)
+                checkFailure(msg,cmdVar,"Failed to move APOGEE dither to %s position."%(dither))
                 
             elif msg.type == Msg.APOGEE_SHUTTER:
                 position = "open" if msg.open else "close"
                 doShutter(msg, actorState, position)
+                checkFailure(msg,cmdVar,"Failed to %s APOGEE internal shutter."%(position))
 
             elif msg.type == Msg.EXPOSE:
                 msg.cmd.respond("text=\"starting %s%s exposure\"" % (
@@ -175,10 +183,9 @@ def main(actor, queues):
 
                 if dither != None:
                     cmdVar = doDither(msg, actorState, dither)
-                    if cmdVar.didFail:
+                    if checkFailure(msg,cmdVar,"Failed to move APOGEE dither to %s position."%(dither),finish=False):
                         continue
 
-                # msg.cmd.warn('text="Not issuing a %gs exposure"' % (msg.expTime))
                 timeLim = msg.expTime + 15.0  # seconds
                 if True:                # really take data
                     cmdVar = actorState.actor.cmdr.call(actor="apogee", forUserCmd=msg.cmd,
