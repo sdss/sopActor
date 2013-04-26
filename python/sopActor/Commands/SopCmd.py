@@ -349,10 +349,12 @@ class SopCmd(object):
             ditherSeq = cmdState.ditherSeq
             seqCount = cmdState.seqCount
             if "ditherSeq" in cmd.cmd.keywords:
-                if cmdState.seqCount > 1:
+                newDitherSeq = cmd.cmd.keywords['ditherSeq'].values[0]
+                if (cmdState.seqCount > 1 and newDitherSeq != cmdState.ditherSeq):
                     cmd.fail('text="Cannot modify dither sequence if current sequence count is > 1."')
+                    cmd.fail('text="If you are certain it makes sense to change the dither sequence, change Seq Count to 1 first."')
                     return
-                ditherSeq = cmd.cmd.keywords['ditherSeq'].values[0]
+                ditherSeq = newDitherSeq
             
             if "seqCount" in cmd.cmd.keywords:
                 seqCount = int(cmd.cmd.keywords["seqCount"].values[0])
@@ -361,9 +363,10 @@ class SopCmd(object):
             cmdState.ditherSeq = ditherSeq
             cmdState.seqCount = seqCount
             cmdState.exposureSeq = exposureSeq
-            
-            if cmdState.index > len(cmdState.exposureSeq):
-                cmd.warn('text="Truncating previous exposure sequence, but NOT trying to stop current exposure"')
+
+            if cmdState.index >= len(cmdState.exposureSeq):
+                cmd.warn('text="Modified exposure sequence is shorter than position in current sequence."')
+                cmd.warn('text="Truncating previous exposure sequence, but NOT trying to stop current exposure."')
                 cmdState.index = len(cmdState.exposureSeq)
 
             self.status(cmd, threads=False, finish=True, oneCommand='doApogeeScience')
