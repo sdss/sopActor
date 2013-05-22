@@ -500,7 +500,7 @@ def main(actor, queues):
                     currentDither = actorState.models['apogee'].keyVarDict["ditherPosition"][1]
                     # Per ticket #1756, APOGEE now does not want dither move requests
                     # unless necessary, except at the start of an exposure sequence.
-                    if cmdState.index != 0 and newDither == currentDither:
+                    if newDither == currentDither:
                         dither = None
                         cmd.inform('text="APOGEE dither already at desired position %s: not commanding move."'%(newDither))
                     else:
