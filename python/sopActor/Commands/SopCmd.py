@@ -114,7 +114,8 @@ class SopCmd(object):
         # Pulled a couple to get the count under 9
         # "uv_lamp", "wht_lamp", "boss", "gcamera",
         for ss in ("ffs", "ff_lamp", "hgcd_lamp", "ne_lamp", "axes",
-                   "brightPlate", "darkPlate", "gangCart", "gangPodium", "slewToField"):
+                   "brightPlate", "darkPlate", "gangCart", "gangPodium", "slewToField",
+                  "guiderDark"):
             Bypass.set(ss, False, define=True)
     #
     # Define commands' callbacks
