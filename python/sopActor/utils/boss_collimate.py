@@ -1,14 +1,39 @@
 """
 Computes spectrograph collimation focus from Hartmann mask exposures.
-Replacement for idlspec2d combsmallcollimate.
 
+Replacement for idlspec2d combsmallcollimate+sosActor.
 SOP shouldn't have a dependency on SoS, so the code for the short Hartmanns
 is here now.
+
+Example:
+    # cmd is the current Command instance, for message passing.
+    # take Hartmann exposures and output collimation values:
+    hartmann = Hartmann()
+    hartmann.doHartmann(cmd)
+    # solve for the focus of exposure numbers 12345,12346 on the current MJD
+    hartmann.collimate(cmd,12345)
+
+The focus of the collimator is measured by comparing two Hartmann
+exposures of arc lamps, and looking for shifts in the arc line
+positions. A linear correlation coefficient is computed independently
+in a subregion on each CCD as a function of pixel shifts of the 2nd
+image in both X and Y.  The best-focus value is found in each region
+by maximizing the linear correlation in the Y (wavelength) direction.
+
+The position of the Hartmann shutters is read from the OBSCOMM (for
+SDSS-I: '{focus, hartmann l}' or '{focus, hartmann l}') or HARTMANN
+(for BOSS: 'Left' or 'Right') header keywords for SDSS-I.  It is
+expected to be '{focus, hartmann l}' for one exposure and '{focus,
+hartmann r}' for the other (in either order). It is assumed that the
+collimator position is identical for both exposures.
+
+The sense of the pixel shifts reported is what one would have to shift
+the Hartmann-r exposure by in Y to agree with the Hartmann-l exposure.
 """
 # IDL version by Kyle Dawson, David Schlegel, Matt Olmstead
+# IDL->Python verson by John Parejko
 
 #import sopActor.myGlobals as myGlobals
-#from sopActor import Bypass
 
 import logging
 import os.path
@@ -17,27 +42,7 @@ import glob
 import pyfits
 import numpy as np
 from scipy.ndimage import interpolation
-
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# THIS IS JUST FOR DEBUGGING PURPOSES!
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-class DumbCommander(object):
-    """Placeholder for the actual commander class.
-    Use:
-        cmd=DumbCommander()
-    to get a thing that will log to the terminal at various levels."""
-    def fail(self,text):
-        print 'FAIL:',text
-    def diag(self,text):
-        print 'DEBUG:',text
-    def inform(self,text):
-        print 'INFO:',text
-    def warn(self,text):
-        print 'WARN:',text
-#...
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# THIS IS JUST FOR DEBUGGING PURPOSES!
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+import matplotlib.pyplot as plt
 
 class HartError(Exception):
     """For known errors processing the Hartmanns"""
@@ -51,6 +56,7 @@ class Hartmann(object):
     def __init__(self):
         # final results go here
         self.result = {'sp1':{'b':0.,'r':0.},'sp2':{'b':0.,'r':0.}}
+        self.success = True
 
         self.data_root_dir = '/data/spectro'
         self.cam_gains = {'b1':[1.048, 1.048, 1.018, 1.006], 'b2':[1.040, 0.994, 1.002, 1.010],
@@ -60,9 +66,9 @@ class Hartmann(object):
                            'r':[[np.s_[0:2063,0:2056],np.s_[48:2111,119:2175]],
                                 [np.s_[0:2063,2057:4113],np.s_[48:2111,2176:4232]]],}
         self.bias_slice = [np.s_[950:1338,10:100],np.s_[950:1338,4250:4340]]
-        self.filebase = 'Collimate-%d5-%s-%d8'
+        self.filebase = 'Collimate-%5d-%s-%08d'
         # These are unused at present
-        #self.plotfilebase = self.filebase+'.ps'
+        self.plotfilebase = self.filebase+'.png'
         #self.logfilebase = self.filebase+'.log'
 
         # allowable focus tolerance (pixels): if offset is less than this, we're in focus.
@@ -118,20 +124,51 @@ class Hartmann(object):
             return 0
     #...
     
-    def is_bad_header(self,header):
+    def bad_header(self,header):
         """
         Return True if the header indicates there are no lamps on or no flat-field
-        petals closed.  If the wrong number, then just print a warning.
+        petals closed.
+        If the wrong number of petals are closed, then emit a warning and return False.
         """
-        # TBD!!!
-        return False
+        sum_string = lambda field: sum([int(x) for x in field.split()])
+        
+        isBad = False
+        ffs = header.get('FFS',None)
+        # 8 flat field screens: 0 for open, 1 for closed
+        if ffs:
+            ffs_sum = sum_string(ffs)
+            if ffs_sum < 8:
+                self.cmd.warn("text='Only %d of 8 flat-field petals closed: %s'"%(ffs_sum,ffs))
+            if ffs_sum == 0:
+                isBad = True
+        else:
+            self.cmd.warn("text='FFS not in FITS header!'")
+            isBad = True
+        
+        Ne = header.get('NE',None)
+        HgCd = header.get('HGCD',None)
+        # 4 of each lamp: 0 for off, 1 for on
+        if Ne is not None and HgCd is not None:
+            Ne_sum = sum_string(Ne)
+            HgCd_sum = sum_string(HgCd)
+            if Ne_sum < 4:
+                self.cmd.warn("text='Only %d of 4 Ne lamps turned on: %s'"%(Ne_sum,Ne))
+            if HgCd_sum < 4:
+                self.cmd.warn("text='Only %d of 4 HgCd lamps turned on: %s'"%(HgCd_sum,HgCd))
+            if Ne_sum + HgCd_sum == 0:
+                isBad = True
+        else:
+            self.cmd.warn("text='NE and/or HgCd not in FITS header.'")
+            isBad = True
+        
+        return isBad
     #...
     
-    def do_one_cam(self,cam,indir,basename,expnum1,expnum2,test):
+    def do_one_cam(self,cam,indir,basename,expnum1,expnum2,test,plot):
         """
         Compute the collimation values for one camera.
         
-        Returns true if everything succeeded.
+        See parameters for self.collimate().
         """
         self.cam = cam
         self.test = test
@@ -141,20 +178,44 @@ class Hartmann(object):
             self._check_images()
             self._find_shift()
             self._find_collimator_motion()
-            
-            #mjd = self.header1['MJD']
-            #plotfile = self.plotfilebase%(mjd,cam,expnum1)
-            #logfile = self.logfilebase%(mjd,cam,expnum1)
-            #title = 'Collimation for MJD=%i5 Camera=%s Exp=%i8-%i8'%(mjd,cam,expnum1,expnum2)
         except HartError,e:
-            self.cmd.fail('text="%s"'%e)
+            self.cmd.error('text="%s"'%e)
             raise
         except Exception,e:
-            self.cmd.fail('text="!!!! Unknown error when processing Hartmanns! !!!!"')
-            self.cmd.fail('text="%s"'%e)
+            self.cmd.error('text="!!!! Unknown error when processing Hartmanns! !!!!"')
+            self.cmd.error('text="%s"'%e)
             raise
-        return True
-    #...
+        else:
+            if plot:
+                self._make_plot(cam,expnum1,expnum2)
+    
+    def _make_plot(self,cam,expnum1,expnum2):
+        """Save a plot of the pixel vs. correlation for this camera."""
+        ylim1 = [0.4,1.05]
+        ylim2 = [0.92,1.01]
+        inset_xlim = 14
+        inset = [self.ibest-inset_xlim,self.ibest+inset_xlim]
+        # prevent array overflow when getting the inset plot range.
+        if self.ibest < inset_xlim:
+            inset[0] = 0
+        if len(self.xshift)-self.ibest < inset_xlim:
+            inset[1] = len(self.xshift)-1
+        mjd = self.header1['MJD']
+        plotfile = self.plotfilebase%(mjd,cam,expnum1)
+        title = 'Collimate: MJD=%5i Camera=%s Exp=%08i-%08i'%(mjd,cam,expnum1,expnum2)
+        fig = plt.figure()
+        ax1 = fig.add_axes([0.1,0.1,0.8,0.9])
+        ax2 = fig.add_axes([0.35,0.2,0.3,0.3])
+        ax1.plot(self.xshift,self.coeff/max(self.coeff),'*-',color='black',lw=2)
+        ax2.plot(self.xshift[inset[0]:inset[1]],self.coeff[inset[0]:inset[1]]/max(self.coeff),'*-',color='black',lw=2)
+        ax1.plot([self.xoffset,self.xoffset],ylim1,'--',color='green')
+        ax2.plot([self.xoffset,self.xoffset],ylim2,'--',color='green')
+        ax1.set_ylim(ylim1[0],ylim1[1])
+        ax2.axis([self.xshift[inset[0]],self.xshift[inset[1]],ylim2[0],ylim2[1]])
+        ax1.set_title(title)
+        ax1.set_xlabel('pixels')
+        ax1.set_ylabel('cross-correlation')
+        plt.savefig(plotfile)
     
     def _load_data(self,indir,basename,expnum1,expnum2):
         """
@@ -179,7 +240,7 @@ class Hartmann(object):
         except IOError:
             raise HartError("Failure reading file %s"%filename2)
 
-        if self.is_bad_header(header1) or self.is_bad_header(header2):
+        if self.bad_header(header1) or self.bad_header(header2):
             raise HartError("Incorrect header values in fits file.")
        
         self.hartpos1 = self.check_Hartmann_header(header1)
@@ -258,6 +319,7 @@ class Hartmann(object):
         dx = 0.05
         nshift = int(np.ceil(2*self.maxshift/dx))
         xshift = -self.maxshift + dx * np.arange(nshift,dtype='f8')
+        self.xshift = xshift # save for plotting
         
         self.coeff = np.zeros(nshift,dtype='f8')
         filtered1 = interpolation.spline_filter(subimg1)
@@ -266,6 +328,7 @@ class Hartmann(object):
             self.coeff[i] = (subimg1*interpolation.shift(subimg2,[xshift[i],0],order=order)*mask).sum()
 
         ibest = self.coeff.argmax()
+        self.ibest = ibest # save for plotting
         self.xoffset = xshift[ibest]
         # If the sequence is actually R-L, instead of L-R, 
         # then the offset acctually goes the other way.
@@ -280,10 +343,10 @@ class Hartmann(object):
 
         Current procedure for determining the offsets:
             When the observers start complaining about focus warnings...
-            -We have them step through focus between -10000 and 10000,
-            -taking a full and quick hartmann +flat and arc at each step.
-            -then we have enough information to recalibrate the relationship between the
-            -full and quick hartmanns.
+            * We have them step through focus between -10000 and 10000,
+              taking a full and quick hartmann +flat and arc at each step.
+            * Then we have enough information to recalibrate the relationship
+              between the full and quick hartmanns.
         This has to happen once every three months or so.
         """
         m = self.m[self.cam]
@@ -326,18 +389,20 @@ class Hartmann(object):
     #...
     
     def collimate(self,cmd,expnum1,expnum2=None,indir=None,
-                  spec=['sp1','sp2'],docams1=['b1','r1'],docams2=['b2','r2'],test=False):
+                  spec=['sp1','sp2'],docams1=['b1','r1'],docams2=['b2','r2'],
+                  test=False,plot=False):
         """
         Compute the spectrograph collimation focus from Hartmann mask exposures.
         
         cmd:     command handler
-        expnum1: first exposure number of raw sdR file.
+        expnum1: first exposure number of raw sdR file (integer).
         expnum2: second exposure number (default: expnum1+1)
         indir:   directory where the exposures are located.
         spec:    spectrograph(s) to collimate ('sp1','sp2',['sp1','sp2'])
         docams1: camera(s) in sp1 to collimate ('b1','r1',['b1','r1'])
         docams2: camera(s) in sp2 to collimate ('b2','r2',['b2','r2'])
         test:    If True, we are trying to determine the collimation parameters, so ignore 'b' parameter.
+        plot:    If True, save a plot of the 
         """
         self.cmd = cmd
         # clear previous collimator movement values
@@ -349,7 +414,7 @@ class Hartmann(object):
         if not isinstance(spec,str):
             for sp in spec:
                 self.collimate(cmd,expnum1,expnum2=expnum2,indir=indir,spec=sp,
-                               docams1=docams1,docams2=docams2,test=test)
+                               docams1=docams1,docams2=docams2,test=test,plot=plot)
             return
 
         self.spec = spec
@@ -363,25 +428,27 @@ class Hartmann(object):
         elif spec == 'sp2':
             docams.extend([docams2,] if isinstance(docams2,str) else docams2)
         else:
-            cmd.fail('text="I do not understand spectrograph: %s"'%spec)
-            return
+            cmd.error('text="I do not understand spectrograph: %s"'%spec)
+            self.success = False
 
         try:
             for cam in docams:
                 basename = 'sdR-%s-%08d.fit*'
-                self.do_one_cam(cam,indir,basename,expnum1,expnum2,test)
+                self.do_one_cam(cam,indir,basename,expnum1,expnum2,test,plot)
             if len(docams) > 1:
                 self._mean_moves()
         except Exception,e:
-            cmd.fail('text="Collimation failed! %s"'%e)
-            raise
+            cmd.error('text="Collimation calculation failed! %s"'%e)
+            self.success = False
     #...
     
-    def doHartmann(self,cmd):    
-        '''
+    def doHartmann(self,cmd):
+        """
         Take and reduce a pair of hartmann exposures.
         Usually apply the recommended collimator moves.
-        '''
+        
+        cmd is the currently active Commander instance, for passing info/warn messages.
+        """
         exposureIds = []
         moveMotors = "noCorrect" not in cmd.cmd.keywords
         subFrame = "noSubframe" not in cmd.cmd.keywords
@@ -401,8 +468,8 @@ class Hartmann(object):
             cmd.diag('text="got hartmann %s exposure %d"' % (side, exposureId))
             
             if ret.didFail:
-                cmd.fail('text="failed to take %s hartmann exposure"' % (side))
-                return
+                cmd.error('text="failed to take %s hartmann exposure"' % (side))
+                self.success = False
         
         # now actually perform the collimation calculations
         self.collimate(exposureId)
