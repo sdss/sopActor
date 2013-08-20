@@ -60,22 +60,15 @@ def main(actor, queues):
 
             elif msg.type == Msg.HARTMANN:
                 msg.cmd.respond("text=\"starting Hartmann sequence\"")
-
-                if True:
-                    timeLim = 240
-                    cmdVar = actorState.actor.cmdr.call(actor="sos", forUserCmd=msg.cmd,
-                                                        cmdStr="doHartmann",
-                                                        keyVars=[], timeLim=timeLim)
-                else:
-                    msg.cmd.warn('text="Faking Hartmann sequence"')
-                    import time; time.sleep(4)
-
-                    class Foo(object):
-                        @property
-                        def didFail(self): return False
-                    cmdVar = Foo()
+                
+                timeLim = 240
+                hartmann = utils.boss_collimate.Hartmann()
+                hartmann.doHartmann(cmd)
+                #cmdVar = actorState.actor.cmdr.call(actor="sos", forUserCmd=msg.cmd,
+                #                                    cmdStr="doHartmann",
+                #                                    keyVars=[], timeLim=timeLim)
                     
-                msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=not cmdVar.didFail)
+                msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=hartmann.success)
             elif msg.type == Msg.STATUS:
                 msg.cmd.inform('text="%s thread"' % threadName)
                 msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
