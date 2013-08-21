@@ -38,6 +38,7 @@ the Hartmann-r exposure by in Y to agree with the Hartmann-l exposure.
 import logging
 import os.path
 import glob
+from multiprocessing import Process
 
 import pyfits
 import numpy as np
@@ -66,11 +67,15 @@ class Hartmann(object):
                            'r':[[np.s_[0:2063,0:2056],np.s_[48:2111,119:2175]],
                                 [np.s_[0:2063,2057:4113],np.s_[48:2111,2176:4232]]],}
         self.bias_slice = [np.s_[950:1338,10:100],np.s_[950:1338,4250:4340]]
+        
         self.filebase = 'Collimate-%5d-%s-%08d'
-        # These are unused at present
-        self.plotfilebase = self.filebase+'.png'
-        #self.logfilebase = self.filebase+'.log'
-
+        self.plotfilebase = 'Collimate-%5d_%08d-%08d.png'
+        
+        # to store the per-camera values for plotting.
+        self.xshift = {}
+        self.ibest = {}
+        self.xoffset = {}
+        
         # allowable focus tolerance (pixels): if offset is less than this, we're in focus.
         self.focustol = 0.20
         # bad residual on blue ring
@@ -107,6 +112,121 @@ class Hartmann(object):
                       'b2':-28.95*self.bsteps*pixscale/24.,
                       'r1':rfudge,'r2':rfudge}
     #...
+    
+    def doHartmann(self,cmd):
+        """
+        Take and reduce a pair of hartmann exposures.
+        Usually apply the recommended collimator moves.
+        
+        cmd is the currently active Commander instance, for passing info/warn messages.
+        """
+        exposureIds = []
+        moveMotors = "noCorrect" not in cmd.cmd.keywords
+        subFrame = "noSubframe" not in cmd.cmd.keywords
+        
+        # Take the Hartmann exposures
+        for side in 'left','right':
+            window = "window=850,1400" if subFrame else ""
+            ret = self.actor.cmdr.call(actor='boss', forUserCmd=cmd,
+                                       cmdStr='exposure arc hartmann=%s itime=4 %s %s' % \
+                                       (side,
+                                       window,
+                                       ("noflush" if side == "right" else "")),
+                                       timeLim=90.0)
+            exposureId = self.actor.models["boss"].keyVarDict["exposureId"][0]
+            exposureId += 1
+            exposureIds.append(exposureId)
+            cmd.diag('text="got hartmann %s exposure %d"' % (side, exposureId))
+            
+            if ret.didFail:
+                cmd.error('text="failed to take %s hartmann exposure"' % (side))
+                self.success = False
+        
+        # now actually perform the collimation calculations
+        self.collimate(exposureId)
+    #...
+    
+    def collimate(self,cmd,expnum1,expnum2=None,indir=None,
+                  spec=['sp1','sp2'],docams1=['b1','r1'],docams2=['b2','r2'],
+                  test=False,plot=False):
+        """
+        Compute the spectrograph collimation focus from Hartmann mask exposures.
+        
+        cmd:     command handler
+        expnum1: first exposure number of raw sdR file (integer).
+        expnum2: second exposure number (default: expnum1+1)
+        indir:   directory where the exposures are located.
+        spec:    spectrograph(s) to collimate ('sp1','sp2',['sp1','sp2'])
+        docams1: camera(s) in sp1 to collimate ('b1','r1',['b1','r1'])
+        docams2: camera(s) in sp2 to collimate ('b2','r2',['b2','r2'])
+        test:    If True, we are trying to determine the collimation parameters, so ignore 'b' parameter.
+        plot:    If True, save a plot of the 
+        """
+        self.cmd = cmd
+        if expnum2 is None:
+            expnum2 = expnum1+1
+        
+        # recursive call for each spectrograph
+        if not isinstance(spec,str):
+            processes = []
+            for sp in spec:
+                args = (cmd,expnum1)
+                kwargs = {'expnum2':expnum2,'indir':indir,'spec':sp,
+                        'docams1':docams1,'docams2':docams2,'test':test,'plot':plot}
+                p = Process(target=self.collimate,args=args,kwargs=kwargs)
+                p.start()
+                processes.append(p)
+            for p in processes: p.join()
+            return
+
+        self.spec = spec
+        if indir is None:
+            indir = os.path.join(self.data_root_dir,'*')
+
+        # to handle the various string/list/tuple possibilities for each argument
+        docams = []
+        if spec == 'sp1':
+            docams.extend([docams1,] if isinstance(docams1,str) else docams1)
+        elif spec == 'sp2':
+            docams.extend([docams2,] if isinstance(docams2,str) else docams2)
+        else:
+            cmd.error('text="I do not understand spectrograph: %s"'%spec)
+            self.success = False
+
+        try:
+            for cam in docams:
+                basename = 'sdR-%s-%08d.fit*'
+                self.do_one_cam(cam,indir,basename,expnum1,expnum2,test)
+            if plot:
+                self._make_plot(expnum1,expnum2)
+            if len(docams) > 1:
+                self._mean_moves()
+        except Exception,e:
+            cmd.error('text="Collimation calculation failed! %s"'%e)
+            self.success = False
+    #...
+    
+    def do_one_cam(self,cam,indir,basename,expnum1,expnum2,test):
+        """
+        Compute the collimation values for one camera.
+        
+        See parameters for self.collimate().
+        """
+        self.cam = cam
+        self.test = test
+        try:
+            self._load_data(indir,basename,expnum1,expnum2)
+            self._do_gain_bias()
+            self._check_images()
+            self._find_shift()
+            self._find_collimator_motion()
+        except HartError,e:
+            self.cmd.error('text="%s"'%e)
+            raise
+        except Exception,e:
+            self.cmd.error('text="!!!! Unknown error when processing Hartmanns! !!!!"')
+            self.cmd.error('text="%s"'%e)
+            raise
     
     def check_Hartmann_header(self,header):
         """
@@ -164,33 +284,8 @@ class Hartmann(object):
         return isBad
     #...
     
-    def do_one_cam(self,cam,indir,basename,expnum1,expnum2,test,plot):
-        """
-        Compute the collimation values for one camera.
-        
-        See parameters for self.collimate().
-        """
-        self.cam = cam
-        self.test = test
-        try:
-            self._load_data(indir,basename,expnum1,expnum2)
-            self._do_gain_bias()
-            self._check_images()
-            self._find_shift()
-            self._find_collimator_motion()
-        except HartError,e:
-            self.cmd.error('text="%s"'%e)
-            raise
-        except Exception,e:
-            self.cmd.error('text="!!!! Unknown error when processing Hartmanns! !!!!"')
-            self.cmd.error('text="%s"'%e)
-            raise
-        else:
-            if plot:
-                self._make_plot(cam,expnum1,expnum2)
-    
-    def _make_plot(self,cam,expnum1,expnum2):
-        """Save a plot of the pixel vs. correlation for this camera."""
+    def _make_plot(self,expnum1,expnum2):
+        """Save a plot of the pixel vs. correlation for this collimation."""
         ylim1 = [0.4,1.05]
         ylim2 = [0.92,1.01]
         inset_xlim = 14
@@ -201,21 +296,22 @@ class Hartmann(object):
         if len(self.xshift)-self.ibest < inset_xlim:
             inset[1] = len(self.xshift)-1
         mjd = self.header1['MJD']
-        plotfile = self.plotfilebase%(mjd,cam,expnum1)
-        title = 'Collimate: MJD=%5i Camera=%s Exp=%08i-%08i'%(mjd,cam,expnum1,expnum2)
+        plotfile = self.plotfilebase%(mjd,expnum1,expnum2)
+        title = 'Collimate: MJD=%5i Exp=%08i-%08i'%(mjd,expnum1,expnum2)
         fig = plt.figure()
-        ax1 = fig.add_axes([0.1,0.1,0.8,0.9])
+        ax1 = fig.add_axes([0.1,0.1,0.8,0.8])
         ax2 = fig.add_axes([0.35,0.2,0.3,0.3])
-        ax1.plot(self.xshift,self.coeff/max(self.coeff),'*-',color='black',lw=2)
-        ax2.plot(self.xshift[inset[0]:inset[1]],self.coeff[inset[0]:inset[1]]/max(self.coeff),'*-',color='black',lw=2)
-        ax1.plot([self.xoffset,self.xoffset],ylim1,'--',color='green')
-        ax2.plot([self.xoffset,self.xoffset],ylim2,'--',color='green')
+        for cam in self.xoffset:
+            ax1.plot(self.xshift,self.coeff/max(self.coeff),'*-',color='black',lw=2)
+            ax2.plot(self.xshift[inset[0]:inset[1]],self.coeff[inset[0]:inset[1]]/max(self.coeff),'*-',color='black',lw=2)
+            ax1.plot([self.xoffset[cam],self.xoffset[cam]],ylim1,'--',color='green')
+            ax2.plot([self.xoffset[cam],self.xoffset[cam]],ylim2,'--',color='green')
         ax1.set_ylim(ylim1[0],ylim1[1])
         ax2.axis([self.xshift[inset[0]],self.xshift[inset[1]],ylim2[0],ylim2[1]])
         ax1.set_title(title)
         ax1.set_xlabel('pixels')
         ax1.set_ylabel('cross-correlation')
-        plt.savefig(plotfile)
+        plt.savefig(plotfile,bbox_inches='tight')
     
     def _load_data(self,indir,basename,expnum1,expnum2):
         """
@@ -319,21 +415,26 @@ class Hartmann(object):
         dx = 0.05
         nshift = int(np.ceil(2*self.maxshift/dx))
         xshift = -self.maxshift + dx * np.arange(nshift,dtype='f8')
-        self.xshift = xshift # save for plotting
+        self.xshift[self.cam] = xshift # save for plotting
+        
+        def calc_shift(xs,img1,img2,mask):
+            shifted = interpolation.shift(img2,[xs,0],order=order,prefilter=False)
+            return (img1*shifted*mask).sum()
         
         self.coeff = np.zeros(nshift,dtype='f8')
         filtered1 = interpolation.spline_filter(subimg1)
         filtered2 = interpolation.spline_filter(subimg2)
         for i in range(nshift):
-            self.coeff[i] = (subimg1*interpolation.shift(subimg2,[xshift[i],0],order=order)*mask).sum()
-
+            #self.coeff[i] = (subimg1*interpolation.shift(subimg2,[xshift[i],0],order=order)*mask).sum()
+            #self.coeff[i] = (filtered1*interpolation.shift(filtered2,[xshift[i],0],order=order,prefilter=False)*mask).sum()
+            self.coeff[i] = calc_shift(xshift[i],filtered1,filtered2,mask)
         ibest = self.coeff.argmax()
-        self.ibest = ibest # save for plotting
-        self.xoffset = xshift[ibest]
+        self.ibest[self.cam] = ibest # save for plotting
+        self.xoffset[self.cam] = xshift[ibest]
         # If the sequence is actually R-L, instead of L-R, 
         # then the offset acctually goes the other way.
         if self.hartpos1 > self.hartpos2:
-            self.xoffset = -self.xoffset
+            self.xoffset[self.cam] = -self.xoffset[self.cam]
     #...
 
     def _find_collimator_motion(self):
@@ -353,7 +454,7 @@ class Hartmann(object):
         b = self.b[self.cam]
         if self.test:
             b = 0.
-        offset = self.xoffset*m + b
+        offset = self.xoffset[self.cam]*m + b
 
         if offset < self.focustol:
             focus = 'In Focus'
@@ -386,92 +487,5 @@ class Hartmann(object):
             msglvl = self.cmd.warn
         msglvl('%sResiduals=%d,%.1f,%s'%(self.spec,rres,bres,resid))
         self.cmd.inform('%sAverageMove=%d'%(self.spec,avg))
-    #...
-    
-    def collimate(self,cmd,expnum1,expnum2=None,indir=None,
-                  spec=['sp1','sp2'],docams1=['b1','r1'],docams2=['b2','r2'],
-                  test=False,plot=False):
-        """
-        Compute the spectrograph collimation focus from Hartmann mask exposures.
-        
-        cmd:     command handler
-        expnum1: first exposure number of raw sdR file (integer).
-        expnum2: second exposure number (default: expnum1+1)
-        indir:   directory where the exposures are located.
-        spec:    spectrograph(s) to collimate ('sp1','sp2',['sp1','sp2'])
-        docams1: camera(s) in sp1 to collimate ('b1','r1',['b1','r1'])
-        docams2: camera(s) in sp2 to collimate ('b2','r2',['b2','r2'])
-        test:    If True, we are trying to determine the collimation parameters, so ignore 'b' parameter.
-        plot:    If True, save a plot of the 
-        """
-        self.cmd = cmd
-        # clear previous collimator movement values
-        self.result = {'sp1':{'b':0.,'r':0.},'sp2':{'b':0.,'r':0.}}
-        if expnum2 is None:
-            expnum2 = expnum1+1
-    
-        # recursive call for each spectrograph
-        if not isinstance(spec,str):
-            for sp in spec:
-                self.collimate(cmd,expnum1,expnum2=expnum2,indir=indir,spec=sp,
-                               docams1=docams1,docams2=docams2,test=test,plot=plot)
-            return
-
-        self.spec = spec
-        if indir is None:
-            indir = os.path.join(self.data_root_dir,'*')
-
-        # to handle the various string/list/tuple possibilities for each argument
-        docams = []
-        if spec == 'sp1':
-            docams.extend([docams1,] if isinstance(docams1,str) else docams1)
-        elif spec == 'sp2':
-            docams.extend([docams2,] if isinstance(docams2,str) else docams2)
-        else:
-            cmd.error('text="I do not understand spectrograph: %s"'%spec)
-            self.success = False
-
-        try:
-            for cam in docams:
-                basename = 'sdR-%s-%08d.fit*'
-                self.do_one_cam(cam,indir,basename,expnum1,expnum2,test,plot)
-            if len(docams) > 1:
-                self._mean_moves()
-        except Exception,e:
-            cmd.error('text="Collimation calculation failed! %s"'%e)
-            self.success = False
-    #...
-    
-    def doHartmann(self,cmd):
-        """
-        Take and reduce a pair of hartmann exposures.
-        Usually apply the recommended collimator moves.
-        
-        cmd is the currently active Commander instance, for passing info/warn messages.
-        """
-        exposureIds = []
-        moveMotors = "noCorrect" not in cmd.cmd.keywords
-        subFrame = "noSubframe" not in cmd.cmd.keywords
-        
-        # Take the Hartmann exposures
-        for side in 'left','right':
-            window = "window=850,1400" if subFrame else ""
-            ret = self.actor.cmdr.call(actor='boss', forUserCmd=cmd,
-                                       cmdStr='exposure arc hartmann=%s itime=4 %s %s' % \
-                                       (side,
-                                       window,
-                                       ("noflush" if side == "right" else "")),
-                                       timeLim=90.0)
-            exposureId = self.actor.models["boss"].keyVarDict["exposureId"][0]
-            exposureId += 1
-            exposureIds.append(exposureId)
-            cmd.diag('text="got hartmann %s exposure %d"' % (side, exposureId))
-            
-            if ret.didFail:
-                cmd.error('text="failed to take %s hartmann exposure"' % (side))
-                self.success = False
-        
-        # now actually perform the collimation calculations
-        self.collimate(exposureId)
     #...
 #...
