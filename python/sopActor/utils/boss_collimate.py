@@ -33,8 +33,6 @@ the Hartmann-r exposure by in Y to agree with the Hartmann-l exposure.
 # IDL version by Kyle Dawson, David Schlegel, Matt Olmstead
 # IDL->Python verson by John Parejko
 
-#import sopActor.myGlobals as myGlobals
-
 import logging
 import os.path
 import glob
@@ -44,6 +42,8 @@ import pyfits
 import numpy as np
 from scipy.ndimage import interpolation
 import matplotlib.pyplot as plt
+
+import sopActor.myGlobals
 
 class HartError(Exception):
     """For known errors processing the Hartmanns"""
@@ -58,6 +58,7 @@ class Hartmann(object):
         # final results go here
         self.result = {'sp1':{'b':0.,'r':0.},'sp2':{'b':0.,'r':0.}}
         self.success = True
+        self.cmd = None
 
         self.data_root_dir = '/data/spectro'
         self.cam_gains = {'b1':[1.048, 1.048, 1.018, 1.006], 'b2':[1.040, 0.994, 1.002, 1.010],
@@ -120,6 +121,9 @@ class Hartmann(object):
         
         cmd is the currently active Commander instance, for passing info/warn messages.
         """
+        actorState = sopActor.myGlobals.actorState
+        self.cmd = cmd
+
         exposureIds = []
         moveMotors = "noCorrect" not in cmd.cmd.keywords
         subFrame = "noSubframe" not in cmd.cmd.keywords
@@ -127,13 +131,13 @@ class Hartmann(object):
         # Take the Hartmann exposures
         for side in 'left','right':
             window = "window=850,1400" if subFrame else ""
-            ret = self.actor.cmdr.call(actor='boss', forUserCmd=cmd,
-                                       cmdStr='exposure arc hartmann=%s itime=4 %s %s' % \
-                                       (side,
-                                       window,
-                                       ("noflush" if side == "right" else "")),
-                                       timeLim=90.0)
-            exposureId = self.actor.models["boss"].keyVarDict["exposureId"][0]
+            ret = actorState.actor.cmdr.call(actor='boss', forUserCmd=cmd,
+                                             cmdStr='exposure arc hartmann=%s itime=4 %s %s' % \
+                                             (side,
+                                              window,
+                                              ("noflush" if side == "right" else "")),
+                                             timeLim=90.0)
+            exposureId = actorState.models["boss"].keyVarDict["exposureId"][0]
             exposureId += 1
             exposureIds.append(exposureId)
             cmd.diag('text="got hartmann %s exposure %d"' % (side, exposureId))
@@ -146,13 +150,12 @@ class Hartmann(object):
         self.collimate(exposureId)
     #...
     
-    def collimate(self,cmd,expnum1,expnum2=None,indir=None,
+    def collimate(self,expnum1,expnum2=None,indir=None,
                   spec=['sp1','sp2'],docams1=['b1','r1'],docams2=['b2','r2'],
-                  test=False,plot=False):
+                  test=False,plot=False,cmd=None):
         """
         Compute the spectrograph collimation focus from Hartmann mask exposures.
         
-        cmd:     command handler
         expnum1: first exposure number of raw sdR file (integer).
         expnum2: second exposure number (default: expnum1+1)
         indir:   directory where the exposures are located.
@@ -160,9 +163,11 @@ class Hartmann(object):
         docams1: camera(s) in sp1 to collimate ('b1','r1',['b1','r1'])
         docams2: camera(s) in sp2 to collimate ('b2','r2',['b2','r2'])
         test:    If True, we are trying to determine the collimation parameters, so ignore 'b' parameter.
-        plot:    If True, save a plot of the 
+        plot:    If True, save a plot of the best fit collimation.
+        cmd:     command handler
         """
-        self.cmd = cmd
+        if cmd is not None:
+            self.cmd = cmd
         if expnum2 is None:
             expnum2 = expnum1+1
         
@@ -170,7 +175,7 @@ class Hartmann(object):
         if not isinstance(spec,str):
             processes = []
             for sp in spec:
-                args = (cmd,expnum1)
+                args = (expnum1,)
                 kwargs = {'expnum2':expnum2,'indir':indir,'spec':sp,
                         'docams1':docams1,'docams2':docams2,'test':test,'plot':plot}
                 p = Process(target=self.collimate,args=args,kwargs=kwargs)
@@ -190,8 +195,8 @@ class Hartmann(object):
         elif spec == 'sp2':
             docams.extend([docams2,] if isinstance(docams2,str) else docams2)
         else:
-            cmd.error('text="I do not understand spectrograph: %s"'%spec)
             self.success = False
+            self.cmd.error('text="I do not understand spectrograph: %s"'%spec)
 
         try:
             for cam in docams:
@@ -202,8 +207,8 @@ class Hartmann(object):
             if len(docams) > 1:
                 self._mean_moves()
         except Exception,e:
-            cmd.error('text="Collimation calculation failed! %s"'%e)
             self.success = False
+            self.cmd.error('text="Collimation calculation failed! %s"'%e)
     #...
     
     def do_one_cam(self,cam,indir,basename,expnum1,expnum2,test):
