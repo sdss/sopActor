@@ -4,7 +4,6 @@ import sys, time
 from sopActor import *
 import sopActor
 import sopActor.myGlobals as myGlobals
-#from SopCmd import status
 from opscore.utility.qstr import qstr
 from opscore.utility.tback import tback
 from sopActor import MultiCommand
@@ -1076,7 +1075,7 @@ def main(actor, queues):
             errMsg = "Unexpected exception %s in sop %s thread" % (e, threadName)
             actor.bcast.warn('text="%s"' % errMsg)
             tback(errMsg, e)
-
+            
             try:
                 msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
             except Exception, e:

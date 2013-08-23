@@ -694,7 +694,8 @@ class SopCmd(object):
                                          or sopState.gotoField.flatTime == 0
                                          or survey != sopActor.BOSS) else 1
 
-        # A bit tricky. if we are APOGEE, only take a flat if the gang is at the podium or the cold shutter is closed.
+        # A bit tricky. if we are APOGEE, only take a flat if the gang is at
+        # the podium or the cold shutter is closed.
         # Take out the BOSS test if we trust the switches/bypasses
         if survey != sopActor.BOSS:
             if sopState.apogeeGang.atPodium(sparseOK=True):

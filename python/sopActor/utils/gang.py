@@ -3,66 +3,49 @@ from sopActor import Bypass
 
 class ApogeeGang(object):
     """ Encapsulate the APOGEE gang connector. """
-
+    
     GANG_UNKNOWN      = "unknown gang position"
-    GANG_ON_CARTRIDGE = "gang on cartridge"
-    GANG_ON_PODIUM    = "gang on podium"
-    GANG_AT_SPARSE    = "gang at sparse cals"
     GANG_DISCONNECTED = "gang disconnected"
+    GANG_ON_CARTRIDGE = "gang on cartridge"
+    GANG_ON_PODIUM    = "gang on podium (any)"
+    GANG_AT_DENSE     = "gang on podium: dense port"
+    GANG_AT_SPARSE    = "gang on podium: sparse port"
+    GANG_AT_1M        = "gang on podium: 1m port"
     
     def __init__(self):
         pass
-
+    
     def getPhysicalPos(self):
-        """ Return the gang position as indicated by the MCP apogeeGang keyword
+        """
+        Return the gang position as indicated by the MCP apogeeGang keyword
 
         The mcp puts out an Int described as an Enum, which we map.
-        We no longer need to do this....
+        
+        jkp NOTE: We should be able to do this using just the actorkeys enum values.
+        Also, this whole logic would probably be well encapsulated by some @property
+        decorators...
         """
-
-        gangMap = {0:self.GANG_DISCONNECTED,
-                   1:self.GANG_ON_PODIUM,
+        gangMap = {0:self.GANG_UNKNOWN,
+                   1:self.GANG_DISCONNECTED,
                    2:self.GANG_ON_CARTRIDGE,
-                   3:self.GANG_AT_SPARSE}
+                   4:self.GANG_ON_PODIUM,
+                   12:self.GANG_AT_DENSE,
+                   20:self.GANG_AT_SPARSE,
+                   36:self.GANG_AT_1M
+                  }
         
         mcpModel = myGlobals.actorState.models["mcp"]
         gangPos = mcpModel.keyVarDict["apogeeGang"]
         if not gangPos.isCurrent:
             return self.GANG_UNKNOWN
-
+        
         return gangMap[int(gangPos[0])]
-    
-    def getPhysicalPosByBits(self):
-        """ Return the gang position as indicated by the physical switches.
-
-        For now there is no direct MCP support, so we look at the Allen-Bradley ab_I0_L0 bits directly:
-          disconnected: 0x0020181b
-          cartridge   : 0x0020081b
-          podium      : 0x0020101b
-          sparse      : 0x0020001b
-        """
-
-        mcpModel = myGlobals.actorState.models["mcp"]
-        if not mcpModel.keyVarDict["ab_I1_L0"].isCurrent:
-            return self.GANG_UNKNOWN
-        
-        CART_MASK   = 0x00000800
-        PODIUM_MASK = 0x00001000
-        GANG_MASK   = CART_MASK | PODIUM_MASK
-        gangBits = long(mcpModel.keyVarDict["ab_I1_L0"][0]) & GANG_MASK
-
-        bcast = myGlobals.actorState.actor.bcast
-        bcast.warn('text="gangBits=%08x"' % (gangBits))
-        
-        if gangBits & CART_MASK and gangBits & PODIUM_MASK:
-            return self.GANG_AT_SPARSE
-        if gangBits & CART_MASK:
-            return self.GANG_ON_CARTRIDGE
-        if gangBits & PODIUM_MASK:
-            return self.GANG_ON_PODIUM
-        return self.GANG_UNKNOWN
         
     def getPos(self):
+        """
+        Return the position of the gang connector.
+        If a bypass is set, return the appropriate fake position.
+        """
         bcast = myGlobals.actorState.actor.bcast
 
         if Bypass.get(name='gangCart'):
@@ -74,15 +57,20 @@ class ApogeeGang(object):
         else:
             return self.getPhysicalPos()
             
-    def atPodium(self, sparseOK=False):
-        """ Return True if the gang connector is on the podium. If sparseOK is True also accept being connected to the sparse port."""
-        ok = self.getPos() == self.GANG_ON_PODIUM
+    def atPodium(self, sparseOK=False, one_mOK=False):
+        """
+        Return True if the gang connector is on the podium.
+        If sparseOK is True also accept being connected to the sparse port.
+        if one_mOK is True, also accept being connected to the 1m port.
+        """
+        pos = self.getPos()
+        ok = (pos == self.GANG_ON_PODIUM) or (pos == self.GANG_AT_DENSE)
         if sparseOK:
-            ok = ok or (self.getPos() == self.GANG_AT_SPARSE)
-
+            ok = ok or (pos == self.GANG_AT_SPARSE)
+        if one_mOK:
+            ok = ok or (pos == self.GANG_AT_1M)
+        
         return ok
         
     def atCartridge(self):
         return self.getPos() == self.GANG_ON_CARTRIDGE
-
-    
