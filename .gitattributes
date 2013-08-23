@@ -20,11 +20,11 @@ python/sopActor/utils/boss_collimate.py -text
 python/sopActor/utils/gang.py -text
 python/sopActor/utils/guider.py -text
 python/sopActor/utils/tcc.py -text
-python/test_sopActor/test_boss_collimate.py -text
-python/test_sopActor/test_gang.py -text
 scripts/cartchange.inp -text
 scripts/eveningcals.inp -text
 scripts/example.inp -text
 scripts/morningcals.inp -text
 /setup.py -text
+test_sopActor/test_boss_collimate.py -text
+test_sopActor/test_gang.py -text
 ups/sopActor.table -text
