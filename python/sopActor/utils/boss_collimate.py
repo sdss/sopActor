@@ -97,7 +97,7 @@ class Hartmann(object):
         # TBD: these values should be loaded into a table/platedb
         # (or something, so modifying them is easier, and we can keep track of changes)
         self.m = {'b1':1.,'b2':1.,'r1':1.,'r2':1.}
-        self.b = {'b1':0.066,'b2':-0.00,'r1':-0.31,'r2':0.024}
+        self.b = {'b1':0.145,'b2':0.023,'r1':-0.295,'r2':0.112}
         
         # "funny fudge factors" from Kyle Dawson
         # TBD: The "funny fudge factors" can be turned into a single number, and
