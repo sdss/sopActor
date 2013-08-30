@@ -154,12 +154,12 @@ def main(actor, queues):
                 return
 
             elif msg.type == Msg.DITHER:
-                doDither(msg, actorState, msg.dither)
+                cmdVar = doDither(msg, actorState, msg.dither)
                 checkFailure(msg,cmdVar,"Failed to move APOGEE dither to %s position."%(dither))
                 
             elif msg.type == Msg.APOGEE_SHUTTER:
                 position = "open" if msg.open else "close"
-                doShutter(msg, actorState, position)
+                cmdVar = doShutter(msg, actorState, position)
                 checkFailure(msg,cmdVar,"Failed to %s APOGEE internal shutter."%(position))
 
             elif msg.type == Msg.EXPOSE:
