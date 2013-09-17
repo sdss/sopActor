@@ -2,7 +2,6 @@ import Queue, threading
 import math, numpy
 
 from sopActor import *
-from utils import boss_collimate
 import sopActor.myGlobals
 from opscore.utility.qstr import qstr
 from opscore.utility.tback import tback
@@ -63,14 +62,11 @@ def main(actor, queues):
                 msg.cmd.respond("text=\"starting Hartmann sequence\"")
                 
                 timeLim = 240
-                #hartmann = boss_collimate.Hartmann()
-                #hartmann.doHartmann(msg.cmd)
                 cmdVar = actorState.actor.cmdr.call(actor="sos", forUserCmd=msg.cmd,
                                                     cmdStr="doHartmann",
                                                     keyVars=[], timeLim=timeLim)
                 
                 msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=not cmdVar.didFail)
-                #msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=hartmann.success)
             elif msg.type == Msg.STATUS:
                 msg.cmd.inform('text="%s thread"' % threadName)
                 msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
