@@ -16,7 +16,6 @@ python/sopActor/scriptThread.py -text
 python/sopActor/sopActor_main.py -text
 python/sopActor/tccThread.py -text
 python/sopActor/utils/__init__.py -text
-python/sopActor/utils/boss_collimate.py -text
 python/sopActor/utils/gang.py -text
 python/sopActor/utils/guider.py -text
 python/sopActor/utils/tcc.py -text
