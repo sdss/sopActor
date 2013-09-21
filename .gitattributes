@@ -24,6 +24,5 @@ scripts/eveningcals.inp -text
 scripts/example.inp -text
 scripts/morningcals.inp -text
 /setup.py -text
-test_sopActor/test_boss_collimate.py -text
 test_sopActor/test_gang.py -text
 ups/sopActor.table -text
