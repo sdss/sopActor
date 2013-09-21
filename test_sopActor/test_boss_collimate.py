@@ -35,9 +35,16 @@ class Test_boss_collimate(unittest.TestCase):
         self.hart = boss_collimate.Hartmann()
         self.ffsOpen = ''
         self.ffsSomeClosed = ''
-        self.notHartmann = '/data/spectro/56492/sdR-r2-00165003.fit.gz'
+        
+        # Note: to take sample test exposures, you can't use flavor "science",
+        # because that closes the screen, unless you also specify "hartmann=left/right"
         self.NeOff = ''
         self.HgCdOff = ''
+        self.bothOff = ''
+        self.maskOut = ''
+        self.bothLeft = ''
+        self.notHartmann = '/data/spectro/56526/sdR-r2-00165131.fit.gz'
+        
         self.focused1 = '/data/spectro/56492/sdR-r2-00165006.fit.gz'
         self.focused2 = '/data/spectro/56492/sdR-r2-00165007.fit.gz'
         self.notFocused1 = ''
