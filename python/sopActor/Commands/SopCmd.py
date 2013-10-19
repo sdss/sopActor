@@ -244,7 +244,7 @@ class SopCmd(object):
                 cmd.warn('text="No cartridge is known to be loaded; not taking guider flats"')
                 sopState.doCalibs.guiderFlatTime = 0
 
-        if survey == sopActor.MARVELS:
+        if survey == sopActor.APOGEE:
             sopState.doCalibs.flatTime = 0                # no need to take a BOSS flat
 
         sopState.doCalibs.setupCommand("doCalibs", cmd,
@@ -1037,7 +1037,7 @@ class SopCmd(object):
             sopState.validCommands = ['gotoField',
                                       'hartmann', 'doCalibs', 'doScience',
                                       'gotoInstrumentChange']
-        elif survey == sopActor.MARVELS:
+        elif survey == sopActor.APOGEE:
             sopState.gotoField.setStages(['slew', 'guider'])
             sopState.validCommands = ['gotoField',
                                       'doApogeeScience', 'doApogeeSkyFlats',
@@ -1050,19 +1050,23 @@ class SopCmd(object):
 
     def classifyCartridge(self, cmd, cartridge):
         """Return the survey type corresponding to this cartridge."""
-
+        
+        # NOTE: TBD: the following logic will be incorrect for SDSS-IV, and
+        # we will have to use the PlateType or InstrumentLead identifier
+        # as extracted from the platedb, since we'll have to treat eBOSS and
+        # MaNGA slightly differently.
         if Bypass.get(name='brightPlate'):
             cmd.warn('text="We are lying about this being a Boss cartridge"')
             return sopActor.BOSS
         elif Bypass.get(name='darkPlate'):
             cmd.warn('text="We are lying about this being a bright-time cartridge"')
-            return sopActor.MARVELS
+            return sopActor.APOGEE
 
         if cartridge <= 0:
             cmd.warn('text="We do not have a valid cartridge (id=%s)"' % (cartridge))
             return sopActor.UNKNOWN
-
-        return sopActor.MARVELS if cartridge in range(1, 10) else sopActor.BOSS
+        
+        return sopActor.APOGEE if cartridge in range(1, 10) else sopActor.BOSS
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

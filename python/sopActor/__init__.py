@@ -12,7 +12,6 @@ try:
 except NameError:
     class APOGEE(): pass
     class BOSS(): pass
-    class MARVELS(): pass
     class UNKNOWN(): pass
     
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

@@ -598,7 +598,7 @@ def main(actor, queues):
                         multiCmd.append(sopActor.WHT_LAMP , Msg.LAMP_ON, on=False)
                         multiCmd.append(sopActor.UV_LAMP  , Msg.LAMP_ON, on=False)
                     else:
-                        if doGuiderFlat and survey == sopActor.MARVELS:
+                        if doGuiderFlat and survey == sopActor.APOGEE:
                             multiCmd.append(sopActor.FF_LAMP , Msg.LAMP_ON, on=True)
 
                     if not multiCmd.run():
@@ -610,7 +610,7 @@ def main(actor, queues):
                         continue
 
                     # For bright plates (no hartmann or calibs), take the guider flat as part of the slew stage.
-                    if doGuiderFlat and survey == sopActor.MARVELS:
+                    if doGuiderFlat and survey == sopActor.APOGEE:
                         guiderDelay = 20
                         multiCmd = SopMultiCommand(cmd, actorState.timeout + guiderDelay, "gotoField.slew.guiderFlat")
                         cmd.inform('text="commanding guider flat"')
