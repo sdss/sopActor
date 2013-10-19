@@ -694,19 +694,21 @@ class SopCmd(object):
                                          or sopState.gotoField.flatTime == 0
                                          or survey != sopActor.BOSS) else 1
 
-        # A bit tricky. if we are APOGEE, only take a flat if the gang is at
-        # the podium or the cold shutter is closed.
-        # Take out the BOSS test if we trust the switches/bypasses
+        # A bit tricky. if we are APOGEE, only take a guider flat if the gang
+        # is not at the cart, or the cold shutter is closed.
         if survey != sopActor.BOSS:
-            if sopState.apogeeGang.atPodium(sparseOK=True):
-                sopState.gotoField.doGuiderFlat = True
+            if not (sopState.gotoField.doGuider and sopState.gotoField.guiderFlatTime > 0):
+                sopState.gotoField.doGuiderFlat = False
             else:
-                shutterStatus = sopState.models["apogee"].keyVarDict["shutterLimitSwitch"]
-                if shutterStatus[1] and not shutterStatus[0]:
+                if not sopState.apogeeGang.atCartridge():
                     sopState.gotoField.doGuiderFlat = True
                 else:
-                    cmd.warn('text="skipping guider flat because APOGEE gang connector is not on the podium _and_ the cold shutter is open."')
-                    sopState.gotoField.doGuiderFlat = False
+                    shutterStatus = sopState.models["apogee"].keyVarDict["shutterLimitSwitch"]
+                    if shutterStatus[1] and not shutterStatus[0]:
+                        sopState.gotoField.doGuiderFlat = True
+                    else:
+                        cmd.warn('text="skipping guider flat because APOGEE gang connector is not on the podium _and_ the cold shutter is open."')
+                        sopState.gotoField.doGuiderFlat = False
         else:
             sopState.gotoField.doGuiderFlat = (True if (sopState.gotoField.doGuider and
                                                         sopState.gotoField.guiderFlatTime > 0)
