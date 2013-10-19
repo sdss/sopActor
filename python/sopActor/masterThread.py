@@ -576,21 +576,16 @@ def main(actor, queues):
                     multiCmd.append(SopPrecondition(sopActor.TCC, Msg.AXIS_INIT))
 
                     cmdState.setStageState("slew", "running")
-
-                    if True:
-                        multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState,
-                                        ra=cmdState.ra, dec=cmdState.dec, rot=cmdState.rotang,
-                                        keepOffsets=cmdState.keepOffsets)
-                    else:
-                        cmd.warn('text="RHL is skipping the slew"')
-
+                    
+                    multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState,
+                                    ra=cmdState.ra, dec=cmdState.dec, rot=cmdState.rotang,
+                                    keepOffsets=cmdState.keepOffsets)
+                    
+                    # NOTE: the FFS should remain closed during APOGEE slews,
+                    # for fear of IR-bright things like Luna.
                     if (cmdState.nArcLeft > 0 or cmdState.nFlatLeft > 0 or cmdState.doHartmann
-                        or doGuiderFlat):
+                        or doGuiderFlat or survey == sopActor.APOGEE):
                         multiCmd.append(sopActor.FFS,     Msg.FFS_MOVE, open=False)
-                    else:
-                        # We can _possibly_ open the APOGEE shutter here. -- CPL.
-                        # multiCmd.append(sopActor.FFS,     Msg.FFS_MOVE, open=True)
-                        pass
 
                     if cmdState.nArcLeft > 0 or cmdState.doHartmann:
                         multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=True)
