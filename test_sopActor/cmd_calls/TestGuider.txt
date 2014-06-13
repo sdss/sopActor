@@ -1,0 +1,80 @@
+[test_guider_start_ffsClosed]
+mcp ffs.open
+
+guider axes off
+guider scale off
+guider focus off
+
+guider on time=5
+
+[test_guider_start_ffsOpen]
+guider axes off
+guider focus off
+guider scale off
+
+guider on time=5
+
+[test_guider_start_arcsOn]
+mcp ffs.open
+mcp hgcd.off
+mcp ne.off
+
+guider axes off
+guider scale off
+guider focus off
+
+guider on time=5
+
+[test_guider_start_flatsOn]
+mcp ffs.open
+mcp ff.off
+
+guider axes off
+guider scale off
+guider focus off
+
+guider on time=5
+
+[test_guider_start_fails]
+mcp ffs.open
+
+guider axes off
+guider scale off
+guider focus off
+
+guider on time=5
+
+[test_guider_flat_ffsClosed]
+mcp ff.on
+
+guider flat time=0.5
+
+[test_guider_flat_ffsOpen]
+mcp ff.on
+mcp ffs.close
+
+guider flat time=0.5
+
+[test_guider_flat_apogeeShutter_open]
+apogee shutter close
+mcp ff.on
+
+guider flat time=0.5
+
+[test_guider_flat_apogeeShutter_closed]
+mcp ff.on
+
+guider flat time=0.5
+
+[test_guider_flat_fails]
+mcp ff.on
+
+guider flat time=0.5
+
+[test_deactivate_guider_decenter_off]
+
+[test_deactivate_guider_decenter_on]
+guider decenter off
+
+[test_deactivate_guider_decenter_fails]
+guider decenter off

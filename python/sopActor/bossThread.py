@@ -1,10 +1,54 @@
+"""Thread to send commands to the BOSS camera."""
 import Queue, threading
 import math, numpy
 
+import sopActor
 from sopActor import *
 import sopActor.myGlobals
 from opscore.utility.qstr import qstr
 from opscore.utility.tback import tback
+
+def getExpTimeCmd(expTime, expType, cmd, readout=True):
+    """
+    Return an exposure time command string and a readout command string,
+    to append to a boss exposure cmdr call.
+    """
+    expTimeCmd = ""
+    readoutCmd = ""
+    if expTime >= 0:
+        if expType != "bias":
+            expTimeCmd = ("itime=%g" % expTime)
+            readoutCmd = "" if readout else "noreadout"
+    else:
+        readoutCmd = "readout"
+        if not readout:
+            cmd.warn('text="Saw readout == False but expTime == %g"' % expTime)
+    return expTimeCmd, readoutCmd
+
+def hartmann(cmd, actorState, replyQueue, expTime, mask):
+    """Take a single hartmann frame, with one hartmann in position."""
+    expType = 'arc'
+    expTimeCmd, readoutCmd = getExpTimeCmd(expTime, expType, cmd)
+    
+    validMasks = ('left','right','out')
+    if mask.lower() not in validMasks:
+        err = qstr("Do not understand Hartmann mask '%s'."%mask)
+        cmd.error('text=%s'%err)
+        replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
+        return
+        
+    cmd.inform('text=\"Taking a %gs %s Hartmann exposure.\"'%(expTime,mask))
+    
+    timeLim = expTime + 180.0  # seconds
+    timeLim += 100
+    cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=cmd,
+                                        cmdStr=("exposure %s %s hartmann=%s" %
+                                                (expType, expTimeCmd, mask)),
+                                        keyVars=[], timeLim=timeLim)
+    
+    replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=not cmdVar.didFail)
+#...
+
 
 def main(actor, queues):
     """Main loop for boss ICC thread"""
@@ -24,41 +68,30 @@ def main(actor, queues):
                 return
 
             elif msg.type == Msg.EXPOSE:
+                expType = getattr(msg,'expType','')
                 if msg.readout and msg.expTime <= 0:
-                    msg.cmd.respond("text=\"starting exposure readout\"")
+                    cmdTxt = "exposure readout"
                 else:
-                    msg.cmd.respond("text=\"starting %s%s exposure\"" % (
-                        ((("%gs " % msg.expTime) if msg.expTime > 0 else ""), msg.expType)))
-
-                expTimeCmd = expTypeCmd = ""
-                if msg.expTime >= 0:
-                    if msg.expType != "bias":
-                        expTimeCmd = ("itime=%g" % msg.expTime)
-                    expTypeCmd = msg.expType
-                    readoutCmd = "" if msg.readout else "noreadout"
-                else:
-                    readoutCmd = "readout"
-                    if not msg.readout:
-                        msg.cmd.warn('text="Saw msg.readout == False but msg.expTime == %g"' % msg.expTime)
+                    cmdTxt = "%s%s exposure" % (
+                        ((("%gs " % msg.expTime) if msg.expTime > 0 else ""), expType))
+                msg.cmd.respond('text="starting %s"'%cmdTxt)
+                expTimeCmd,readoutCmd = getExpTimeCmd(msg.expTime, expType, msg.cmd, msg.readout)
 
                 timeLim = msg.expTime + 180.0  # seconds
                 timeLim += 100
-                if True:                # really take data
-                    cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=msg.cmd,
-                                                        cmdStr=("exposure %s %s %s" %
-                                                                (expTypeCmd, expTimeCmd, readoutCmd)),
-                                                        keyVars=[], timeLim=timeLim)
-                else:
-                    msg.cmd.inform('text="Not taking a %gs exposure"' % msg.expTime)
-
-                    class Foo(object):
-                        @property
-                        def didFail(self): return False
-                    cmdVar = Foo()
-                    
+                cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=msg.cmd,
+                                                    cmdStr=("exposure %s %s %s" %
+                                                            (expType, expTimeCmd, readoutCmd)),
+                                                    keyVars=[], timeLim=timeLim)
+                if cmdVar.didFail:
+                    msg.cmd.error('text="BOSS failed on %s"'%cmdTxt)
                 msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=not cmdVar.didFail)
-
+                
+            elif msg.type == Msg.SINGLE_HARTMANN:
+                hartmann(msg.cmd, actorState, msg.replyQueue, msg.expTime, msg.mask)
+                
             elif msg.type == Msg.HARTMANN:
+                
                 msg.cmd.respond("text=\"starting Hartmann sequence\"")
                 
                 timeLim = 240
@@ -76,11 +109,4 @@ def main(actor, queues):
         except Queue.Empty:
             actor.bcast.diag('text="%s alive"' % threadName)
         except Exception, e:
-            errMsg = "Unexpected exception %s in sop %s thread" % (e, threadName)
-            actor.bcast.warn('text="%s"' % errMsg)
-            tback(errMsg, e)
-
-            try:
-                msg.replyQueue.put(Msg.EXIT, cmd=msg.cmd, success=False)
-            except Exception, e:
-                pass
+            sopActor.handle_bad_exception(actor,e,threadName,msg)

@@ -2,6 +2,9 @@ import Queue as _Queue
 import re, time, threading
 
 from opscore.utility.qstr import qstr
+from opscore.utility.tback import tback
+
+import CmdState
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
@@ -12,6 +15,8 @@ try:
 except NameError:
     class APOGEE(): pass
     class BOSS(): pass
+    class MANGA(): pass
+    class APOGEEMANGA(): pass
     class UNKNOWN(): pass
     
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -49,11 +54,14 @@ except NameError:
         NORMAL = 6
 
         # Command types; use classes so that the unique IDs are automatically generated
-        class DO_CALIBS(): pass
+        class DO_BOSS_CALIBS(): pass
         class DITHERED_FLAT(): pass
+        class SINGLE_HARTMANN(): pass
         class HARTMANN(): pass
-        class DO_SCIENCE(): pass
+        class DO_BOSS_SCIENCE(): pass
         class DO_APOGEE_EXPOSURES(): pass
+        class DO_MANGA_DITHER(): pass
+        class DO_MANGA_SEQUENCE(): pass
         class DONE(): pass
         class EXIT(): pass
         class ENABLE(): pass
@@ -71,7 +79,10 @@ except NameError:
         class AXIS_INIT(): pass
         class WAIT_UNTIL(): pass
         class DITHER(): pass
+        class DECENTER(): pass
+        class MANGA_DITHER(): pass
         class GOTO_GANG_CHANGE(): pass
+        class APOGEE_DOME_FLAT(): pass
         class POST_FLAT(): pass
         class APOGEE_SHUTTER(): pass            # control the internal APOGEE shutter 
         class APOGEE_PARK_DARKS(): pass 
@@ -111,7 +122,7 @@ class Queue(_Queue.PriorityQueue):
 
     def __init__(self, name, *args):
         _Queue.Queue.__init__(self, *args)
-        self.name = name        
+        self.name = name
 
     def __str__(self):
         return self.name
@@ -141,6 +152,21 @@ class Queue(_Queue.PriorityQueue):
                 msg = self.get(timeout=0)
             except Queue.Empty:
                 return
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def handle_bad_exception(actor, e, threadName, msg):
+    """
+    For each thread's "global" unexpected exception handler.
+    Send error, dump stacktrace, try to reply with a failure.
+    """
+    errMsg = "Unexpected exception %s: %s, in sop %s thread" % (type(e).__name__, e, threadName)
+    actor.bcast.error('text="%s"' % errMsg)
+    tback(errMsg, e)
+    try:
+        msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
+    except Exception, e:
+        pass
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -231,15 +257,10 @@ class MultiCommand(object):
         if timeout is not None and timeout > self.timeout:
             self.timeout = timeout
             
-        try:
-            msg = Msg(msgId, cmd=self.cmd, replyQueue=self._replyQueue, **kwargs)
-            self.setMsgDuration(queueName, msg)
-
-            self.commands.append((myGlobals.actorState.queues[queueName], isPrecondition, msg))
-            
-        except Exception, e:
-            print "RHL appending to MultiCommand queue:", e
-
+        msg = Msg(msgId, cmd=self.cmd, replyQueue=self._replyQueue, **kwargs)
+        self.setMsgDuration(queueName, msg)
+        self.commands.append((myGlobals.actorState.queues[queueName], isPrecondition, msg))
+        
     def run(self):
         """Actually submit that set of commands and wait for them to reply. Return status"""
         self.start()
@@ -322,118 +343,4 @@ class MultiCommand(object):
             self.cmd.inform('stageState="%s","%s",0.0,0.0' % (self.label, state))
         return not failed and self.status
 
-class CmdState(object):
-    validStageStates = ('starting', 'prepping', 'running', 'done', 'failed', 'aborted')
-
-    """A class that's intended to hold command state data"""
-
-    def __init__(self, name, allStages, keywords={}, hiddenKeywords=()):
-        self.name = name
-        self.cmd = None
-        self.cmdState = "idle"
-        self.stateText="OK"
-        self.keywords = dict(keywords)
-        self.hiddenKeywords = hiddenKeywords
-        for k, v in keywords.iteritems():
-            setattr(self, k, v)
-            
-        self.setStages(allStages)
-
-    def _getCmd(self, cmd=None):
-        if cmd:
-            return cmd
-        if self.cmd:
-            return self.cmd
-        return myGlobals.actorState.actor.bcast
-    
-    def setStages(self, allStages):
-        self.allStages = allStages
-        self.stages = dict(zip(self.allStages, ["idle"] * len(self.allStages)))
-
-    def setupCommand(self, name, cmd, activeStages):
-        self.name = name
-        self.cmd = cmd
-        self.stateText="OK"
-        self.activeStages = activeStages
-        for s in self.allStages:
-            self.stages[s] = "pending" if s in activeStages else "off"
-        self.genCommandKeys()
-
-    def setCommandState(self, state, genKeys=True, stateText=None):
-        self.cmdState = state
-        if stateText:
-            self.stateText=stateText
-
-        if genKeys:
-            self.genKeys()
-
-    def setStageState(self, name, stageState, genKeys=True):
-        assert name in self.stages
-        assert stageState in self.validStageStates, "state %s is unknown" % (stageState)
-        self.stages[name] = stageState
-
-        if genKeys:
-            self.genCmdStateKeys()
-
-    def abortStages(self):
-        """ Mark all unstarted stages as aborted. """
-        for s in self.allStages:
-            if not self.stages[s] in ("pending", "done", "failed"):
-                self.stages[s] = "aborted"
-        self.genCmdStateKeys()
-
-    def setActiveStages(self, stages, genKeys=True):
-        raise NotImplementedError()
-        for s in stages:
-            assert s in self.allStages
-
-    def genCmdStateKeys(self, cmd=None):
-        cmd = self._getCmd(cmd)
-        cmd.inform("%sState=%s,%s,%s" % (self.name, qstr(self.cmdState),
-                                         qstr(self.stateText),
-                                         ",".join([qstr(self.stages[sname]) \
-                                                       for sname in self.allStages])))
-
-    def genCommandKeys(self, cmd=None):
-        """ Return a list of the keywords describing our command. """
-
-        cmd = self._getCmd(cmd)
-        cmd.inform("%sStages=%s" % (self.name,
-                                    ",".join([qstr(sname) \
-                                                  for sname in self.allStages])))
-        self.genCmdStateKeys(cmd=cmd)
-
-    def getUserKeys(self):
-        return []
-    
-    def genStateKeys(self, cmd=None):
-        cmd = self._getCmd(cmd)
-
-        msg = []
-        for keyName, default in self.keywords.iteritems():
-            val = getattr(self, keyName)
-            if type(default) == str:
-                val = qstr(val)
-                default = qstr(default)
-            msg.append("%s_%s=%s,%s" % (self.name, keyName,
-                                        val, default))
-        if msg:
-            cmd.inform("; ".join(msg))
-
-        try:
-            userKeys = self.getUserKeys()
-        except:
-            userKeys = []
-            cmd.warn('text="failed to fetch all keywords for %s"' % (self.name))
-
-        if userKeys:
-            cmd.inform(";".join(userKeys))
-        
-    def genKeys(self, cmd=None, trimKeys=False):
-        """ generate all our keywords. """
-
-        self.genCommandKeys(cmd=cmd)
-        if not trimKeys or trimKeys == self.name:
-            self.genStateKeys(cmd=cmd)
-        
 __all__ = ["MASTER", "Msg", "Precondition", "Bypass", "CmdState"]

@@ -1,0 +1,67 @@
+[test_apogee_dome_flat_gang_change]
+apogee shutter open
+mcp ffs.close
+
+apogee expose time=50.0 object=DomeFlat
+
+[test_apogee_dome_flat_enclosure]
+apogee shutter open
+
+apogee expose time=50.0 object=DomeFlat
+
+[test_apogee_dome_flat_enclosure_shutterOpen]
+apogee expose time=50.0 object=DomeFlat
+
+[test_apogee_dome_flat_enclosure_fails]
+apogee shutter open
+mcp ffs.close
+
+[test_goto_gang_change_apogee_open]
+mcp ffs.close
+
+apogee expose time=50.0 object=DomeFlat
+
+apogee shutter close
+tcc axis status
+tcc axis init
+
+tcc track 121.000000, 45.000000 mount/rottype=mount/rotangle=0.000000
+
+[test_goto_gang_change_apogee_closed]
+mcp ffs.close
+apogee shutter open
+
+apogee expose time=50.0 object=DomeFlat
+
+apogee shutter close
+tcc axis status
+tcc axis init
+
+tcc track 121.000000, 45.000000 mount/rottype=mount/rotangle=0.000000
+
+[test_goto_gang_change_apogee_gang_podium]
+apogee shutter close
+tcc axis status
+tcc axis init
+
+tcc track 121.000000, 45.000000 mount/rottype=mount/rotangle=0.000000
+
+[test_goto_gang_change_boss]
+tcc axis status
+tcc axis init
+
+tcc track 121.000000, 45.000000 mount/rottype=mount/rotangle=0.000000
+
+[test_goto_gang_change_apogee_fails_domeflat]
+mcp ffs.close
+
+apogee expose time=50.0 object=DomeFlat
+
+[test_goto_gang_change_apogee_fails_slew]
+mcp ffs.close
+
+apogee expose time=50.0 object=DomeFlat
+
+apogee shutter close
+tcc axis status
+tcc axis init

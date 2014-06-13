@@ -1,0 +1,10 @@
+[test_hartmann_left]
+boss exposure arc itime=4 hartmann=left
+
+[test_hartmann_right]
+boss exposure arc itime=2 hartmann=right
+
+[test_hartmann_out]
+boss exposure arc itime=3 hartmann=out
+
+[test_hartmann_bad]

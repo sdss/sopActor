@@ -1,0 +1,38 @@
+[test_ff_on]
+mcp ff.on
+
+[test_hgcd_on]
+mcp hgcd.on
+
+[test_ne_on]
+mcp ne.on
+
+[test_ff_off]
+mcp ff.off
+
+[test_ff_on_fail]
+mcp ff.on
+
+[test_ff_on_fail_bypassed]
+mcp ff.on
+
+[test_ne_on_delay]
+mcp ne.on
+
+[test_ff_on_noWait_succeeded]
+mcp ff.on
+
+[test_ff_on_noWait_failed]
+mcp ff.on
+
+[test_uv_on_ignored]
+
+[test_wht_on_ignored]
+
+[test_wait_until_1]
+
+[test_wait_until_10]
+
+[test_wait_until_aborting]
+
+[test_wait_until_done]

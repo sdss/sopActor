@@ -1,0 +1,28 @@
+[test_do_apogee_science]
+apogee shutter open
+
+apogee expose time=500.0 object=object
+
+apogee dither namedpos=B
+
+apogee expose time=500.0 object=object
+
+apogee expose time=500.0 object=object
+
+apogee dither namedpos=A
+
+apogee expose time=500.0 object=object
+
+[test_apogee_dome_flat_gang_change]
+mcp ffs.close
+apogee shutter open
+
+apogee expose time=50.0 object=DomeFlat
+
+[test_apogee_dome_flat_enclosure]
+apogee shutter open
+
+apogee expose time=50.0 object=DomeFlat
+
+[test_apogee_dome_flat_enclosure_shutterOpen]
+apogee expose time=50.0 object=DomeFlat

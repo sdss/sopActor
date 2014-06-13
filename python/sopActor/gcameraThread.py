@@ -2,6 +2,7 @@ import Queue, threading
 import math, numpy
 
 from sopActor import *
+import sopActor
 import sopActor.myGlobals
 from opscore.utility.qstr import qstr
 from opscore.utility.tback import tback
@@ -42,11 +43,4 @@ def main(actor, queues):
         except Queue.Empty:
             actor.bcast.diag('text="%s alive"' % threadName)
         except Exception, e:
-            errMsg = "Unexpected exception %s in sop %s thread" % (e, threadName)
-            actor.bcast.warn('text="%s"' % errMsg)
-            tback(errMsg, e)
-
-            try:
-                msg.replyQueue.put(Msg.EXIT, cmd=msg.cmd, success=False)
-            except Exception, e:
-                pass
+            sopActor.handle_bad_exception(actor, e, threadName, msg)

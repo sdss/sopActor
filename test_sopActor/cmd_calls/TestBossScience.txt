@@ -1,0 +1,5 @@
+[test_do_boss_science]
+boss exposure science itime=900
+
+boss exposure science itime=900
+

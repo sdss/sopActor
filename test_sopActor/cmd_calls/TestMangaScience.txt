@@ -1,0 +1,152 @@
+[test_do_one_manga_dither]
+guider decenter on
+guider mangaDither ditherPos=N
+
+boss exposure science itime=900
+
+[test_do_manga_dither]
+guider decenter on
+guider mangaDither ditherPos=N
+
+boss exposure science itime=900
+
+guider decenter off
+
+[test_do_manga_dither_fails_ffs]
+mcp ffs.open
+guider decenter on
+guider mangaDither ditherPos=S
+
+guider decenter off
+
+[test_do_manga_sequence]
+guider decenter on
+
+guider mangaDither ditherPos=N
+
+boss exposure science itime=900 noreadout
+
+boss exposure   readout
+guider mangaDither ditherPos=S
+
+boss exposure science itime=900 noreadout
+
+boss exposure   readout
+guider mangaDither ditherPos=E
+
+boss exposure science itime=900 noreadout
+
+boss exposure   readout
+guider mangaDither ditherPos=N
+guider off
+mcp ff.off
+mcp ne.on
+mcp ffs.close
+mcp hgcd.on
+
+mcp hgcd.on
+mcp ne.on
+boss exposure arc itime=4 noreadout
+
+boss exposure   readout
+mcp hgcd.off
+mcp ff.off
+guider on
+mcp ffs.open
+mcp ne.off
+guider mangaDither ditherPos=N
+
+boss exposure science itime=900 noreadout
+
+boss exposure   readout
+guider mangaDither ditherPos=S
+
+boss exposure science itime=900 noreadout
+
+boss exposure   readout
+guider mangaDither ditherPos=E
+
+boss exposure science itime=900 noreadout
+
+boss exposure   readout
+guider mangaDither ditherPos=N
+guider off
+mcp ff.off
+mcp ne.on
+mcp ffs.close
+mcp hgcd.on
+
+mcp hgcd.on
+mcp ne.on
+boss exposure arc itime=4 noreadout
+
+boss exposure   readout
+mcp hgcd.off
+mcp ff.off
+guider on
+mcp ffs.open
+mcp ne.off
+guider mangaDither ditherPos=N
+
+boss exposure science itime=900 noreadout
+
+boss exposure   readout
+guider mangaDither ditherPos=S
+
+boss exposure science itime=900 noreadout
+
+boss exposure   readout
+guider mangaDither ditherPos=E
+
+boss exposure science itime=900 noreadout
+
+boss exposure   readout
+guider off
+mcp ff.off
+mcp ne.on
+mcp ffs.close
+mcp hgcd.on
+
+mcp hgcd.on
+mcp ne.on
+boss exposure arc itime=4 noreadout
+
+boss exposure   readout
+guider decenter off
+mcp ff.off
+mcp hgcd.off
+mcp ne.off
+
+[test_do_manga_sequence_one_set]
+guider decenter on
+
+guider mangaDither ditherPos=N
+
+boss exposure science itime=900 noreadout
+
+boss exposure   readout
+guider mangaDither ditherPos=S
+
+boss exposure science itime=900 noreadout
+
+boss exposure   readout
+guider mangaDither ditherPos=E
+
+boss exposure science itime=900 noreadout
+
+boss exposure   readout
+guider off
+mcp ff.off
+mcp ne.on
+mcp ffs.close
+mcp hgcd.on
+
+mcp hgcd.on
+mcp ne.on
+boss exposure arc itime=4 noreadout
+
+boss exposure   readout
+guider decenter off
+mcp ff.off
+mcp hgcd.off
+mcp ne.off

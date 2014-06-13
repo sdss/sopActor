@@ -1,0 +1,44 @@
+[test_hartmann_open]
+mcp ff.off
+mcp ne.on
+mcp hgcd.on
+mcp ffs.close
+
+boss exposure arc itime=4 hartmann=left
+
+boss exposure arc itime=4 hartmann=right
+
+mcp ffs.open
+mcp ne.off
+mcp hgcd.off
+
+[test_hartmann_closed]
+mcp ff.off
+mcp ne.on
+mcp hgcd.on
+
+boss exposure arc itime=4 hartmann=left
+
+boss exposure arc itime=4 hartmann=right
+
+mcp ne.off
+mcp hgcd.off
+
+[test_hartmann_fails]
+mcp ff.off
+mcp ne.on
+mcp hgcd.on
+
+boss exposure arc itime=4 hartmann=left
+
+[test_hartmann_fails_cleanup]
+mcp ff.off
+mcp ne.on
+mcp hgcd.on
+
+boss exposure arc itime=4 hartmann=left
+
+boss exposure arc itime=4 hartmann=right
+
+mcp ne.off
+mcp hgcd.off

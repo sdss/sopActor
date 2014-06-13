@@ -1,0 +1,194 @@
+[test_do_boss_calibs_one_bias]
+boss exposure bias
+
+mcp ff.off
+mcp hgcd.off
+mcp ne.off
+
+[test_do_boss_calibs_two_bias]
+boss exposure bias
+
+boss exposure bias
+
+mcp ff.off
+mcp hgcd.off
+mcp ne.off
+
+[test_do_boss_calibs_one_dark]
+boss exposure dark itime=900
+
+mcp ff.off
+mcp hgcd.off
+mcp ne.off
+
+[test_do_boss_calibs_two_dark]
+boss exposure dark itime=900
+
+boss exposure dark itime=900
+
+mcp ff.off
+mcp hgcd.off
+mcp ne.off
+
+[test_do_boss_calibs_one_flat]
+mcp ff.on
+
+boss exposure flat itime=30 noreadout
+guider flat time=0.5
+
+boss exposure   readout
+mcp ff.off
+mcp hgcd.off
+mcp ne.off
+
+[test_do_boss_calibs_two_flat]
+mcp ff.on
+
+boss exposure flat itime=30 noreadout
+guider flat time=0.5
+
+boss exposure   readout
+mcp ne.off
+mcp hgcd.off
+mcp ff.on
+
+boss exposure flat itime=30 noreadout
+guider flat time=0.5
+
+boss exposure   readout
+mcp ff.off
+mcp hgcd.off
+mcp ne.off
+
+[test_do_boss_calibs_one_arc]
+mcp ne.on
+mcp hgcd.on
+
+boss exposure arc itime=4 noreadout
+
+boss exposure   readout
+mcp ff.off
+mcp hgcd.off
+mcp ne.off
+
+[test_do_boss_calibs_two_arc]
+mcp ne.on
+mcp hgcd.on
+
+boss exposure arc itime=4 noreadout
+
+boss exposure   readout
+mcp ff.off
+mcp ne.on
+mcp hgcd.on
+
+boss exposure arc itime=4 noreadout
+
+boss exposure   readout
+mcp ff.off
+mcp hgcd.off
+mcp ne.off
+
+[test_do_boss_calibs_one_of_each]
+boss exposure bias
+
+boss exposure dark itime=900
+
+mcp ff.on
+
+boss exposure flat itime=30 noreadout
+guider flat time=0.5
+
+boss exposure   readout
+mcp ff.off
+mcp ne.on
+mcp hgcd.on
+
+mcp hgcd.on
+mcp ne.on
+boss exposure arc itime=4 noreadout
+
+boss exposure   readout
+mcp ff.off
+mcp hgcd.off
+mcp ne.off
+
+[test_do_boss_calibs_two_of_each]
+boss exposure bias
+
+boss exposure bias
+
+boss exposure dark itime=900
+
+boss exposure dark itime=900
+
+mcp ff.on
+
+boss exposure flat itime=30 noreadout
+guider flat time=0.5
+
+boss exposure   readout
+mcp ne.off
+mcp hgcd.off
+mcp ff.on
+
+boss exposure flat itime=30 noreadout
+guider flat time=0.5
+
+boss exposure   readout
+mcp ff.off
+mcp ne.on
+mcp hgcd.on
+
+mcp hgcd.on
+mcp ne.on
+boss exposure arc itime=4 noreadout
+
+boss exposure   readout
+mcp ff.off
+mcp ne.on
+mcp hgcd.on
+
+boss exposure arc itime=4 noreadout
+
+boss exposure   readout
+mcp ff.off
+mcp hgcd.off
+mcp ne.off
+
+[test_do_boss_calibs_flat_arc_fail_on_hgcd]
+mcp ff.on
+
+boss exposure flat itime=30 noreadout
+guider flat time=0.5
+
+boss exposure   readout
+mcp ff.off
+mcp ne.on
+mcp hgcd.on
+
+[test_do_boss_calibs_two_flat_fail_on_readout]
+mcp ff.on
+
+boss exposure flat itime=30 noreadout
+guider flat time=0.5
+
+mcp ff.on
+mcp ne.off
+mcp hgcd.off
+boss exposure   readout
+
+[test_do_boss_calibs_two_arc_fail_on_second_exposure]
+mcp ne.on
+mcp hgcd.on
+
+boss exposure arc itime=4 noreadout
+
+boss exposure   readout
+mcp ff.off
+mcp ne.on
+mcp hgcd.on
+
+boss exposure arc itime=4 noreadout
+
+boss exposure   readout

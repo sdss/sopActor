@@ -6,7 +6,6 @@ from sopActor import *
 import sopActor.myGlobals as myGlobals
 
 from opscore.utility.qstr import qstr
-from opscore.utility.tback import tback
 
 from twisted.internet import reactor, defer
 def twistedSleep(secs):
@@ -31,18 +30,18 @@ def checkFailure(msg,cmdVar,failmsg,finish=True):
         return False
 #...
 
-def doDither(msg, actorState, dither):
+def doDither(cmd, actorState, dither):
     """Move the APOGEE dither position."""
     timeLim = 30.0  # seconds
-    cmdVar = actorState.actor.cmdr.call(actor="apogee", forUserCmd=msg.cmd,
+    cmdVar = actorState.actor.cmdr.call(actor="apogee", forUserCmd=cmd,
                                         cmdStr=("dither namedpos=%s" % dither),
                                         keyVars=[], timeLim=timeLim)
     return cmdVar
 #...
 
-def doShutter(msg,actorState,position):
+def doShutter(cmd,actorState,position):
     """Move the APOGEE shutter position."""
-    cmdVar = actorState.actor.cmdr.call(actor="apogee", forUserCmd=msg.cmd,
+    cmdVar = actorState.actor.cmdr.call(actor="apogee", forUserCmd=cmd,
                                         cmdStr="shutter %s" % (position),
                                         timeLim=20)
     return cmdVar
@@ -52,10 +51,12 @@ class ApogeeCB(object):
     def __init__(self):
         self.cmd = myGlobals.actorState.actor.bcast
         self.reset()
-        myGlobals.actorState.models['apogee'].keyVarDict["utrReadState"].addCallback(self.listenToReads, callNow=False)
+        myGlobals.actorState.models['apogee'].keyVarDict["utrReadState"].addCallback(self.listenToReads, callNow=True)
 
     def shutdown(self):
-        myGlobals.actorState.models['apogee'].keyVarDict["utrReadState"].removeCallback(self.listenToReads)
+        # Setting doRaise=False since we don't care if the callback function
+        # has ceased to exist when the thread exits (which is the only time this is called).
+        myGlobals.actorState.models['apogee'].keyVarDict["utrReadState"].removeCallback(self.listenToReads,doRaise=False)
 
     def listenToReads(self, key):
         try:
@@ -104,14 +105,14 @@ class ApogeeCB(object):
         self.cb = cb if cb else self.flashLamps
 
     def turnOffLamps(self):
-        self.cmd.warn('text="calling wht.off"')
+        self.cmd.warn('text="calling ff_lamp.off"')
         replyQueue = sopActor.Queue("apogeeFlasher")
         myGlobals.actorState.queues[sopActor.FF_LAMP].put(Msg.LAMP_ON, cmd=self.cmd, on=False, replyQueue=replyQueue)
 
         # This is dreadful. Why is this .get() and test commented out? Some bad threading/reactor interaction. CPL
         #ret = replyQueue.get()
-        #self.cmd.diag('text="wht.off ret: %s"' % (ret))
-        self.cmd.diag('text="called wht.off"')
+        #self.cmd.diag('text="ff_lamp.off ret: %s"' % (ret))
+        self.cmd.diag('text="called ff_lamp.off"')
 
     def flashLamps(self):
         time2flash = 4.0       # seconds
@@ -119,15 +120,17 @@ class ApogeeCB(object):
 
         cmdr = myGlobals.actorState.actor.cmdr
         replyQueue = sopActor.Queue("apogeeFlasher")
-        self.cmd.diag('text="calling wht.on"')
-        myGlobals.actorState.queues[sopActor.FF_LAMP].put(Msg.LAMP_ON, cmd=self.cmd, on=True, replyQueue=replyQueue)
+        self.cmd.diag('text="calling ff_lamp.on"')
+        # NOTE: calling with noWait, so we don't wait for the mcp to respond.
+        # This prevents the problem where one lamp doesn't turn on within 4 seconds.
+        myGlobals.actorState.queues[sopActor.FF_LAMP].put(Msg.LAMP_ON, cmd=self.cmd, on=True, replyQueue=replyQueue, noWait=True)
 
         # See angry comment in .turnOffLamps(). In this case I wonder if calling reactor.callLater _before_
         # the put(LAMP_ON) would help. Bad, bad, bad.
         #ret = replyQueue.get(True)
-        #self.cmd.diag('text="wht.on ret: %s"' % (ret))
+        #self.cmd.diag('text="ff_lamp.on ret: %s"' % (ret))
 
-        self.cmd.warn('text="called wht.on"')
+        self.cmd.warn('text="called ff_lamp.on"')
         t1 = time.time()
         if False: # cmdVar.didFail: # ret.success:
             self.cmd.warn('text="ff lamp on command failed"')
@@ -154,12 +157,12 @@ def main(actor, queues):
                 return
 
             elif msg.type == Msg.DITHER:
-                cmdVar = doDither(msg, actorState, msg.dither)
+                cmdVar = doDither(msg.cmd, actorState, msg.dither)
                 checkFailure(msg,cmdVar,"Failed to move APOGEE dither to %s position."%(dither))
                 
             elif msg.type == Msg.APOGEE_SHUTTER:
                 position = "open" if msg.open else "close"
-                cmdVar = doShutter(msg, actorState, position)
+                cmdVar = doShutter(msg.cmd, actorState, position)
                 checkFailure(msg,cmdVar,"Failed to %s APOGEE internal shutter."%(position))
 
             elif msg.type == Msg.EXPOSE:
@@ -182,7 +185,7 @@ def main(actor, queues):
                     comment = ""
 
                 if dither != None:
-                    cmdVar = doDither(msg, actorState, dither)
+                    cmdVar = doDither(msg.cmd, actorState, dither)
                     if checkFailure(msg,cmdVar,"Failed to move APOGEE dither to %s position."%(dither),finish=False):
                         continue
 
@@ -202,7 +205,7 @@ def main(actor, queues):
                 if not success:
                     msg.cmd.warn('text="failed to start %s exposure"' % (expType))
                 else:
-                    msg.cmd.warn('text="done with %s exposure"' % (expType))
+                    msg.cmd.inform('text="done with %s exposure"' % (expType))
                 msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=success)
 
             elif msg.type == Msg.STATUS:
@@ -214,14 +217,7 @@ def main(actor, queues):
         except Queue.Empty:
             actor.bcast.diag('text="%s alive"' % threadName)
         except Exception as e:
-            errMsg = "Unexpected exception %s in sop %s thread" % (e, threadName)
-            actor.bcast.warn('text="%s"' % errMsg)
-            tback(errMsg, e)
-
-            try:
-                msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
-            except Exception, e:
-                pass
+            sopActor.handle_bad_exception(actor,e,threadName,msg)
 
 def script_main(actor, queues):
     """Main loop for APOGEE scripting thread"""
@@ -299,11 +295,4 @@ def script_main(actor, queues):
         except Queue.Empty:
             actor.bcast.diag('text="%s alive"' % threadName)
         except Exception, e:
-            errMsg = "Unexpected exception %s in sop %s thread" % (e, threadName)
-            actor.bcast.warn('text="%s"' % errMsg)
-            tback(errMsg, e)
-
-            try:
-                msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
-            except Exception, e:
-                pass
+            sopActor.handle_bad_exception(actor,e,threadName,msg)

@@ -1,0 +1,11 @@
+[test_doDither_A]
+apogee dither A
+
+[test_doDither_B]
+apogee dither B
+
+[test_doShutter_open]
+apogee shutter open
+
+[test_doShutter_close]
+apogee shutter close

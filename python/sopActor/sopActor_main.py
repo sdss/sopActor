@@ -112,7 +112,7 @@ class Sop(actorcore.Actor.Actor):
 
     def periodicStatus(self):
         pass
-
+    
     @staticmethod
     def startThreads(actorState, cmd=None, restartQueues=False, restart=False, restartThreads=None):
         """Start or restart the worker threads and queues; restartThreads is a list of names to restart"""

@@ -1,3 +1,4 @@
+"""Threads to control all of the mcp-related lamps."""
 import Queue, threading, time
 import math, numpy
 
@@ -6,19 +7,76 @@ import sopActor.myGlobals
 from opscore.utility.qstr import qstr
 from opscore.utility.tback import tback
 
-def doLamp(cmd, queue, lampName, action):
-    """Perform action for the named lamp (e.g. "FF", "on")"""
-    
-    actorState = sopActor.myGlobals.actorState
+# don't bother doing anything with these lamps, as they aren't used for anything.
+ignore_lamps = ['uv', 'wht']
 
-    timeLim = 10.0  # seconds
-    cmdVar = actorState.actor.cmdr.call(actor="mcp", forUserCmd=cmd,
-                                        cmdStr=("%s.%s" % (lampName.lower(), action)),
-                                        timeLim=timeLim)
-    if cmdVar.didFail:
-        cmd.warn('text="Failed to turn %s lamps %s"' % (lampName, action))
+class LampHandler(object):
+    def __init__(self, actorState, queue, lampName):
+        self.actorState = actorState
+        self.queue = queue
+        self.lampName = lampName
+        self.name = self.lampName.lower()
 
-    queue.put(Msg.LAMP_COMPLETE, cmd=cmd, success=not cmdVar.didFail)
+    def do_lamp(self, cmd, action, replyQueue, noWait=False, delay=None):
+        """
+        Perform action on this lamp (on or off).
+
+        * noWait: don't wait for a response from the mcp and just assume it
+          succeeded. Useful if you want to quickly change the lamp state, without
+          worrying about if something timed-out inbetween.
+        * delay: wait that long before claiming success. Use this if the lamp
+          takes a while to be fully "on".
+        """
+
+        if self.lampName in ignore_lamps:
+            cmd.diag('text="ignoring %s.%s"' % (action, self.lampName))
+            replyQueue.put(Msg.REPLY, cmd=cmd, success=True)
+            return
+
+        # seconds
+        timeLim = 0.1 if noWait else 30.0
+        cmdVar = self.actorState.actor.cmdr.call(actor="mcp", forUserCmd=cmd,
+                                                 cmdStr=("%s.%s" % (self.name, action)),
+                                                 timeLim=timeLim)
+        if noWait:
+            cmd.warn('text="Not waiting for response from: %s %s"' % (self.lampName, action))
+            replyQueue.put(Msg.LAMP_COMPLETE, cmd=cmd, success=True)
+        elif cmdVar.didFail:
+            bypassName = "%s_lamp" % (self.name)
+            bypassed = Bypass.get(name=bypassName)
+            cmd.error('text="Failed to turn %s lamps %s (bypass(%s) = %s)"' % (self.lampName, action, bypassName, bypassed))
+            if bypassed:
+                cmd.warn('text="Ignoring failure on %s lamps"' % (self.lampName))
+                replyQueue.put(Msg.LAMP_COMPLETE, cmd=cmd, success=True)
+            else:
+                replyQueue.put(Msg.LAMP_COMPLETE, cmd=cmd, success=False)
+        elif delay is not None:
+            if delay > 0:
+                cmd.inform('text="Waiting %gs for %s lamps to warm up"' % (delay, self.lampName))
+
+            endTime=time.time() + delay
+            self.queue.put(Msg.WAIT_UNTIL, cmd=cmd, replyQueue=replyQueue, endTime=endTime)
+        else:
+            replyQueue.put(Msg.LAMP_COMPLETE, cmd=cmd, success=True)
+
+    def wait_until(self, cmd, endTime, replyQueue):
+        """Wait until we reach endTime, to allow the lamp to warm up."""
+        timeToGo = endTime - time.time()
+        
+        if timeToGo <= 0:
+            replyQueue.put(Msg.LAMP_COMPLETE, cmd=cmd, success=True)
+        elif self.actorState.aborting:
+            cmd.warn('text="Aborting warmup for %s lamps"' % (self.lampName))
+            replyQueue.put(Msg.LAMP_COMPLETE, cmd=cmd, success=False)
+        else:
+            # output status every 5 seconds, unless we're almost done.
+            if timeToGo > 1 and int(timeToGo)%5 == 0:
+                cmd.inform('text="Warming up %s lamps; %ds left"' % (self.lampName, timeToGo))
+            
+            time.sleep(1)
+            self.queue.put(Msg.WAIT_UNTIL, cmd=cmd, replyQueue=replyQueue, endTime=endTime)
+#...
+
 
 def lamp_main(actor, queue, lampName):
     """Main loop for lamps thread"""
@@ -26,6 +84,7 @@ def lamp_main(actor, queue, lampName):
     actorState = sopActor.myGlobals.actorState
     timeout = actorState.timeout
     threadName = lampName
+    lampHandler = LampHandler(actorState, queue, lampName)
 
     while True:
         try:
@@ -38,66 +97,26 @@ def lamp_main(actor, queue, lampName):
                 return
             elif msg.type == Msg.LAMP_ON:
                 action = "on" if msg.on else "off"
+                noWait = hasattr(msg, 'noWait')
+                delay = getattr(msg, "delay", None)
+                lampHandler.do_lamp(msg.cmd, action, msg.replyQueue, delay=delay, noWait=noWait)
 
-                if lampName in ["uv"]:
-                    msg.cmd.diag('text="ignoring %s.%s"' % (action, lampName))
-                    msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
-                    continue
+            elif msg.type == Msg.WAIT_UNTIL:
+                # used to delay while the lamps warm up
+                lampHandler.wait_until(msg.cmd, msg.endTime, msg.replyQueue)
 
-                timeLim = 30.0          # seconds
-                cmdVar = actorState.actor.cmdr.call(actor="mcp", forUserCmd=msg.cmd, 
-                                                    cmdStr=("%s.%s" % (lampName.lower(), action)),
-                                                    timeLim=timeLim)
-                if cmdVar.didFail:
-                    bypassName = "%s_lamp" % (lampName.lower())
-                    bypassed = Bypass.get(name=bypassName)
-                    msg.cmd.warn('text="Failed to turn %s lamps %s (bypass(%s) = %s)"' % (lampName, action, bypassName, bypassed))
-                    if bypassed:
-                        msg.cmd.warn('text="Ignoring failure on %s lamps"' % (lampName))
-                        msg.replyQueue.put(Msg.LAMP_COMPLETE, cmd=msg.cmd, success=True)
-                        
-                    msg.replyQueue.put(Msg.LAMP_COMPLETE, cmd=msg.cmd, success=False)
-                elif hasattr(msg, "delay"):
-                    if msg.delay > 0:
-                        msg.cmd.inform('text="Waiting %gs for %s lamps to warm up"' % (msg.delay, lampName))
-
-                    endTime=time.time() + msg.delay
-                    queue.put(Msg.WAIT_UNTIL, cmd=msg.cmd, replyQueue=msg.replyQueue, endTime=endTime)
-                else:
-                    msg.replyQueue.put(Msg.LAMP_COMPLETE, cmd=msg.cmd, success=True)
-
-            elif msg.type == Msg.WAIT_UNTIL: # used to delay while the lamps warm up
-                timeToGo = int(endTime - time.time())
-                
-                if timeToGo <= 0:
-                    msg.replyQueue.put(Msg.LAMP_COMPLETE, cmd=msg.cmd, success=True)
-                elif actorState.aborting:
-                    msg.cmd.warn('text="Aborting warmup for %s lamps"' % (lampName))
-                    msg.replyQueue.put(Msg.LAMP_COMPLETE, cmd=msg.cmd, success=False)
-                else:
-                    if timeToGo%5 == 0:
-                        msg.cmd.inform('text="Warming up %s lamps; %ds left"' % (lampName, timeToGo))
-                        
-                    time.sleep(1)
-                    queue.put(Msg.WAIT_UNTIL, cmd=msg.cmd, replyQueue=msg.replyQueue, endTime=endTime)
 
             elif msg.type == Msg.STATUS:
-                msg.cmd.inform('text="%s thread"' % threadName)
-                msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
+                if lampName not in ignore_lamps:
+                    msg.cmd.inform('text="%s thread"' % threadName)
+                    msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
 
             else:
                 raise ValueError, ("Unknown message type %s" % msg.type)
         except Queue.Empty:
             actor.bcast.diag('text="%s alive"' % threadName)
         except Exception, e:
-            errMsg = "Unexpected exception %s in sop %s thread" % (e, threadName)
-            actor.bcast.warn('text="%s"' % errMsg)
-            tback(errMsg, e)
-
-            try:
-                msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
-            except Exception, e:
-                pass
+            sopActor.handle_bad_exception(actor, e, threadName, msg)
 
 def ff_main(actor, queues):
     """Main loop for FF lamps thread"""

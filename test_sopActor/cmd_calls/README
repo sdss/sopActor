@@ -1,0 +1,23 @@
+Each file in this directory should be the name of a unittest TestCase
+class. Command list entries look like this:
+
+[test_function_name]
+thing1
+thing2 arg1
+# I'm a comment!
+
+thing3 arg1 arg2
+
+thing4 arg1
+thing5 arg1 arg2
+
+This means that things 1,2 (could happen in any order), then thing3,
+then things 4,5 (in any order). We have to do this because we don't
+know what order the threads will receive and execute their commands,
+so, e.g. a set of lamp off commands could come out in any order.
+
+
+NOTE: to be very strict about this, the "if test_calls is not None"
+bit in sopTester.check_cmd could be removed, which would mean we'd
+have to have a cmd call list for each function. Being strict about
+this is a good thing....

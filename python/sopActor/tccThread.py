@@ -2,6 +2,7 @@ import Queue, threading
 import math, time,  numpy
 
 from sopActor import *
+import sopActor
 import sopActor.myGlobals
 from opscore.utility.qstr import qstr
 from opscore.utility.tback import tback
@@ -21,7 +22,12 @@ def check_stop_in(actorState):
            (actorState.models['tcc'].keyVarDict['rotStat'][3] & 0x2000)
 #...
 
-def axis_init(msg,actorState):
+def axes_are_clear(actorState):
+    return ((actorState.models['tcc'].keyVarDict['azStat'][3] == 0) and 
+            (actorState.models['tcc'].keyVarDict['altStat'][3] == 0) and 
+            (actorState.models['tcc'].keyVarDict['rotStat'][3] == 0))
+
+def axis_init(msg, actorState):
     """Send 'tcc axis init', and return status."""
     cmd = msg.cmd
 
@@ -29,8 +35,8 @@ def axis_init(msg,actorState):
     cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd, cmdStr="axis status")
     # "tcc axis status" should never fail!
     if cmdVar.didFail:
-        cmd.fail('text="Cannot check axis status. Something is very wrong!"')
-        cmd.fail('text="Is the TCC in a responsive state?"')
+        cmd.error('text="Cannot check axis status. Something is very wrong!"')
+        cmd.error('text="Is the TCC in a responsive state?"')
         msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
         return
 
@@ -45,33 +51,30 @@ def axis_init(msg,actorState):
         time.sleep(2)
         cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd, cmdStr="axis status")
         if check_stop_in(actorState):
-            cmd.fail('text="Cannot tcc axis init because of bad axis status: Check stop buttons on Interlocks panel."')
+            cmd.error('text="Cannot tcc axis init because of bad axis status: Check stop buttons on Interlocks panel."')
             msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
             return
 
     # the semaphore should be owned by the TCC or nobody
     sem = actorState.models['mcp'].keyVarDict['semaphoreOwner'][0]
     if (sem != 'TCC:0:0') and (sem != '') and (sem != 'None') and (sem != None):
-        cmd.fail('text="Cannot axis init: Semaphore is owned by '+sem+'"')
-        cmd.fail('text="If you are the owner (e.g., via MCP Menu), release it and try again."')
-        cmd.fail('text="If you are not the owner, confirm that you can steal it from them, then issue: mcp sem.steal"')
+        cmd.error('text="Cannot axis init: Semaphore is owned by '+sem+'"')
+        cmd.error('text="If you are the owner (e.g., via MCP Menu), release it and try again."')
+        cmd.error('text="If you are not the owner, confirm that you can steal it from them, then issue: mcp sem.steal"')
         msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
         return
 
-    if sem == 'TCC:0:0' and \
-       ((actorState.models['tcc'].keyVarDict['azStat'][3] == 0) and \
-       (actorState.models['tcc'].keyVarDict['altStat'][3] == 0) and \
-       (actorState.models['tcc'].keyVarDict['rotStat'][3] == 0)):
+    if sem == 'TCC:0:0' and axes_are_clear(actorState):
         cmd.inform('text="Axes clear and TCC has semaphore. No axis init needed, so none sent."')
         msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
         return
     else:
         cmd.inform('text="Sending tcc axis init."')
         cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd, cmdStr="axis init")
-
+    
     if cmdVar.didFail:
-        cmd.fail('text="Aborting GotoField: failed tcc axis init."')
-        cmd.fail('text="Aborting GotoField: check and clear interlocks?"')
+        cmd.error('text="Cannot slew telescope: failed tcc axis init."')
+        cmd.error('text="Cannot slew telescope: check and clear interlocks?"')
         msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
     else:
         msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
@@ -162,11 +165,4 @@ def main(actor, queues):
         except Queue.Empty:
             actor.bcast.diag('text="%s alive"' % threadName)
         except Exception, e:
-            errMsg = "Unexpected exception %s in sop %s thread" % (e, threadName)
-            actor.bcast.warn('text="%s"' % errMsg)
-            tback(errMsg, e)
-
-            try:
-                msg.replyQueue.put(Msg.EXIT, cmd=msg.cmd, success=False)
-            except Exception, e:
-                pass
+            sopActor.handle_bad_exception(actor, e, threadName, msg)
