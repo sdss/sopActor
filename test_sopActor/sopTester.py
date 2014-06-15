@@ -67,6 +67,7 @@ class SopTester(TestHelper.ActorTester):
         actorState.timeout = 10
         actorState.aborting = False
         self._load_lamptimes()
+        self._clear_bypasses()
         
     def _load_lamptimes(self):
         """Load the lamp timeouts from the conf file."""

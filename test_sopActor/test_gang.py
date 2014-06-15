@@ -18,7 +18,6 @@ class Test_gang(sopTester.SopTester,unittest.TestCase):
     def setUp(self):
         self.verbose = False
         super(Test_gang,self).setUp()
-        self._clear_bypasses()
         self.apogeeGang = gang.ApogeeGang()
 
     def test_at_podium(self):
