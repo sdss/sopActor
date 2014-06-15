@@ -385,12 +385,12 @@ def update_exp_counts(cmdState,expType):
         return False
     return True
 
-def is_gang_at_cart(msg):
+def is_gang_at_cart(cmd, cmdState, actorState):
     """Fail, and return False if the gang is not at the cart, else return True."""
-    if not msg.actorState.apogeeGang.atCartridge():
+    if not actorState.apogeeGang.atCartridge():
         failMsg = "gang connector is not at the cartridge!"
         longFailMsg = "Not taking APOGEE exposures: %s"%failMsg
-        return fail_command(msg.cmd, msg.cmdState, failMsg, longFailMsg)
+        return fail_command(cmd, cmdState, failMsg, longFailMsg)
     else:
         return True
 
@@ -440,16 +440,20 @@ def deactivate_guider_decenter(cmd, cmdState, actorState, stageName):
         return False
     return True
 
-def apogee_dome_flat(cmd, cmdState, multiCmd, failMsg="failed to take APOGEE flat"):
+def apogee_dome_flat(cmd, cmdState, actorState, multiCmd, failMsg="failed to take APOGEE flat"):
     """
     Take an APOGEE dome flat: shutter open, FFS closed, FFlamp on very briefly.
     Doesn't "finish", because it is used in the middle of goto_gang_change;
     Return True if success, fail the cmd and return False if not.
     """
+
+    if not is_gang_at_cart(cmd, cmdState, actorState):
+        return False
+
     prep_apogee_shutter(multiCmd,open=True)
     multiCmd.append(SopPrecondition(sopActor.FFS, Msg.FFS_MOVE, open=False))
     multiCmd.append(sopActor.APOGEE_SCRIPT, Msg.POST_FLAT, cmdState=cmdState)
-    if not handle_multiCmd(multiCmd, cmd, cmdState, 'domeFlat', failMsg):
+    if not handle_multiCmd(multiCmd, cmd, cmdState, 'domeFlat', failMsg, finish=True):
         return False
     else:
         return True
@@ -1021,11 +1025,11 @@ def goto_gang_change(cmd, cmdState, actorState):
     cmdState.setStageState('slew', 'running')
     
     # TBD: SDSSIV: this should be a test based on 'APOGEE' in survey
-    # or maybe based off of survey_mode? Will have to discuss with 
+    # or maybe based off of survey_mode? Will have to discuss with
     # APOGEE/MaNGA folks...
     if doCals and actorState.survey != sopActor.BOSS:
         cmd.inform('text="scheduling flat: %s %s"' % (doCals, actorState.survey))
-        if not apogee_dome_flat(cmd, cmdState, multiCmd, failMsg="failed to take flat before gang change"):
+        if not apogee_dome_flat(cmd, cmdState, actorState, multiCmd, failMsg="failed to take flat before gang change"):
             return
     else:
         # Close the FFS, to prevent excess light incase of slews past the moon, etc.
@@ -1163,15 +1167,13 @@ def main(actor, queues):
                 goto_field(cmd, cmdState, actorState)
             
             elif msg.type == Msg.APOGEE_DOME_FLAT:
-                if not is_gang_at_cart(msg):
-                    continue
                 cmd,cmdState,actorState = preprocess_msg(msg)
                 name = 'apogeeDomeFlat'
                 finishMsg = "Dome flat done."
                 # 50 seconds is the read time for this exposure.
                 multiCmd = MultiCommand(cmd, actorState.timeout + 50, name)
                 # the dome flat command sends a fail msg if it fails.
-                if apogee_dome_flat(cmd, cmdState, multiCmd):
+                if apogee_dome_flat(cmd, cmdState, actorState, multiCmd):
                     finish_command(cmd, cmdState, actorState, finishMsg)
 
             elif msg.type == Msg.GOTO_GANG_CHANGE:
@@ -1261,11 +1263,9 @@ def main(actor, queues):
                 msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=success)
 
             elif msg.type == Msg.EXPOSURE_FINISHED:
-                print '!!!!!!!!!!!!!!!!!!!1'
-                print 'exposure finished!'
-                print '!!!!!!!!!!!!!!!!!!!1'
+                print '!!!!!!!!!!!!!!!!'
                 if msg.success:
-                    cmd.finish()
+                    msg.cmd.finish()
                 else:
                     msg.cmd.fail("")
 
