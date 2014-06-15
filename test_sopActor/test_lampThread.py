@@ -33,8 +33,7 @@ class TestLampThread(sopTester.SopThreadTester,unittest.TestCase):
         msg = self._queue_get(queue)
         self.assertEqual(msg.type, reply)
         self._check_cmd(nCall, nInfo, nWarn, nErr, False, didFail)
-        with self.assertRaises(queue.Empty): # ensure the queue is empty.
-            queue.get(block=False)
+        self.assert_empty(queue)
         return msg
 
     def _do_lamp(self, nCall, nInfo, nWarn, nErr, name, action, didFail=False,

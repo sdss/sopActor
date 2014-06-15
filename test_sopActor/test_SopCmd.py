@@ -34,14 +34,6 @@ class SopCmdTester(sopTester.SopTester):
         self.cmd.verbose = self.verbose
         self._clear_bypasses()
 
-    def _clear_bypasses(self):
-        """Clear all bypasses, so they don't screw up other tests."""
-        self.cmd.verbose = False
-        for name in Bypass._bypassed:
-            Bypass._bypassed[name] = False
-        self.cmd.clear_msgs()
-        self.cmd.verbose = self.verbose
-
     def _prep_bypass(self,bypass,clear=False):
         """
         Help setting up a bypass, so we don't spam with status messages.
