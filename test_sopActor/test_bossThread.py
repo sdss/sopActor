@@ -25,12 +25,11 @@ class TestBossThread(sopTester.SopThreadTester,unittest.TestCase):
         myGlobals.actorState.queues['boss'] = Queue('boss')
         self.queues = myGlobals.actorState.queues
 
-    
     def _hartmann(self,nCall,nInfo,nWarn,nErr,expTime,mask, finish=False,didFail=False):
         # These commands are issued via masterThread
         replyQueue = self.queues['boss']
         bossThread.hartmann(self.cmd, myGlobals.actorState, replyQueue, expTime, mask)
-        self._check_cmd(nCall, nInfo, nWarn, nErr, finish, didFail)
+        self._check_cmd(nCall, nInfo, nWarn, nErr, finish, didFail, reply=['boss',sopActor.Msg.EXPOSURE_FINISHED])
     def test_hartmann_left(self):
         """exposure"""
         self._hartmann(1,1,0,0,4,'left')
