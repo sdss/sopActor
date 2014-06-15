@@ -171,6 +171,13 @@ class SopThreadTester(SopTester,unittest.TestCase):
 
     def _check_cmd(self,*args,**kwargs):
         super(SopThreadTester,self)._check_cmd(*args,**kwargs)
+        # if we're expecting a reply, we should get one.
+        if 'reply' in kwargs:
+            queue = myGlobals.actorState.queues[kwargs['reply'][0]]
+            expected = kwargs['reply'][1]
+            actual = queue.get(block=False)
+            self.assertEqual(actual.type,expected)
+        # by now, all the queues should be empty.
         self.assert_queues_empty()
 
     def assert_queues_empty(self):
@@ -181,7 +188,8 @@ class SopThreadTester(SopTester,unittest.TestCase):
     def assert_empty(self,queue):
         """Assert that a queue is empty, without waiting."""
         with self.assertRaises(queue.Empty):
-            queue.get(block=False)
+            msg = queue.get(block=False)
+            print '%s got: %s'%(queue,msg)
 
     def killQueues(self):
         """Stop all running threads."""
