@@ -1,21 +1,3 @@
-[test_apogee_dome_flat_gang_change]
-apogee shutter open
-mcp ffs.close
-
-apogee expose time=50.0 object=DomeFlat
-
-[test_apogee_dome_flat_enclosure]
-apogee shutter open
-
-apogee expose time=50.0 object=DomeFlat
-
-[test_apogee_dome_flat_enclosure_shutterOpen]
-apogee expose time=50.0 object=DomeFlat
-
-[test_apogee_dome_flat_enclosure_fails]
-apogee shutter open
-mcp ffs.close
-
 [test_goto_gang_change_apogee_open]
 mcp ffs.close
 
