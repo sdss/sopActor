@@ -12,6 +12,7 @@ import os
 from actorcore import TestHelper
 
 import sopActor
+from sopActor import Bypass
 from sopActor.utils.tcc import TCCState
 from sopActor.utils.gang import ApogeeGang
 from sopActor.utils.guider import GuiderState
@@ -67,7 +68,6 @@ class SopTester(TestHelper.ActorTester):
         actorState.aborting = False
         self._load_lamptimes()
         
-    
     def _load_lamptimes(self):
         """Load the lamp timeouts from the conf file."""
         self.config = ConfigParser.ConfigParser()
@@ -90,6 +90,14 @@ class SopTester(TestHelper.ActorTester):
         sopActor.myGlobals.warmupTime[sopActor.HGCD_LAMP] = 8
         # so that we don't get an occasional status message.
         sopActor.myGlobals.warmupTime[sopActor.FF_LAMP] = .5
+
+    def _clear_bypasses(self):
+        """Clear all bypasses, so they don't screw up other tests."""
+        self.cmd.verbose = False
+        for name in Bypass._bypassed:
+            Bypass._bypassed[name] = False
+        self.cmd.clear_msgs()
+        self.cmd.verbose = self.verbose
 #...
 
 class SopThreadTester(SopTester,unittest.TestCase):
@@ -159,7 +167,21 @@ class SopThreadTester(SopTester,unittest.TestCase):
         # Can't start these until after I've built the queues.
         for t in actorState.threads:
             actorState.threads[t].start()
-    
+
+    def _check_cmd(self,*args,**kwargs):
+        super(SopThreadTester,self)._check_cmd(*args,**kwargs)
+        self.assert_queues_empty()
+
+    def assert_queues_empty(self):
+        """Assert that all queues are empty."""
+        for tid in myGlobals.actorState.queues:
+            self.assert_empty(myGlobals.actorState.queues[tid])
+
+    def assert_empty(self,queue):
+        """Assert that a queue is empty, without waiting."""
+        with self.assertRaises(queue.Empty):
+            queue.get(block=False)
+
     def killQueues(self):
         """Stop all running threads."""
         for tid in myGlobals.actorState.queues:
