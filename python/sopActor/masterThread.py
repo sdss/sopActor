@@ -1263,7 +1263,6 @@ def main(actor, queues):
                 msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=success)
 
             elif msg.type == Msg.EXPOSURE_FINISHED:
-                print '!!!!!!!!!!!!!!!!'
                 if msg.success:
                     msg.cmd.finish()
                 else:
