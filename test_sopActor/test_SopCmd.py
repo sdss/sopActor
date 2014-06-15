@@ -46,10 +46,10 @@ class SopCmdTester(sopTester.SopTester):
         self.cmd.clear_msgs()
         self.cmd.verbose = self.verbose
     
-    def _update_cart(self,nCart):
+    def _update_cart(self, nCart, survey):
         """Update cartridge without being verbose, and clear those messages."""
         self.cmd.verbose = False
-        self.sopCmd.updateCartridge(nCart)
+        self.sopCmd.updateCartridge(nCart, survey)
         self.cmd.clear_msgs()
         self.cmd.verbose = self.verbose
 
@@ -84,10 +84,8 @@ class TestClassifyCartridge(SopCmdTester,unittest.TestCase):
 
 class TestUpdateCartridge(SopCmdTester,unittest.TestCase):
     """Confirm that we get the right validCommands from each survey type."""
-    def _updateCartridge(self,nCart,expected):
-        surveyGot = self.sopCmd.updateCartridge(nCart)
-        import pdb
-        pdb.set_trace()
+    def _updateCartridge(self, nCart, survey, expected):
+        surveyGot = self.sopCmd.updateCartridge(nCart, survey)
         sop = myGlobals.actorState.models['sop']
         self.assertEqual(sop.keyVarDict['surveyCommands'].getValue(), expected['surveyCommands'])
 
@@ -95,19 +93,19 @@ class TestUpdateCartridge(SopCmdTester,unittest.TestCase):
         sopTester.updateModel('guider',TestHelper.guiderState['bossLoaded'])
         expected = {}
         expected['surveyCommands'] = TestHelper.sopBossCommands['surveyCommands']
-        self._updateCartridge(11,expected)
+        self._updateCartridge(11,'BOSS',expected)
 
     def test_updateCartridge_manga(self):
         sopTester.updateModel('guider',TestHelper.guiderState['mangaLoaded'])
         expected = {}
         expected['surveyCommands'] = TestHelper.sopMangaCommands['surveyCommands']
-        self._updateCartridge(2,expected)
+        self._updateCartridge(2,'MaNGA',expected)
 
     def test_updateCartridge_apogge(self):
         sopTester.updateModel('guider',TestHelper.guiderState['apogeeLoaded'])
         expected = {}
         expected['surveyCommands'] = TestHelper.sopApogeeCommands['surveyCommands']
-        self._updateCartridge(1,expected)
+        self._updateCartridge(1,'APOGEE',expected)
 
 
 class TestGotoGangChange(SopCmdTester,unittest.TestCase):
