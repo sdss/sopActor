@@ -64,7 +64,7 @@ class TestGuider(MasterThreadTester):
         self._guider_start(5,9,0,0)
     def test_guider_start_ffsOpen(self):
         """3x axis clear, guider on"""
-        sopTester.updateModel('mcp',TestHelper.mcpState['science'])
+        sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         self._guider_start(4,6,0,0)
     def test_guider_start_arcsOn(self):
         """ffs open, he off, hgcd off, 3x axis clear, guider on"""
@@ -88,7 +88,7 @@ class TestGuider(MasterThreadTester):
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
         self._guider_flat(2,8,0,0)
     def test_guider_flat_ffsOpen(self):
-        sopTester.updateModel('mcp',TestHelper.mcpState['science'])
+        sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         self._guider_flat(3,8,0,0)
     def test_guider_flat_fails(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
@@ -100,7 +100,7 @@ class TestGuider(MasterThreadTester):
         cmdState = CmdState.GotoFieldCmd()
         result = masterThread.guider_flat(self.cmd, cmdState, myGlobals.actorState, "guider", apogeeShutter=True)
         self.assertEqual(result,not didFail)
-        self._check_cmd(nCall,nInfo,nWarn,nErr, finish, didFail=didFail)        
+        self._check_cmd(nCall,nInfo,nWarn,nErr, finish, didFail=didFail)
     def test_guider_flat_apogeeShutter_open(self):
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         self._guider_flat_apogeeShutter(3,8,0,0)
@@ -282,7 +282,7 @@ class TestHartmann(MasterThreadTester):
         masterThread.hartmann(self.cmd,cmdState,myGlobals.actorState)
         self._check_cmd(nCall,nInfo,nWarn,nErr,finish,didFail)
     def test_hartmann_open(self):
-        sopTester.updateModel('mcp',TestHelper.mcpState['science'])
+        sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         self._hartmann(9,27,0,0)
     def test_hartmann_closed(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
@@ -297,45 +297,58 @@ class TestHartmann(MasterThreadTester):
         self._hartmann(7,26,0,1,didFail=True)
         
 
-class TestGotoGangChange(MasterThreadTester):
-    """goto_gang_change and apogee_dome_flat tests"""
+class TestApogeeDomeFlat(MasterThreadTester):
+    """apogee_dome_flat tests"""
     # NOTE: the cmd numbers here aren't right, because I haven't fully faked
     # the apogee utrReadState thing, so the fflamps don't get called on+off.
     # TBD: That would increase the nCalls in each of these by 2:
     #     One for ff.on and one for ff.off
     def _apogee_dome_flat(self,nCall,nInfo,nWarn,nErr, multiCmd, finish=False, didFail=False):
         cmdState = CmdState.DoApogeeDomeFlatCmd()
-        result = masterThread.apogee_dome_flat(self.cmd, cmdState, multiCmd)
+        result = masterThread.apogee_dome_flat(self.cmd, cmdState, myGlobals.actorState, multiCmd)
         self._check_cmd(nCall,nInfo,nWarn,nErr,finish,didFail)
         self.assertEqual(result, not didFail)
     def test_apogee_dome_flat_gang_change(self):
         """shutter open, FFS close, exposure +(ff on, ff off)"""
-        name = 'gotoGangChange.slew'
-        sopTester.updateModel('mcp',TestHelper.mcpState['science'])
+        name = 'apogeeDomeFlat'
+        sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         multiCmd = sopActor.MultiCommand(self.cmd, myGlobals.actorState.timeout + 50, name)
         self._apogee_dome_flat(3,9,0,0, multiCmd)
     def test_apogee_dome_flat_enclosure(self):
         """shutter open, exposure +(ff on, ff off)"""
         name = 'apogeeDomeFlat'
-        sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
+        sopTester.updateModel('mcp',TestHelper.mcpState['apogee_parked'])
         multiCmd = sopActor.MultiCommand(self.cmd, myGlobals.actorState.timeout + 50, name)
         self._apogee_dome_flat(2,9,0,0, multiCmd)
     def test_apogee_dome_flat_enclosure_shutterOpen(self):
         """exposure +(ff on, ff off)"""
         name = 'apogeeDomeFlat'
-        sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
+        sopTester.updateModel('mcp',TestHelper.mcpState['apogee_parked'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         multiCmd = sopActor.MultiCommand(self.cmd, myGlobals.actorState.timeout + 50, name)
         self._apogee_dome_flat(1,6,0,0, multiCmd)
         
-    def test_apogee_dome_flat_enclosure_fails(self):
+    def test_apogee_dome_flat_ffs_fails(self):
         """shutter open, ffs close->fail"""
         name = 'apogeeDomeFlat'
         self.cmd.failOn = "mcp ffs.close"
-        sopTester.updateModel('mcp',TestHelper.mcpState['science'])
+        sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         multiCmd = sopActor.MultiCommand(self.cmd, myGlobals.actorState.timeout + 50, name)
         self._apogee_dome_flat(2,10,1,0, multiCmd, finish=True, didFail=True)
-    
+    def test_apogee_dome_flat_gang_on_podium_fails(self):
+        """fail immediately"""
+        name = 'apogeeDomeFlat'
+        sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
+        multiCmd = sopActor.MultiCommand(self.cmd, myGlobals.actorState.timeout + 50, name)
+        self._apogee_dome_flat(0,3,0,0, multiCmd, finish=True, didFail=True)
+
+
+class TestGotoGangChange(MasterThreadTester):
+    """goto_gang_change tests"""
+    # NOTE: the cmd numbers here aren't right, because I haven't fully faked
+    # the apogee utrReadState thing, so the fflamps don't get called on+off.
+    # TBD: That would increase the nCalls in each of these by 2:
+    #     One for ff.on and one for ff.off
     def _goto_gang_change(self, nCall, nInfo, nWarn, nErr, finish=True, didFail=False):
         cmdState = CmdState.GotoGangChangeCmd()
         masterThread.goto_gang_change(self.cmd, cmdState, myGlobals.actorState)
@@ -346,7 +359,7 @@ class TestGotoGangChange(MasterThreadTester):
         One warning from "in slew with halted=False slewing=False"
         """
         myGlobals.actorState.survey = sopActor.APOGEE
-        sopTester.updateModel('mcp',TestHelper.mcpState['science'])
+        sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         self._goto_gang_change(6, 19, 1, 0)
     def test_goto_gang_change_apogee_closed(self):
@@ -356,7 +369,7 @@ class TestGotoGangChange(MasterThreadTester):
         One warning from "in slew with halted=False slewing=False"
         """
         myGlobals.actorState.survey = sopActor.APOGEE
-        sopTester.updateModel('mcp',TestHelper.mcpState['science'])
+        sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['A_closed'])
         self._goto_gang_change(7, 19, 1, 0)
     def test_goto_gang_change_apogee_gang_podium(self):
@@ -366,7 +379,7 @@ class TestGotoGangChange(MasterThreadTester):
         """
         myGlobals.actorState.survey = sopActor.APOGEE
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
-        sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])        
+        sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
         self._goto_gang_change(4, 10, 1, 0)
     def test_goto_gang_change_boss(self):
         """
@@ -381,7 +394,7 @@ class TestGotoGangChange(MasterThreadTester):
         myGlobals.actorState.survey = sopActor.APOGEE
         self.cmd.failOn = "apogee expose time=50.0 object=DomeFlat"
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
-        sopTester.updateModel('mcp',TestHelper.mcpState['science'])
+        sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         self._goto_gang_change(2, 13, 1, 0, didFail=True)
     def test_goto_gang_change_apogee_fails_slew(self):
         """
@@ -390,7 +403,7 @@ class TestGotoGangChange(MasterThreadTester):
         self.cmd.failOn = "tcc axis init"
         myGlobals.actorState.survey = sopActor.APOGEE
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
-        sopTester.updateModel('mcp',TestHelper.mcpState['science'])
+        sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         self._goto_gang_change(5, 18, 0, 2, didFail=True)
 
 
@@ -405,7 +418,7 @@ class TestBossScience(MasterThreadTester):
         
     def test_do_boss_science(self):
         """One call per requested exposure"""
-        sopTester.updateModel('mcp',TestHelper.mcpState['science'])
+        sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         nExp = 2
         self._do_boss_science(nExp,14,0,0,nExp=nExp)
 
@@ -422,7 +435,7 @@ class TestApogeeScience(MasterThreadTester):
         self._check_cmd(nCall,nInfo,nWarn,nErr,True)
     def test_do_apogee_science(self):
         """open shutter, one call per exposure, dither moves"""
-        sopTester.updateModel('mcp',TestHelper.mcpState['science'])
+        sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['A_closed'])
         ditherSeq = 'ABBA' # causes 2 dither moves: A->B, B->A
         seqCount = 1
@@ -439,7 +452,7 @@ class TestMangaScience(MasterThreadTester):
         self._check_cmd(nCall,nInfo,nWarn,nErr,False)
     def test_do_one_manga_dither(self):
         """gudier decenter, guider dither, boss exposure"""
-        sopTester.updateModel('mcp',TestHelper.mcpState['science'])
+        sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         dither = 'N'
         self._do_one_manga_dither(3,9,0,0,dither=dither)
     
@@ -450,7 +463,7 @@ class TestMangaScience(MasterThreadTester):
         self._check_cmd(nCall,nInfo,nWarn,nErr,True,didFail=didFail)
     def test_do_manga_dither(self):
         """decenter on, guider dither, boss exposure, decenter off"""
-        sopTester.updateModel('mcp',TestHelper.mcpState['science'])
+        sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         dither = 'N'
         self._do_manga_dither(4,17,0,0,dither=dither)
     def test_do_manga_dither_fails_ffs(self):
@@ -480,7 +493,7 @@ class TestMangaScience(MasterThreadTester):
         # TBD": Note: until multiCmds are smarter about whether we have to run
         # non-preconditions, things like wht.off will always be sent as part of
         # prepping for things, even though they aren't necessary.
-        sopTester.updateModel('mcp',TestHelper.mcpState['science'])
+        sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         count = 3
         dithers = 'NSE'
         self._do_manga_sequence(1 + 
@@ -500,7 +513,7 @@ class TestMangaScience(MasterThreadTester):
         # TBD": Note: until multiCmds are smarter about whether we have to run
         # non-preconditions, things like wht.off will always be sent as part of
         # prepping for things, even though they aren't necessary.
-        sopTester.updateModel('mcp',TestHelper.mcpState['science'])
+        sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         count = 1
         dithers = 'NSE'
         self._do_manga_sequence(1 + 
@@ -596,7 +609,8 @@ if __name__ == '__main__':
     # to test just one piece
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestGuider)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoField)
-    #suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoGangChange)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoGangChange)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestApogeeDomeFlat)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestApogeeScience)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestBossScience)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestHartmann)
