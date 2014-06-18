@@ -101,7 +101,7 @@ class TestUpdateCartridge(SopCmdTester,unittest.TestCase):
         expected['surveyCommands'] = TestHelper.sopMangaCommands['surveyCommands']
         self._updateCartridge(2,'MaNGA',expected)
 
-    def test_updateCartridge_apogge(self):
+    def test_updateCartridge_apogee(self):
         sopTester.updateModel('guider',TestHelper.guiderState['apogeeLoaded'])
         expected = {}
         expected['surveyCommands'] = TestHelper.sopApogeeCommands['surveyCommands']
