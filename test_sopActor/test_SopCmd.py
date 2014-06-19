@@ -54,6 +54,32 @@ class SopCmdTester(sopTester.SopTester):
         self.cmd.verbose = self.verbose
 
 
+class TestBypass(SopCmdTester,unittest.TestCase):
+    """Test setting and clearing bypasses with the sop bypass command."""
+    def _bypass_set(self, system):
+        self._clear_bypasses()
+        self.cmd.rawCmd = 'bypass subSystem=%s'%system
+        self.actor.runActorCmd(self.cmd)
+        for item in Bypass._bypassed:
+            # all others should be cleared.
+            if item != system:
+                self.assertFalse(Bypass.get(name=item))
+            else:
+                self.assertTrue(Bypass.get(name=item))
+    def test_bypass_isBoss(self):
+        self._bypass_set('isBoss')
+    def test_bypass_isApogee(self):
+        self._bypass_set('isApogee')
+    def test_bypass_isManga(self):
+        self._bypass_set('isManga')
+    def test_bypass_isApogeeManga(self):
+        self._bypass_set('isApogeeManga')
+    def test_bypass_gangCart(self):
+        self._bypass_set('gangCart')
+    def test_bypass_gangPodium(self):
+        self._bypass_set('gangPodium')
+
+
 class TestClassifyCartridge(SopCmdTester,unittest.TestCase):
     def _classifyCartridge(self,nCart,survey,expect):
         surveyGot = self.sopCmd.classifyCartridge(self.cmd,nCart,survey)
@@ -74,13 +100,20 @@ class TestClassifyCartridge(SopCmdTester,unittest.TestCase):
         sopTester.updateModel('guider',TestHelper.guiderState['apogeemangaLoaded'])
         self._classifyCartridge(3,'APOGEE-MaNGA',sopActor.APOGEEMANGA)
     
-    def test_classifyCartridge_brightbypass(self):
-        self._prep_bypass('brightPlate',clear=True)
+    def test_classifyCartridge_boss_bypass(self):
+        self._prep_bypass('isBoss',clear=True)
         self._classifyCartridge(2,'APOGEE',sopActor.BOSS)
-    def test_classifyCartridge_darkbypass(self):
-        self._prep_bypass('darkPlate',clear=True)
+    def test_classifyCartridge_apogee_bypass(self):
+        self._prep_bypass('isApogee',clear=True)
         self.cmd.clear_msgs()
         self._classifyCartridge(11,'BOSS',sopActor.APOGEE)
+    def test_classifyCartridge_manga_bypass(self):
+        self._prep_bypass('isManga',clear=True)
+        self._classifyCartridge(2,'MaNGA',sopActor.MANGA)
+    def test_classifyCartridge_apogeemanga_bypass(self):
+        self._prep_bypass('isApogeeManga',clear=True)
+        self._classifyCartridge(11,'BOSS',sopActor.APOGEEMANGA)
+
 
 class TestUpdateCartridge(SopCmdTester,unittest.TestCase):
     """Confirm that we get the right validCommands from each survey type."""
