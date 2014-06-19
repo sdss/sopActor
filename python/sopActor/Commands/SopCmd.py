@@ -118,11 +118,10 @@ class SopCmd(object):
     # Declare systems that can be bypassed
     #
     if not Bypass.get():
-        # Pulled a couple to get the count under 9
-        # "uv_lamp", "wht_lamp", "boss", "gcamera",
         for ss in ("ffs", "ff_lamp", "hgcd_lamp", "ne_lamp", "axes",
-                   "brightPlate", "darkPlate", "gangCart", "gangPodium", "slewToField",
-                  "guiderDark"):
+                   "isBoss", "isApogee", "isManga", "isApogeeManga",
+                   "gangCart", "gangPodium", "slewToField",
+                   "guiderDark"):
             Bypass.set(ss, False, define=True)
     #
     # Define commands' callbacks
@@ -528,10 +527,13 @@ class SopCmd(object):
                 return
 
             # NOTE: TBD: SDSS4: See #2007 for how this needs to be restructured.
-            if subSystem in ("darkPlate", "brightPlate"):
-                # Clear the other one
+            cartBypasses = ["isBoss", "isApogee", "isManga", "isApogeeManga"]
+            if subSystem in cartBypasses:
+                # Clear the others
                 if doBypass:
-                    Bypass.set("darkPlate" if subSystem == "brightPlate" else "brightPlate", False)
+                    cartBypasses.remove(subSystem)
+                    for item in cartBypasses:
+                        Bypass.set(item,False)
                 self.updateCartridge(sopState.cartridge, sopState.survey)
             elif subSystem in ('gangPodium', 'gangCart'):
                 # Clear the other one
@@ -1097,12 +1099,19 @@ class SopCmd(object):
         # we will have to use the PlateType or InstrumentLead identifier
         # as extracted from the platedb, since we'll have to treat eBOSS and
         # MaNGA slightly differently.
-        if Bypass.get(name='brightPlate'):
-            cmd.warn('text="We are lying about this being a Boss cartridge"')
+        if Bypass.get(name='isBoss'):
+            cmd.warn('text="We are lying about this being a BOSS cartridge"')
             return sopActor.BOSS
-        elif Bypass.get(name='darkPlate'):
-            cmd.warn('text="We are lying about this being a bright-time cartridge"')
+        elif Bypass.get(name='isApogee'):
+            cmd.warn('text="We are lying about this being an APOGEE cartridge"')
             return sopActor.APOGEE
+        elif Bypass.get(name='isManga'):
+            cmd.warn('text="We are lying about this being a MaNGA cartridge"')
+            return sopActor.MANGA
+        elif Bypass.get(name='isApogeeManga'):
+            cmd.warn('text="We are lying about this being an APOGEE-MaNGA cartridge"')
+            return sopActor.APOGEEMANGA
+
 
         if cartridge <= 0:
             cmd.warn('text="We do not have a valid cartridge (id=%s)"' % (cartridge))
