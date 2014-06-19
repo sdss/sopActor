@@ -109,7 +109,7 @@ class TestClassifyCartridge(SopCmdTester,unittest.TestCase):
         self._classifyCartridge(11,'BOSS',sopActor.APOGEE)
     def test_classifyCartridge_manga_bypass(self):
         self._prep_bypass('isManga',clear=True)
-        self._classifyCartridge(2,'MaNGA',sopActor.MANGA)
+        self._classifyCartridge(2,'APOGEE',sopActor.MANGA)
     def test_classifyCartridge_apogeemanga_bypass(self):
         self._prep_bypass('isApogeeManga',clear=True)
         self._classifyCartridge(11,'BOSS',sopActor.APOGEEMANGA)
