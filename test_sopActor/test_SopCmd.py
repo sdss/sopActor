@@ -98,7 +98,8 @@ class TestClassifyCartridge(SopCmdTester,unittest.TestCase):
         self._classifyCartridge(2,'MaNGA',sopActor.MANGA)
     def test_classifyCartridge_apogeemanga(self):
         sopTester.updateModel('guider',TestHelper.guiderState['apogeemangaLoaded'])
-        self._classifyCartridge(3,'APOGEE-MaNGA',sopActor.APOGEEMANGA)
+        self._classifyCartridge(3,'APOGEE-2;MaNGA',sopActor.APOGEEMANGA)
+        self._classifyCartridge(3,'APOGEE;MaNGA',sopActor.APOGEEMANGA)
     
     def test_classifyCartridge_boss_bypass(self):
         self._prep_bypass('isBoss',clear=True)
@@ -240,10 +241,10 @@ class TestGotoField(SopCmdTester,unittest.TestCase):
         stages = dict(zip(stages,['idle']*len(stages)))
         self.assertEqual(msg.cmdState.stages,stages)
         self._check_levels(0,2,0,0) # should always output *Stages and *States
-        self.assertEqual(msg.cmdState.arcTime,expect.get('arcTime',0))
-        self.assertEqual(msg.cmdState.flatTime,expect.get('flatTime',0))
-        self.assertEqual(msg.cmdState.guiderTime,expect.get('guiderTime',0))
-        self.assertEqual(msg.cmdState.guiderFlatTime,expect.get('guiderFlatTime',0))
+        self.assertEqual(msg.cmdState.arcTime,expect.get('arcTime',4))
+        self.assertEqual(msg.cmdState.flatTime,expect.get('flatTime',30))
+        self.assertEqual(msg.cmdState.guiderTime,expect.get('guiderTime',5))
+        self.assertEqual(msg.cmdState.guiderFlatTime,expect.get('guiderFlatTime',0.5))
         self.assertEqual(msg.cmdState.ra,expect.get('ra',0))
         self.assertEqual(msg.cmdState.dec,expect.get('dec',0))
         self.assertEqual(msg.cmdState.doSlew,expect.get('doSlew',True))
@@ -363,6 +364,64 @@ class TestHartmann(SopCmdTester,unittest.TestCase):
         self._hartmann(expect,stages,'expTime=5')
     
 
+class TestIsSlewingDisabled(SopCmdTester,unittest.TestCase):
+    def _slewing_is_disabled(self,expect):
+        self.cmdState.reinitialize(cmd=self.cmd)
+        result = self.sopCmd.isSlewingDisabled(self.cmd)
+        self.assertIn(expect,result)
+    def test_slewing_disabled_apogee_science(self):
+        self._update_cart(2, 'APOGEE')
+        self.cmdState = self.actorState.doApogeeScience
+        self._slewing_is_disabled('slewing disallowed for APOGEE,')
+    def test_slewing_disabled_boss_science(self):
+        self._update_cart(11, 'BOSS')
+        sopTester.updateModel('boss',TestHelper.bossState['integrating'])
+        self.cmdState = self.actorState.doBossScience
+        self._slewing_is_disabled('slewing disallowed for BOSS,')
+    def test_slewing_disabled_manga_dither(self):
+        self._update_cart(2, 'MaNGA')
+        sopTester.updateModel('boss',TestHelper.bossState['integrating'])
+        self.cmdState = self.actorState.doMangaDither
+        self._slewing_is_disabled('slewing disallowed for MaNGA,')
+    def test_slewing_disabled_manga_sequence(self):
+        self._update_cart(2, 'MaNGA')
+        sopTester.updateModel('boss',TestHelper.bossState['integrating'])
+        self.cmdState = self.actorState.doMangaSequence
+        self._slewing_is_disabled('slewing disallowed for MaNGA,')
+    def test_slewing_disabled_apogeemanga_dither(self):
+        self._update_cart(2, 'APOGEE-2;MaNGA')
+        sopTester.updateModel('boss',TestHelper.bossState['integrating'])
+        self.cmdState = self.actorState.doApogeeMangaDither
+        self._slewing_is_disabled('slewing disallowed for APOGEE-MaNGA,')
+    def test_slewing_disabled_apogeemanga_sequence(self):
+        self._update_cart(2, 'APOGEE-2;MaNGA')
+        sopTester.updateModel('boss',TestHelper.bossState['integrating'])
+        self.cmdState = self.actorState.doApogeeMangaSequence
+        self._slewing_is_disabled('slewing disallowed for APOGEE-MaNGA,')
+
+    def _slewing_is_enabled(self):
+        result = self.sopCmd.isSlewingDisabled(self.cmd)
+        self.assertFalse(result)
+    def test_slewing_enabled_bogus_cart(self):
+        self._update_cart(2, '???')
+        self._slewing_is_enabled()
+    def test_slewing_enabled_apogee_not_alive(self):
+        self._update_cart(2, 'APOGEE')
+        self.cmd.finished = True
+        self.actorState.doApogeeScience.reinitialize(self.cmd)
+        self._slewing_is_enabled()
+    def test_slewing_enabled_boss_not_alive(self):
+        self._update_cart(11, 'BOSS')
+        self.cmd.finished = True
+        self.actorState.doBossScience.reinitialize(self.cmd)
+        self._slewing_is_enabled()
+    def test_slewing_enabled_manga_not_alive(self):
+        self._update_cart(2, 'MaNGA')
+        self.cmd.finished = True
+        self.actorState.doMangaDither.reinitialize(self.cmd)
+        self._slewing_is_enabled()
+
+
 if __name__ == '__main__':
     verbosity = 2
     
@@ -376,6 +435,7 @@ if __name__ == '__main__':
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoField)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestBossCalibs)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestUpdateCartridge)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestIsSlewingDisabled)
     if suite:
         unittest.TextTestRunner(verbosity=verbosity).run(suite)
     else:

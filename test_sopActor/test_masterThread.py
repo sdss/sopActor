@@ -275,6 +275,18 @@ class TestGotoField(MasterThreadTester):
         self.cmd.failOn = "mcp ffs.open"
         self._goto_field_boss(21,64,2,1,cmdState,didFail=True,finish=True)
     
+    def _goto_field_apogeemanga(self, nCall, nInfo, nWarn, nErr, cmdState, finish=False, didFail=False):
+        masterThread.goto_field_apogeemanga(self.cmd,cmdState,myGlobals.actorState,self.timeout)
+        self._check_cmd(nCall, nInfo, nWarn, nErr, finish, didFail)
+    def test_goto_field_apogeemanga_all(self):
+        """
+        see cmd_calls/TestGotoField.txt for command list.
+        One warning from "in slew with halted=False slewing=False"
+        """
+        sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
+        cmdState = CmdState.GotoFieldCmd()
+        self._goto_field_apogeemanga(25,58,1,0,cmdState)
+
 class TestHartmann(MasterThreadTester):
     """hartmann tests"""
     def _hartmann(self,nCall,nInfo,nWarn,nErr, finish=True, didFail=False):
@@ -598,8 +610,6 @@ class TestBossCalibs(MasterThreadTester):
         self._do_boss_calibs(9,28,0,3,cmdState,didFail=True)
 
 
-
-
 if __name__ == '__main__':
     verbosity = 1
     if verbose:
@@ -608,9 +618,9 @@ if __name__ == '__main__':
     suite = None
     # to test just one piece
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestGuider)
-    # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoField)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoField)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoGangChange)
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestApogeeDomeFlat)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestApogeeDomeFlat)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestApogeeScience)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestBossScience)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestHartmann)

@@ -93,19 +93,21 @@ class CmdStateTester(sopTester.SopTester):
     
     def test_isSlewingDisabled_BOSS_integrating(self):
         sopTester.updateModel('boss',TestHelper.bossState['integrating'])
-        result = self.cmdState.isSlewingDisabled_BOSS()
-        self.assertEqual(result,'INTEGRATING')
+        result,text = self.cmdState.isSlewingDisabled_BOSS()
+        self.assertTrue(result)
+        self.assertEqual(text,'; exposureState=INTEGRATING')
     def test_isSlewingDisabled_BOSS_no(self):
         sopTester.updateModel('boss',TestHelper.bossState['reading'])
-        result = self.cmdState.isSlewingDisabled_BOSS()
+        result,text = self.cmdState.isSlewingDisabled_BOSS()
         self.assertFalse(result)
+        self.assertEqual(text,'; exposureState=READING')
     
     def _isSlewingDisabled_because_exposing(self, survey, nExp, state):
         self.cmdState.cmd = self.cmd
         result = self.cmdState.isSlewingDisabled()
         self.assertIsInstance(result,str)
         self.assertIn('slewing disallowed for %s'%survey,result)
-        self.assertIn('with %d science exposure %s'%(nExp,state),result)
+        self.assertIn('with %d science exposures left; exposureState=%s'%(nExp,state),result)
     
     def _isSlewingDisabled_no_cmd(self):
         """
@@ -152,6 +154,17 @@ class TestDoApogeeScience(CmdStateTester,unittest.TestCase):
         self.userKeys = True
         self.ok_stage = 'expose'
 
+    def test_isSlewingDisabled_no_cmd(self):
+        self._isSlewingDisabled_no_cmd()
+    def test_isSlewingDisabled_cmd_finished(self):
+        self._isSlewingDisabled_cmd_finished()
+    def test_isSlewingDisabled_because_alive(self):
+        self.cmdState.cmd = self.cmd
+        result = self.cmdState.isSlewingDisabled()
+        self.assertIsInstance(result,str)
+        expect = 'slewing disallowed for APOGEE, blocked by active doApogeeScience sequence'
+        self.assertEqual(result,expect)
+
 class TestDoApogeeSkyFlats(CmdStateTester,unittest.TestCase):
     def setUp(self):
         super(TestDoApogeeSkyFlats,self).setUp()
@@ -176,6 +189,10 @@ class TestDoBossScience(CmdStateTester,unittest.TestCase):
     def test_isSlewingDisabled_cmd_finished(self):
         self._isSlewingDisabled_cmd_finished()
 
+    def test_isSlewingDisabled_because_expLeft(self):
+        self.cmdState.nExpLeft = 1
+        self._isSlewingDisabled_because_exposing('BOSS',1,'IDLE')
+    
 
 class TestDoMangaSequence(CmdStateTester,unittest.TestCase):
     def setUp(self):
@@ -231,7 +248,7 @@ class TestDoApogeeMangaDither(CmdStateTester,unittest.TestCase):
     
     def test_isSlewingDisabled_because_exposing(self):
         sopTester.updateModel('boss',TestHelper.bossState['integrating'])
-        self._isSlewingDisabled_because_exposing('MaNGA',1,'INTEGRATING')
+        self._isSlewingDisabled_because_exposing('APOGEE-MaNGA',1,'INTEGRATING')
     
     def test_isSlewingDisabled_no(self):
         sopTester.updateModel('boss',TestHelper.bossState['reading'])
