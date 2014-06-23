@@ -180,7 +180,7 @@ class CmdState(object):
             self.genStateKeys(cmd=cmd)
         
     def isSlewingDisabled_BOSS(self):
-        """Return Ture if the BOSS state is safe to start a slew."""
+        """Return True if the BOSS state is safe to start a slew."""
         safe_state = ('READING', 'IDLE', 'DONE', 'ABORTED')
         boss_state = myGlobals.actorState.models["boss"].keyVarDict["exposureState"][0]
         if boss_state not in safe_state:
@@ -197,6 +197,7 @@ class GotoGangChangeCmd(CmdState):
         CmdState.__init__(self, 'gotoGangChange',
                           ['domeFlat', 'slew'],
                           keywords=dict(alt=45.0))
+        self.expType = "object"
 
 class DoApogeeDomeFlatCmd(CmdState):
     def __init__(self):
@@ -313,6 +314,15 @@ class DoBossScienceCmd(CmdState):
         msg.append("%s_nExp=%d,%d" % (self.name, self.nExpDone, self.nExp))
         return msg
 
+    def isSlewingDisabled(self):
+        """If slewing is disabled, return a string describing why, else False."""
+        exp_state = self.isSlewingDisabled_BOSS()
+        text = 'slewing disallowed for BOSS, with %d science exposures left; exposureState=%s' % (self.nExpLeft,exp_state)
+        if (self.cmd and self.cmd.isAlive() and exp_state):
+            return text
+        else:
+            return False
+
 class DoMangaSequenceCmd(CmdState):
     def __init__(self):
         CmdState.__init__(self, 'doMangaSequence',
@@ -358,4 +368,57 @@ class DoMangaDitherCmd(CmdState):
             return "slewing disallowed for MaNGA, with 1 science exposure %s"%exp_state
         else:
             return False
+
+class DoApogeeMangaDitherCmd(CmdState):
+    def __init__(self):
+        CmdState.__init__(self, 'doApogeeMangaDither',
+                          ['expose','dither'],
+                          keywords=dict(mangaExpTime=900.0,
+                                        apogeeExpTime=450.0,
+                                        apogeeDithers='AB',
+                                        mangaDither='C'))
+        self.readout = True
     
+    def isSlewingDisabled(self):
+        """If slewing is disabled, return a string describing why, else False."""
+        exp_state = self.isSlewingDisabled_BOSS()
+        if (self.cmd and self.cmd.isAlive() and exp_state):
+            return "slewing disallowed for MaNGA, with 1 science exposure %s"%exp_state
+        else:
+            return False
+
+class DoApogeeMangaSequenceCmd(CmdState):
+    def __init__(self):
+        CmdState.__init__(self, 'doApgoeeMangaSequence',
+                          ['expose','calibs','dither'],
+                          keywords=dict(mangaExpTime=900.0,
+                                        apogeeExpTime=450.0,
+                                        apogeeDithers='AB',
+                                        mangaDithers='NSE',
+                                        count=3))
+        self.reset_ditherSeq()
+        
+    def reset_nonkeywords(self):
+        self.mangaDithersDone = 0
+        self.apogeeDithersDone = 0
+        self.nSet = 0
+        self.index = 0
+    
+    def reset_ditherSeq(self):
+        """Reset dither sequence based on dithers,count parameters."""
+        self.mangaDitherSeq = self.mangaDithers*self.count
+        # one manga exposure is two apogee exposures.
+        self.apogeeDitherSeq = (self.apogeeDithers+self.apogeeDithers[::-1])*self.count*2
+        
+    def getUserKeys(self):
+        msg = []
+        msg.append("%s_ditherSeq=%s,%s,%s,%s%s" % (self.name, self.mangaDitherSeq,
+                   self.mangaDithersDone, self.apogeeDitherSeq, self.apogeeDithersDone,
+                   self.index))
+        return msg
+    
+    def isSlewingDisabled(self):
+        if (self.cmd and self.cmd.isAlive()):
+            return "slewing disallowed for MaNGA, with a sequence in progress."
+        else:
+            return False
