@@ -108,12 +108,20 @@ class CmdStateTester(sopTester.SopTester):
         self.assertIn('with %d science exposure %s'%(nExp,state),result)
     
     def _isSlewingDisabled_no_cmd(self):
+        """
+        Enable this by making a test_*() function that calls this.
+        (this command isn't valid for all cmdStates)
+        """
         self.cmdState.cmd = None
         result = self.cmdState.isSlewingDisabled()
         self.assertFalse(result)
     def _isSlewingDisabled_cmd_finished(self):
+        """
+        Enable this by making a test_*() function that calls this.
+        (this command isn't valid for all cmdStates)
+        """
         self.cmdState.cmd = self.cmd
-        self.cmdState.finished = True
+        self.cmdState.cmd.finished = True
         result = self.cmdState.isSlewingDisabled()
         self.assertFalse(result)
 
@@ -163,6 +171,12 @@ class TestDoBossScience(CmdStateTester,unittest.TestCase):
         self.ok_stage = 'expose'
         self.userKeys = True
 
+    def test_isSlewingDisabled_no_cmd(self):
+        self._isSlewingDisabled_no_cmd()
+    def test_isSlewingDisabled_cmd_finished(self):
+        self._isSlewingDisabled_cmd_finished()
+
+
 class TestDoMangaSequence(CmdStateTester,unittest.TestCase):
     def setUp(self):
         super(TestDoMangaSequence,self).setUp()
@@ -171,11 +185,9 @@ class TestDoMangaSequence(CmdStateTester,unittest.TestCase):
         self.userKeys = True
 
     def test_isSlewingDisabled_no_cmd(self):
-        result = self.cmdState.isSlewingDisabled()
-        self.cmdState.cmd = None
-        self.assertFalse(result)
-
-
+        self._isSlewingDisabled_no_cmd()
+    def test_isSlewingDisabled_cmd_finished(self):
+        self._isSlewingDisabled_cmd_finished()
 
 class TestDoMangaDither(CmdStateTester,unittest.TestCase):
     def setUp(self):
@@ -192,6 +204,45 @@ class TestDoMangaDither(CmdStateTester,unittest.TestCase):
         self.cmdState.cmd = self.cmd
         result = self.cmdState.isSlewingDisabled()
         self.assertFalse(result)
+
+    def test_isSlewingDisabled_no_cmd(self):
+        self._isSlewingDisabled_no_cmd()
+    def test_isSlewingDisabled_cmd_finished(self):
+        self._isSlewingDisabled_cmd_finished()
+
+
+class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
+    def setUp(self):
+        super(TestDoApogeeMangaSequence,self).setUp()
+        self.cmdState = sopActor.CmdState.DoApogeeMangaSequenceCmd()
+        self.ok_stage = 'dither'
+        self.userKeys = True
+
+    def test_isSlewingDisabled_no_cmd(self):
+        self._isSlewingDisabled_no_cmd()
+    def test_isSlewingDisabled_cmd_finished(self):
+        self._isSlewingDisabled_cmd_finished()
+
+class TestDoApogeeMangaDither(CmdStateTester,unittest.TestCase):
+    def setUp(self):
+        super(TestDoApogeeMangaDither,self).setUp()
+        self.cmdState = sopActor.CmdState.DoApogeeMangaDitherCmd()
+        self.ok_stage = 'dither'
+    
+    def test_isSlewingDisabled_because_exposing(self):
+        sopTester.updateModel('boss',TestHelper.bossState['integrating'])
+        self._isSlewingDisabled_because_exposing('MaNGA',1,'INTEGRATING')
+    
+    def test_isSlewingDisabled_no(self):
+        sopTester.updateModel('boss',TestHelper.bossState['reading'])
+        self.cmdState.cmd = self.cmd
+        result = self.cmdState.isSlewingDisabled()
+        self.assertFalse(result)
+
+    def test_isSlewingDisabled_no_cmd(self):
+        self._isSlewingDisabled_no_cmd()
+    def test_isSlewingDisabled_cmd_finished(self):
+        self._isSlewingDisabled_cmd_finished()
 
 
 if __name__ == '__main__':
