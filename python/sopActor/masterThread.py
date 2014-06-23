@@ -812,6 +812,11 @@ def _run_slew(cmd, cmdState, actorState, multiCmd):
     else:
         return True
 
+def goto_field_apogeemanga(cmd, cmdState, actorState, slewTimeout):
+    """Process a goto field sequence for an APOGEE-MaNGA co-observing plate."""
+    cmd.error('text="This command is not yet supported."')
+    return False
+
 def goto_field_apogee(cmd, cmdState, actorState, slewTimeout):
     """Process a goto field sequence for an APOGEE plate."""
     
@@ -1005,6 +1010,8 @@ def goto_field(cmd, cmdState, actorState):
         success = goto_field_apogee(cmd, cmdState, actorState, slewTimeout)
     elif actorState.survey == sopActor.BOSS or actorState.survey == sopActor.MANGA:
         success = goto_field_boss(cmd, cmdState, actorState, slewTimeout)
+    elif actorState.survey == sopActor.APOGEEMANGA:
+        success = goto_field_apogeemanga(cmd, cmdState, actorState, slewTimeout)
     
     # if not success: we've already failed the command.
     if success:
