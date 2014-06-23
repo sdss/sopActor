@@ -106,8 +106,6 @@ class SopCmd(object):
             ("gotoStow", "", self.gotoStow),
             ("gotoGangChange", "[<alt>] [abort] [stop]", self.gotoGangChange),
             ("apogeeDomeFlat", "[stop] [abort]", self.apogeeDomeFlat),
-            ("setScale", "<delta>|<scale>", self.setScale),
-            ("scaleChange", "<delta>|<scale>", self.setScale),
             ("setFakeField", "[<az>] [<alt>] [<rotOffset>]", self.setFakeField),
             ("status", "[geek]", self.status),
             ("reinit", "", self.reinit),
@@ -713,9 +711,6 @@ class SopCmd(object):
                 cmdState.flatTime = float(cmd.cmd.keywords["flatTime"].values[0])
             else:
                 cmdState.flatTime = getDefaultFlatTime(survey)
-        else:
-            cmdState.arcTime = 0
-            cmdState.flatTime = 0
         if cmdState.doGuider:
             cmdState.guiderFlatTime = float(cmd.cmd.keywords["guiderFlatTime"].values[0]) \
                                       if "guiderFlatTime" in cmd.cmd.keywords else 0.5
@@ -724,8 +719,6 @@ class SopCmd(object):
             cmdState.doGuiderFlat = cmdState.guiderFlatTime > 0
             cmdState.keepOffsets = "keepOffsets" in cmd.cmd.keywords
         else:
-            cmdState.guiderFlatTime = 0
-            cmdState.guiderTime = 0
             cmdState.doGuiderFlat = False
         
         if survey == sopActor.UNKNOWN:
@@ -802,27 +795,23 @@ class SopCmd(object):
         """Return False if we can slew, otherwise return a string describing why we cannot."""
         sopState = myGlobals.actorState
 
+        # import pdb
+        # pdb.set_trace()
         if sopState.survey == sopActor.BOSS:
-            if (sopState.doBossScience.cmd and sopState.doBossScience.cmd.isAlive() and
-                not (sopState.doBossScience.nExpLeft <= 1 and sopState.models["boss"].keyVarDict["exposureState"][0] in ('READING', 'IDLE', 'DONE', 'ABORTED'))):
-                return 'slewing disallowed for BOSS, with %d science exposures left; exposureState=%s' % (sopState.doBossScience.nExpLeft,
-                                                                                                          sopState.models["boss"].keyVarDict["exposureState"][0])
-            else:
-                return False
+            return sopState.doBossScience.isSlewingDisabled()
+
         elif sopState.survey == sopActor.MANGA:
-            disabled = sopState.doMangaDither.isSlewingDisabled()
-            if disabled:
-                return disabled
-            disabled = sopState.doMangaSequence.isSlewingDisabled()
-            if disabled:
-                return disabled
-            else:
-                return False
+            disabled1 = sopState.doMangaDither.isSlewingDisabled()
+            disabled2 = sopState.doMangaSequence.isSlewingDisabled()
+            return disabled1 if disabled1 else disabled2
+
         elif sopState.survey == sopActor.APOGEE:
-            if sopState.doApogeeScience.cmd and sopState.doApogeeScience.cmd.isAlive():
-                return 'slewing disallowed for APOGEE, blocked by active doApogeeScience sequence'
-            else:
-                return False
+            return sopState.doApogeeScience.isSlewingDisabled()
+
+        elif sopState.survey == sopActor.APOGEEMANGA:
+            disabled1 = sopState.doApogeeMangaDither.isSlewingDisabled()
+            disabled2 = sopState.doApogeeMangaSequence.isSlewingDisabled()
+            return disabled1 if disabled1 else disabled2
 
         return False
 
@@ -940,14 +929,6 @@ class SopCmd(object):
         sopState.actor.startThreads(sopState, cmd, restart=True,
                                     restartThreads=threads, restartQueues=not keepQueues)
 
-    def setScale(self, cmd):
-        """Change telescope scale by a factor of (1 + 0.01*delta), or to scale
-        """
-
-        cmd.fail('text="Please set scale using the guider command"')
-        return
-
-
     def reinit(self, cmd):
         """ (engineering command) Recreate the objects which hold the state of the various top-level commands. """
 
@@ -998,6 +979,8 @@ class SopCmd(object):
         sopState.doBossScience.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.doMangaDither.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.doMangaSequence.genKeys(cmd=cmd, trimKeys=oneCommand)
+        sopState.doApogeeMangaDither.genKeys(cmd=cmd, trimKeys=oneCommand)
+        sopState.doApogeeMangaSequence.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.doApogeeScience.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.doApogeeSkyFlats.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.gotoGangChange.genKeys(cmd=cmd, trimKeys=oneCommand)
@@ -1041,6 +1024,8 @@ class SopCmd(object):
         sopState.doBossScience = DoBossScienceCmd()
         sopState.doMangaDither = DoMangaDitherCmd()
         sopState.doMangaSequence = DoMangaSequenceCmd()
+        sopState.doApogeeMangaDither = DoApogeeMangaDitherCmd()
+        sopState.doApogeeMangaSequence = DoApogeeMangaSequenceCmd()
         sopState.doApogeeScience = DoApogeeScienceCmd()
         sopState.doApogeeSkyFlats = DoApogeeSkyFlatsCmd()
         sopState.gotoGangChange = GotoGangChangeCmd()
@@ -1092,13 +1077,14 @@ class SopCmd(object):
 
     def classifyCartridge(self, cmd, cartridge, survey):
         """Return the survey type corresponding to this cartridge."""
+
+        # SDSS-IV plates should all be "APOGEE-2;MaNGA", but we need both,
+        # for test plates drilled as part of SDSS-III.
         survey_dict = {'BOSS':sopActor.BOSS,'APOGEE':sopActor.APOGEE,
-                       'MaNGA':sopActor.MANGA,'APOGEE-MaNGA':sopActor.APOGEEMANGA}
-        # TBD: SDSS4
-        # NOTE: TBD: the following logic will be incorrect for SDSS-IV, and
-        # we will have to use the PlateType or InstrumentLead identifier
-        # as extracted from the platedb, since we'll have to treat eBOSS and
-        # MaNGA slightly differently.
+                       'MaNGA':sopActor.MANGA,
+                       'APOGEE-2;MaNGA':sopActor.APOGEEMANGA,
+                       'APOGEE;MaNGA':sopActor.APOGEEMANGA}
+
         if Bypass.get(name='isBoss'):
             cmd.warn('text="We are lying about this being a BOSS cartridge"')
             return sopActor.BOSS
@@ -1111,7 +1097,6 @@ class SopCmd(object):
         elif Bypass.get(name='isApogeeManga'):
             cmd.warn('text="We are lying about this being an APOGEE-MaNGA cartridge"')
             return sopActor.APOGEEMANGA
-
 
         if cartridge <= 0:
             cmd.warn('text="We do not have a valid cartridge (id=%s)"' % (cartridge))
@@ -1130,4 +1115,6 @@ class SopCmd(object):
         return (sopState.doBossScience.cmd and sopState.doBossScience.cmd.isAlive()) or \
                (sopState.doApogeeScience.cmd and sopState.doApogeeScience.cmd.isAlive()) or \
                (sopState.doMangaDither.cmd and sopState.doMangaDither.cmd.isAlive()) or \
-               (sopState.doMangaSequence.cmd and sopState.doMangaSequence.cmd.isAlive())
+               (sopState.doMangaSequence.cmd and sopState.doMangaSequence.cmd.isAlive()) or \
+               (sopState.doApogeeMangaDither.cmd and sopState.doApogeeMangaDither.cmd.isAlive()) or \
+               (sopState.doApogeeMangaSequence.cmd and sopState.doApogeeMangaSequence.cmd.isAlive())
