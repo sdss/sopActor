@@ -494,7 +494,7 @@ class TestMangaScience(MasterThreadTester):
         self.assertTrue(self.cmd.finished)
     def test_do_manga_sequence(self):
         """
-        decenter on, 
+        decenter on,
         count*nDithers*(new dither, expose, readout),
         count*(guider off, ffs closed, ne on, hgcd on, ff off),
         count*(ne on, hgcd on),
@@ -508,13 +508,13 @@ class TestMangaScience(MasterThreadTester):
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         count = 3
         dithers = 'NSE'
-        self._do_manga_sequence(1 + 
-                                count*len(dithers)*3 + 
+        self._do_manga_sequence(1 +
+                                count*len(dithers)*3 +
                                 count*5 + count*2 + count*2 +
                                 (count-1)*6 + 4, 151,0,0,count,dithers)
     def test_do_manga_sequence_one_set(self):
         """
-        decenter on, 
+        decenter on,
         count*nDithers*(new dither, expose, readout),
         count*(guider off, ffs closed, ne on, hgcd on, ff off),
         count*(ne on, hgcd on),
@@ -528,8 +528,8 @@ class TestMangaScience(MasterThreadTester):
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         count = 1
         dithers = 'NSE'
-        self._do_manga_sequence(1 + 
-                                count*len(dithers)*3 + 
+        self._do_manga_sequence(1 +
+                                count*len(dithers)*3 +
                                 count*5 + count*2 + count*2 +
                                 (count-1)*6 + 4, 57,0,0,count,dithers)
 
@@ -566,6 +566,14 @@ class TestBossCalibs(MasterThreadTester):
         cmdState = CmdState.DoBossCalibsCmd()
         cmdState.nFlat = 2
         self._do_boss_calibs(13,30,0,0,cmdState)
+    def test_do_boss_calibs_one_flat_coobserve(self):
+        """coobserving carts should close the apogee shutter first."""
+        cmdState = CmdState.DoBossCalibsCmd()
+        cmdState.nFlat = 1
+        sopTester.updateModel('guider',TestHelper.guiderState['apogeemangaLoaded'])
+        sopTester.updateModel('mcp',TestHelper.mcpState['apogee_parked'])
+        sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
+        self._do_boss_calibs(8,26,0,0,cmdState)
 
     def test_do_boss_calibs_one_arc(self):
         cmdState = CmdState.DoBossCalibsCmd()
@@ -575,6 +583,14 @@ class TestBossCalibs(MasterThreadTester):
         cmdState = CmdState.DoBossCalibsCmd()
         cmdState.nArc = 2
         self._do_boss_calibs(12,29,0,0,cmdState)
+    def test_do_boss_calibs_one_arc_coobserve(self):
+        """coobserving carts should close the apogee shutter first."""
+        cmdState = CmdState.DoBossCalibsCmd()
+        cmdState.nArc = 1
+        sopTester.updateModel('guider',TestHelper.guiderState['apogeemangaLoaded'])
+        sopTester.updateModel('mcp',TestHelper.mcpState['apogee_parked'])
+        sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
+        self._do_boss_calibs(8,27,0,0,cmdState)
 
     def test_do_boss_calibs_one_of_each(self):
         cmdState = CmdState.DoBossCalibsCmd()
@@ -618,16 +634,16 @@ if __name__ == '__main__':
     suite = None
     # to test just one piece
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestGuider)
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoField)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoField)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoGangChange)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestApogeeDomeFlat)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestApogeeScience)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestBossScience)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestHartmann)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestMangaScience)
-    #suite = unittest.TestLoader().loadTestsFromTestCase(TestBossCalibs)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestBossCalibs)
     # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestGotoField.test_goto_field_boss_ffs_open_fails')
-    # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestBossCalibs.test_do_boss_calibs_two_arc_fail_on_second_exposure')
+    suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestBossCalibs.test_do_boss_calibs_one_arc_coobserve')
     if suite:
         unittest.TextTestRunner(verbosity=verbosity).run(suite)
     else:

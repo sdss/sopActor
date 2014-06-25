@@ -321,6 +321,16 @@ def prep_manga_dither(multiCmd, dither='C', precondition=False):
     else:
         multiCmd.append(sopActor.GUIDER, Msg.MANGA_DITHER, dither=dither, timeout=guiderDecenterDuration)
 
+def close_apogee_shutter_if_gang_on_cart(cmd, cmdState, actorState, stageName):
+    """
+    Close the APOGEE shutter, as a precondition, if the gang connector is on the cart.
+    """
+    failMsg = 'Failed to close APOGEE shutter.'
+    if actorState.apogeeGang.atCartridge():
+        multiCmd = SopMultiCommand(cmd, actorState.timeout, '.'.join((cmdState.name,stageName)))
+        prep_apogee_shutter(multiCmd, open=False)
+        return handle_multiCmd(multiCmd, cmd, cmdState, stageName, failMsg)
+
 #
 # Helpers for handling messages and running commands.
 #
@@ -680,6 +690,11 @@ def do_boss_calibs(cmd, cmdState, actorState):
     pendingReadout = False
     finishMsg = "Your calibration data are ready."
     failMsg = ""            # message to use if we've failed
+
+    # ensure the apogee shutter is closed for co-observing carts.
+    if not close_apogee_shutter_if_gang_on_cart(cmd, cmdState, actorState, 'cleanup'):
+        return False
+
     while cmdState.cals_remain():
         show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
 

@@ -60,6 +60,19 @@ mcp ff.off
 mcp hgcd.off
 mcp ne.off
 
+[test_do_boss_calibs_one_flat_coobserve]
+apogee shutter close
+
+mcp ff.on
+
+boss exposure flat itime=30 noreadout
+guider flat time=0.5
+
+boss exposure   readout
+mcp ff.off
+mcp hgcd.off
+mcp ne.off
+
 [test_do_boss_calibs_one_arc]
 mcp ne.on
 mcp hgcd.on
@@ -79,6 +92,19 @@ boss exposure arc itime=4 noreadout
 
 boss exposure   readout
 mcp ff.off
+mcp ne.on
+mcp hgcd.on
+
+boss exposure arc itime=4 noreadout
+
+boss exposure   readout
+mcp ff.off
+mcp hgcd.off
+mcp ne.off
+
+[test_do_boss_calibs_one_arc_coobserve]
+apogee shutter close
+
 mcp ne.on
 mcp hgcd.on
 
