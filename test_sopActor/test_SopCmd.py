@@ -53,6 +53,15 @@ class SopCmdTester(sopTester.SopTester):
         self.cmd.clear_msgs()
         self.cmd.verbose = self.verbose
 
+    def _pre_command(self, command, queue):
+        """Run a text command in advance, without being verbose and clearing any messages."""
+        self.cmd.verbose = False
+        self._run_cmd(command,queue)
+        self.cmd.clear_msgs()
+        self.cmd.verbose = self.verbose
+        # in case the above command "finishes"
+        self.cmd = TestHelper.Cmd(verbose=self.verbose)
+
 
 class TestBypass(SopCmdTester,unittest.TestCase):
     """Test setting and clearing bypasses with the sop bypass command."""
@@ -291,7 +300,18 @@ class TestGotoField(SopCmdTester,unittest.TestCase):
                   'ra':10,'dec':20,
                   'doGuider':False, 'doGuiderFlat':False}
         self._gotoField(11,'BOSS',expect,stages,'noGuider')
-    
+
+    def test_gotoField_boss_after_apogee(self):
+        """BOSS gotofield should revert to useful defaults after an APOGEE gotofield."""
+        self._update_cart(1,'APOGEE')
+        self._pre_command('gotoField',self.actorState.queues[sopActor.MASTER])
+        self.actorState.gotoField.cmd = None
+        stages = ['slew','hartmann','calibs','guider','cleanup']
+        expect = {'arcTime':4,'flatTime':30,
+                  'guiderTime':5,'guiderFlatTime':0.5,
+                  'ra':10,'dec':20}
+        self._gotoField(11,'BOSS',expect,stages,'')
+
     def test_gotoField_apogee_default(self):
         sopTester.updateModel('guider',TestHelper.guiderState['apogeeLoaded'])
         sopTester.updateModel('platedb',TestHelper.platedbState['apogee'])
