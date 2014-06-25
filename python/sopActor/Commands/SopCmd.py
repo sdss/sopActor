@@ -1067,8 +1067,16 @@ class SopCmd(object):
         elif survey == sopActor.MANGA:
             sopState.gotoField.setStages(['slew', 'hartmann', 'calibs', 'guider'])
             sopState.validCommands = ['gotoField',
-                                      'hartmann', 'doBossCalibs', 'doMangaDither','doMangaSequence',
+                                      'hartmann', 'doBossCalibs',
+                                      'doMangaDither','doMangaSequence',
                                       'gotoInstrumentChange']
+        elif survey == sopActor.APOGEEMANGA:
+            sopState.gotoField.setStages(['slew', 'hartmann', 'calibs', 'guider'])
+            sopState.validCommands = ['gotoField',
+                                      'hartmann', 'doBossCalibs',
+                                      'doApogeeMangaDither','doApogeeMangaSequence',
+                                      'doApogeeSkyFlats', 'gotoGangChange',
+                                      'gotoInstrumentChange', 'doApogeeDomeFlat']
         else:
             sopState.gotoField.setStages(['slew', 'guider'])
             sopState.validCommands = ['gotoStow', 'gotoInstrumentChange']
