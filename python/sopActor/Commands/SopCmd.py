@@ -788,7 +788,7 @@ class SopCmd(object):
             return
 
         cmdState.setStageState("slew", "done")
-        cmdState.setCommandState('done', stateText="failed to move telescope")
+        cmdState.setCommandState('done', stateText='OK')
         cmd.finish('text="at %s position"' % (name))
 
     def isSlewingDisabled(self, cmd):
