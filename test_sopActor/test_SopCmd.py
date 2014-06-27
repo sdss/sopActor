@@ -257,14 +257,17 @@ class TestDoMangaSequence(SopCmdTester,unittest.TestCase):
 
 
 class TestGotoField(SopCmdTester,unittest.TestCase):
-    def _gotoField(self, cart, survey, expect, stages, args):
+    def _gotoField(self, cart, survey, expect, stages, args, cmd_levels=(0,2,0,0)):
+        """
+        default cmd_levels: Should always output *Stages and *States.
+        """
         self._update_cart(cart,survey)
         queue = myGlobals.actorState.queues[sopActor.MASTER]
         msg = self._run_cmd('gotoField %s'%(args),queue)
         self.assertEqual(msg.type,sopActor.Msg.GOTO_FIELD)
         stages = dict(zip(stages,['idle']*len(stages)))
         self.assertEqual(msg.cmdState.stages,stages)
-        self._check_levels(0,2,0,0) # should always output *Stages and *States
+        self._check_levels(*cmd_levels)
         self.assertEqual(msg.cmdState.arcTime,expect.get('arcTime',4))
         self.assertEqual(msg.cmdState.flatTime,expect.get('flatTime',30))
         self.assertEqual(msg.cmdState.guiderTime,expect.get('guiderTime',5))
@@ -310,6 +313,20 @@ class TestGotoField(SopCmdTester,unittest.TestCase):
                   'ra':10,'dec':20,
                   'doGuider':False, 'doGuiderFlat':False}
         self._gotoField(11,'BOSS',expect,stages,'noGuider')
+
+    def test_gotoField_boss_0s_flat(self):
+        stages = ['slew','hartmann','calibs','guider','cleanup']
+        expect = {'arcTime':4,'flatTime':0,
+                  'guiderTime':5,'guiderFlatTime':0.5,
+                  'ra':10,'dec':20}
+        self._gotoField(11,'BOSS',expect,stages,'flatTime=0',cmd_levels=(0,2,1,0))
+    def test_gotoField_boss_0s_arc(self):
+        stages = ['slew','hartmann','calibs','guider','cleanup']
+        expect = {'arcTime':0,'flatTime':30,
+                  'guiderTime':5,'guiderFlatTime':0.5,
+                  'ra':10,'dec':20}
+        self._gotoField(11,'BOSS',expect,stages,'arcTime=0',cmd_levels=(0,2,1,0))
+
 
     def test_gotoField_boss_after_apogee(self):
         """BOSS gotofield should revert to useful defaults after an APOGEE gotofield."""

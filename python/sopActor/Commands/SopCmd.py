@@ -711,6 +711,10 @@ class SopCmd(object):
                 cmdState.flatTime = float(cmd.cmd.keywords["flatTime"].values[0])
             else:
                 cmdState.flatTime = getDefaultFlatTime(survey)
+            if cmdState.arcTime <= 0:
+                cmd.warn('text="GotoField arcTime is not a positive number: are you sure you want that?"')
+            if cmdState.flatTime <= 0:
+                cmd.warn('text="GotoField flatTime is not a positive number: are you sure you want that?"')
         if cmdState.doGuider:
             cmdState.guiderFlatTime = float(cmd.cmd.keywords["guiderFlatTime"].values[0]) \
                                       if "guiderFlatTime" in cmd.cmd.keywords else 0.5
