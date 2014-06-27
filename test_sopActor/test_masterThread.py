@@ -574,6 +574,17 @@ class TestBossCalibs(MasterThreadTester):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_parked'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         self._do_boss_calibs(8,26,0,0,cmdState)
+    def test_do_boss_calibs_one_flat_coobserve_gangPodium(self):
+        """
+        Coobserving carts should not bother with the apogee shutter when the
+        gang connector is not at the cart.
+        """
+        cmdState = CmdState.DoBossCalibsCmd()
+        cmdState.nFlat = 1
+        sopTester.updateModel('guider',TestHelper.guiderState['apogeemangaLoaded'])
+        sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
+        sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
+        self._do_boss_calibs(7,19,0,0,cmdState)
 
     def test_do_boss_calibs_one_arc(self):
         cmdState = CmdState.DoBossCalibsCmd()
@@ -643,7 +654,7 @@ if __name__ == '__main__':
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestMangaScience)
     suite = unittest.TestLoader().loadTestsFromTestCase(TestBossCalibs)
     # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestGotoField.test_goto_field_boss_ffs_open_fails')
-    suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestBossCalibs.test_do_boss_calibs_one_arc_coobserve')
+    # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestBossCalibs.test_do_boss_calibs_one_arc_coobserve')
     if suite:
         unittest.TextTestRunner(verbosity=verbosity).run(suite)
     else:
