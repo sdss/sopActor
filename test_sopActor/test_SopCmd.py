@@ -102,6 +102,9 @@ class TestClassifyCartridge(SopCmdTester,unittest.TestCase):
     def test_classifyCartridge_apogee(self):
         sopTester.updateModel('guider',TestHelper.guiderState['apogeeLoaded'])
         self._classifyCartridge(1,'APOGEE',sopActor.APOGEE)
+    def test_classifyCartridge_apogee2(self):
+        sopTester.updateModel('guider',TestHelper.guiderState['apogeeLoaded'])
+        self._classifyCartridge(1,'APOGEE-2',sopActor.APOGEE)
     def test_classifyCartridge_manga(self):
         sopTester.updateModel('guider',TestHelper.guiderState['mangaLoaded'])
         self._classifyCartridge(2,'MaNGA',sopActor.MANGA)
@@ -149,6 +152,13 @@ class TestUpdateCartridge(SopCmdTester,unittest.TestCase):
         expected = {}
         expected['surveyCommands'] = TestHelper.sopApogeeCommands['surveyCommands']
         self._updateCartridge(1,'APOGEE',expected)
+
+    def test_updateCartridge_apogee2(self):
+        sopTester.updateModel('guider',TestHelper.guiderState['apogeeLoaded'])
+        expected = {}
+        expected['surveyCommands'] = TestHelper.sopApogeeCommands['surveyCommands']
+        self._updateCartridge(1,'APOGEE-2',expected)
+
     def test_updateCartridge_apogeemanga(self):
         sopTester.updateModel('guider',TestHelper.guiderState['apogeemangaLoaded'])
         expected = {}
