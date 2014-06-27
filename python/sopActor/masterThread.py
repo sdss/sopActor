@@ -330,6 +330,7 @@ def close_apogee_shutter_if_gang_on_cart(cmd, cmdState, actorState, stageName):
         multiCmd = SopMultiCommand(cmd, actorState.timeout, '.'.join((cmdState.name,stageName)))
         prep_apogee_shutter(multiCmd, open=False)
         return handle_multiCmd(multiCmd, cmd, cmdState, stageName, failMsg)
+    return True
 
 #
 # Helpers for handling messages and running commands.
