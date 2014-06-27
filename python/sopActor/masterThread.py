@@ -1171,10 +1171,10 @@ def main(actor, queues):
                 do_boss_science(cmd, cmdState, actorState)
                       
             elif msg.type == Msg.DO_APOGEE_EXPOSURES:
-                # Make sure we'd get light!
-                if not is_gang_at_cart(msg):
-                    continue
                 cmd,cmdState,actorState = preprocess_msg(msg)
+                # Make sure we'd get light!
+                if not is_gang_at_cart(cmd, cmdState, actorState):
+                    continue
                 do_apogee_science(cmd, cmdState, actorState)
 
             elif msg.type == Msg.DO_MANGA_DITHER:
