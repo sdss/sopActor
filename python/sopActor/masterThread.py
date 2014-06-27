@@ -799,8 +799,8 @@ def do_boss_calibs(cmd, cmdState, actorState):
     multiCmd.append(sopActor.FFS, Msg.FFS_MOVE, open=ffsInitiallyOpen)
     prep_lamps_off(multiCmd)
     
-    failMsg = "telescope is in unknown state"
-    longFailMsg = "Failed to restore telescope to pristine state"
+    failMsg = "BOSS calibs cleanup/FFS move failed"
+    longFailMsg = "Failed to cleanup after BOSS calibs; check BOSS and FFS state."
     if not handle_multiCmd(multiCmd,cmd,cmdState,'cleanup',failMsg,longFailMsg):
         return
 
