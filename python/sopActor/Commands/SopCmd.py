@@ -1092,7 +1092,7 @@ class SopCmd(object):
 
         # SDSS-IV plates should all be "APOGEE-2;MaNGA", but we need both,
         # for test plates drilled as part of SDSS-III.
-        survey_dict = {'BOSS':sopActor.BOSS,
+        survey_dict = {'BOSS':sopActor.BOSS, 'eBOSS':sopActor.BOSS,
                        'APOGEE':sopActor.APOGEE,'APOGEE-2':sopActor.APOGEE,
                        'MaNGA':sopActor.MANGA,
                        'APOGEE-2;MaNGA':sopActor.APOGEEMANGA,

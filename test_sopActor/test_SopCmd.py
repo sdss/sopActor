@@ -99,6 +99,9 @@ class TestClassifyCartridge(SopCmdTester,unittest.TestCase):
     def test_classifyCartridge_boss(self):
         sopTester.updateModel('guider',TestHelper.guiderState['bossLoaded'])
         self._classifyCartridge(11,'BOSS',sopActor.BOSS)
+    def test_classifyCartridge_eboss(self):
+        sopTester.updateModel('guider',TestHelper.guiderState['bossLoaded'])
+        self._classifyCartridge(11,'eBOSS',sopActor.BOSS)
     def test_classifyCartridge_apogee(self):
         sopTester.updateModel('guider',TestHelper.guiderState['apogeeLoaded'])
         self._classifyCartridge(1,'APOGEE',sopActor.APOGEE)
@@ -140,6 +143,12 @@ class TestUpdateCartridge(SopCmdTester,unittest.TestCase):
         expected = {}
         expected['surveyCommands'] = TestHelper.sopBossCommands['surveyCommands']
         self._updateCartridge(11,'BOSS',expected)
+    def test_updateCartridge_boss(self):
+        sopTester.updateModel('guider',TestHelper.guiderState['bossLoaded'])
+        expected = {}
+        expected['surveyCommands'] = TestHelper.sopBossCommands['surveyCommands']
+        self._updateCartridge(11,'eBOSS',expected)
+
 
     def test_updateCartridge_manga(self):
         sopTester.updateModel('guider',TestHelper.guiderState['mangaLoaded'])
