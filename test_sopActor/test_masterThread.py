@@ -423,8 +423,10 @@ class TestBossScience(MasterThreadTester):
     """do_boss_science tests"""
     def _do_boss_science(self, nCall, nInfo, nWarn, nErr, nExp=1):
         """Helper for boss science tests"""
+        self._update_cart(11, 'BOSS')
         cmdState = CmdState.DoBossScienceCmd()
         cmdState.nExpLeft = nExp
+        cmdState.setupCommand("doBossScience", self.cmd,["exposure"])
         masterThread.do_boss_science(self.cmd, cmdState, myGlobals.actorState)
         self._check_cmd(nCall,nInfo,nWarn,nErr,True)
         
@@ -432,7 +434,7 @@ class TestBossScience(MasterThreadTester):
         """One call per requested exposure"""
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         nExp = 2
-        self._do_boss_science(nExp,14,0,0,nExp=nExp)
+        self._do_boss_science(nExp,18,0,0,nExp=nExp)
 
 
 class TestApogeeScience(MasterThreadTester):
@@ -648,11 +650,11 @@ if __name__ == '__main__':
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoField)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoGangChange)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestApogeeDomeFlat)
-    #suite = unittest.TestLoader().loadTestsFromTestCase(TestApogeeScience)
-    #suite = unittest.TestLoader().loadTestsFromTestCase(TestBossScience)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestApogeeScience)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestBossScience)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestHartmann)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestMangaScience)
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestBossCalibs)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestBossCalibs)
     # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestGotoField.test_goto_field_boss_ffs_open_fails')
     # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestBossCalibs.test_do_boss_calibs_one_arc_coobserve')
     if suite:

@@ -12,7 +12,6 @@ import unittest
 from sopActor import *
 import sopActor
 import sopActor.myGlobals as myGlobals
-from sopActor.Commands import SopCmd
 from sopActor import Queue
 
 from actorcore import TestHelper
@@ -21,15 +20,12 @@ import sopTester
 class SopCmdTester(sopTester.SopTester):
     def setUp(self):
         self.verbose = True
-        self.actor = TestHelper.FakeActor('sop','sopActor')
         super(SopCmdTester,self).setUp()
         self.timeout = 1
         # Do this after super setUp, as that's what creates actorState.
         myGlobals.actorState.queues = {}
         myGlobals.actorState.queues[sopActor.MASTER] = Queue('master')
-        self.sopCmd = SopCmd.SopCmd(self.actor)
         self.cmd.verbose = False # don't spam initial loadCart messages
-        self.sopCmd.initCommands()
         self.cmd.clear_msgs()
         self.cmd.verbose = self.verbose
         self._clear_bypasses()
@@ -46,13 +42,6 @@ class SopCmdTester(sopTester.SopTester):
         self.cmd.clear_msgs()
         self.cmd.verbose = self.verbose
     
-    def _update_cart(self, nCart, survey):
-        """Update cartridge without being verbose, and clear those messages."""
-        self.cmd.verbose = False
-        self.sopCmd.updateCartridge(nCart, survey)
-        self.cmd.clear_msgs()
-        self.cmd.verbose = self.verbose
-
     def _pre_command(self, command, queue):
         """Run a text command in advance, without being verbose and clearing any messages."""
         self.cmd.verbose = False
