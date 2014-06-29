@@ -292,8 +292,7 @@ class SopCmd(object):
         #
         sopState.doBossScience.nExpLeft = sopState.doBossScience.nExp; sopState.doBossScience.nExpDone = 0
 
-        sopState.doBossScience.setupCommand("doBossScience", cmd,
-                                        ["doBossScience"])
+        sopState.doBossScience.setupCommand("doBossScience", cmd, ["expose"])
         if not MultiCommand(cmd, 2, None,
                             sopActor.MASTER, Msg.DO_BOSS_SCIENCE, actorState=sopState,
                             cartridge=sopState.cartridge,
@@ -379,7 +378,7 @@ class SopCmd(object):
             return
 
         cmdState.setupCommand("doApogeeScience", cmd,
-                              ["doApogeeScience"])
+                              ["expose"])
         cmd.diag('text="Issuing doApogeeScience"')
         if not MultiCommand(cmd, 2, None,
                             sopActor.MASTER, Msg.DO_APOGEE_EXPOSURES, actorState=sopState,
@@ -417,7 +416,7 @@ class SopCmd(object):
             return
 
         cmdState.setupCommand("doApogeeSkyFlats", cmd,
-                              ["doApogeeSkyFlats"])
+                              ["expose"])
         cmd.diag('text="Issuing doApogeeSkyFlats"')
         
         # Turn off the guider, if it's on.
