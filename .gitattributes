@@ -36,6 +36,7 @@ test_sopActor/cmd_calls/TestDoBossCalibs.txt -text
 test_sopActor/cmd_calls/TestGotoField.txt -text
 test_sopActor/cmd_calls/TestGotoGangChange.txt -text
 test_sopActor/cmd_calls/TestGuider.txt -text
+test_sopActor/cmd_calls/TestGuiderStart.txt -text
 test_sopActor/cmd_calls/TestHartmann.txt -text
 test_sopActor/cmd_calls/TestLampThread.txt -text
 test_sopActor/cmd_calls/TestMangaScience.txt -text
@@ -45,6 +46,7 @@ test_sopActor/test_apogeeThread.py -text
 test_sopActor/test_bossThread.py -text
 test_sopActor/test_cmdState.py -text
 test_sopActor/test_gang.py -text
+test_sopActor/test_guiderThread.py -text
 test_sopActor/test_lampThread.py -text
 test_sopActor/test_masterThread.py -text
 ups/sopActor.table -text

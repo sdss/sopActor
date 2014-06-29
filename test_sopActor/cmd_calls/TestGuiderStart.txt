@@ -1,0 +1,20 @@
+[test_guider_start]
+guider axes off
+
+guider scale off
+
+guider focus off
+
+guider on time=5
+
+[test_guider_start_fails]
+guider axes off
+
+guider scale off
+
+guider focus off
+
+guider on time=5
+
+[test_guider_start_fails_axes]
+guider axes off
