@@ -477,7 +477,7 @@ def do_boss_science(cmd, cmdState, actorState):
     failMsg = ""            # message to use if we've failed
     stageName = 'expose'
     while cmdState.nExpLeft > 0:
-        show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=stageName)
+        show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
         expTime = cmdState.expTime
         multiCmd = SopMultiCommand(cmd,
                                    flushDuration + expTime + readoutDuration + actorState.timeout,
