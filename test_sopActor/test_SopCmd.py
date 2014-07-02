@@ -102,8 +102,8 @@ class TestClassifyCartridge(SopCmdTester,unittest.TestCase):
         self._classifyCartridge(2,'MaNGA',sopActor.MANGA)
     def test_classifyCartridge_apogeemanga(self):
         sopTester.updateModel('guider',TestHelper.guiderState['apogeemangaLoaded'])
-        self._classifyCartridge(3,'APOGEE-2;MaNGA',sopActor.APOGEEMANGA)
-        self._classifyCartridge(3,'APOGEE;MaNGA',sopActor.APOGEEMANGA)
+        self._classifyCartridge(3,'APOGEE-2&MaNGA',sopActor.APOGEEMANGA)
+        self._classifyCartridge(3,'APOGEE&MaNGA',sopActor.APOGEEMANGA)
     
     def test_classifyCartridge_boss_bypass(self):
         self._prep_bypass('isBoss',clear=True)
@@ -161,7 +161,7 @@ class TestUpdateCartridge(SopCmdTester,unittest.TestCase):
         sopTester.updateModel('guider',TestHelper.guiderState['apogeemangaLoaded'])
         expected = {}
         expected['surveyCommands'] = TestHelper.sopApogeeMangaCommands['surveyCommands']
-        self._updateCartridge(1,'APOGEE-2;MaNGA',expected)
+        self._updateCartridge(1,'APOGEE-2&MaNGA',expected)
 
 
 class TestGotoGangChange(SopCmdTester,unittest.TestCase):
@@ -439,12 +439,12 @@ class TestIsSlewingDisabled(SopCmdTester,unittest.TestCase):
         self.cmdState = self.actorState.doMangaSequence
         self._slewing_is_disabled('slewing disallowed for MaNGA,')
     def test_slewing_disabled_apogeemanga_dither(self):
-        self._update_cart(2, 'APOGEE-2;MaNGA')
+        self._update_cart(2, 'APOGEE-2&MaNGA')
         sopTester.updateModel('boss',TestHelper.bossState['integrating'])
         self.cmdState = self.actorState.doApogeeMangaDither
         self._slewing_is_disabled('slewing disallowed for APOGEE-MaNGA,')
     def test_slewing_disabled_apogeemanga_sequence(self):
-        self._update_cart(2, 'APOGEE-2;MaNGA')
+        self._update_cart(2, 'APOGEE-2&MaNGA')
         sopTester.updateModel('boss',TestHelper.bossState['integrating'])
         self.cmdState = self.actorState.doApogeeMangaSequence
         self._slewing_is_disabled('slewing disallowed for APOGEE-MaNGA,')

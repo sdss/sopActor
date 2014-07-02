@@ -1094,8 +1094,8 @@ class SopCmd(object):
         survey_dict = {'BOSS':sopActor.BOSS, 'eBOSS':sopActor.BOSS,
                        'APOGEE':sopActor.APOGEE,'APOGEE-2':sopActor.APOGEE,
                        'MaNGA':sopActor.MANGA,
-                       'APOGEE-2;MaNGA':sopActor.APOGEEMANGA,
-                       'APOGEE;MaNGA':sopActor.APOGEEMANGA}
+                       'APOGEE-2&MaNGA':sopActor.APOGEEMANGA,
+                       'APOGEE&MaNGA':sopActor.APOGEEMANGA}
 
         if Bypass.get(name='isBoss'):
             cmd.warn('text="We are lying about this being a BOSS cartridge"')
