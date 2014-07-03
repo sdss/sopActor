@@ -105,7 +105,7 @@ class SopCmd(object):
             ("gotoInstrumentChange", "", self.gotoInstrumentChange),
             ("gotoStow", "", self.gotoStow),
             ("gotoGangChange", "[<alt>] [abort] [stop]", self.gotoGangChange),
-            ("apogeeDomeFlat", "[stop] [abort]", self.apogeeDomeFlat),
+            ("doApogeeDomeFlat", "[stop] [abort]", self.doApogeeDomeFlat),
             ("setFakeField", "[<az>] [<alt>] [<rotOffset>]", self.setFakeField),
             ("status", "[geek]", self.status),
             ("reinit", "", self.reinit),
@@ -869,7 +869,7 @@ class SopCmd(object):
         sopState.queues[sopActor.MASTER].put(Msg.GOTO_GANG_CHANGE, cmd, replyQueue=self.replyQueue,
                                              actorState=sopState, cmdState=cmdState)
     
-    def apogeeDomeFlat(self, cmd):
+    def doApogeeDomeFlat(self, cmd):
         """Take an APOGEE dome flat, with FFS closed and FFlamps on."""
         sopState = myGlobals.actorState
         cmdState = sopState.doApogeeDomeFlat

@@ -412,7 +412,17 @@ class TestHartmann(SopCmdTester,unittest.TestCase):
         stages = ['left','right','cleanup']
         expect = {'expTime':5}
         self._hartmann(expect,stages,'expTime=5')
-    
+
+
+class TestDoApogeeDomeFlat(SopCmdTester,unittest.TestCase):
+    def test_doApogeeDomeFlat(self):
+        stages = ['domeFlat']
+        queue = myGlobals.actorState.queues[sopActor.MASTER]
+        msg = self._run_cmd('doApogeeDomeFlat',queue)
+        self.assertEqual(msg.type,sopActor.Msg.APOGEE_DOME_FLAT)
+        stages = dict(zip(stages,['idle']*len(stages)))
+        self.assertEqual(msg.cmdState.stages,stages)
+
 
 class TestIsSlewingDisabled(SopCmdTester,unittest.TestCase):
     def _slewing_is_disabled(self,expect):
