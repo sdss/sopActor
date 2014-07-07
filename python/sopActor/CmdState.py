@@ -48,6 +48,7 @@ class CmdState(object):
         self.hiddenKeywords = hiddenKeywords
         self.reset_keywords()
         self.reset_nonkeywords()
+        self.allStages = allStages
 
         self.setStages(allStages)
 
@@ -75,9 +76,13 @@ class CmdState(object):
             return self.cmd
         return myGlobals.actorState.actor.bcast
     
-    def setStages(self, allStages):
-        self.allStages = allStages
-        self.stages = dict(zip(self.allStages, ["idle"] * len(self.allStages)))
+    def setStages(self, activeStages):
+        """Set the list of stages that are applicable, set their state to idle."""
+        if activeStages:
+            self.activeStages = activeStages
+        else:
+            self.activeStages = self.allStages
+        self.stages = dict(zip(self.activeStages, ["idle"] * len(self.activeStages)))
     
     def reinitialize(self,cmd=None,stages=None,output=True):
         """Re-initialize this cmdState, keeping the stages list as is."""
@@ -89,16 +94,21 @@ class CmdState(object):
         if stages is not None:
             self.setStages(stages)
         else:
-            self.setStages(self.allStages)
+            self.setStages(self.activeStages)
         if output:
             self.genCommandKeys()
 
-    def setupCommand(self, name, cmd, activeStages):
-        self.name = name
+    def setupCommand(self, cmd, activeStages=[], name=''):
+        """
+        Setup the command for use, clearing stageStates, assigning new stages,
+        and outputting the currently-valid commandkeys and states.
+        """
+        if name:
+            self.name = name
         self.cmd = cmd
         self.stateText="OK"
         self.setStages(activeStages)
-        #for s in self.allStages:
+        #for s in self.activeStages:
         #    self.stages[s] = "pending" if s in activeStages else "off"
         self.genCommandKeys()
 
@@ -111,6 +121,7 @@ class CmdState(object):
             self.genKeys()
 
     def setStageState(self, name, stageState, genKeys=True):
+        """Set a stage to a new state, adn output the stage state keys."""
         assert name in self.stages, "stage %s is unknown, out of %s"%(name,repr(self.stages))
         assert stageState in self.validStageStates, "state %s is unknown, out of %s" % (stageState,repr(self.validStageStates))
         self.stages[name] = stageState
@@ -120,22 +131,17 @@ class CmdState(object):
 
     def abortStages(self):
         """ Mark all unstarted stages as aborted. """
-        for s in self.allStages:
+        for s in self.activeStages:
             if not self.stages[s] in ("pending", "done", "failed"):
                 self.stages[s] = "aborted"
         self.genCmdStateKeys()
-
-    def setActiveStages(self, stages, genKeys=True):
-        raise NotImplementedError()
-        for s in stages:
-            assert s in self.allStages
 
     def genCmdStateKeys(self, cmd=None):
         cmd = self._getCmd(cmd)
         cmd.inform("%sState=%s,%s,%s" % (self.name, qstr(self.cmdState),
                                          qstr(self.stateText),
                                          ",".join([qstr(self.stages[sname]) \
-                                                       for sname in self.allStages])))
+                                                       for sname in self.activeStages])))
 
     def genCommandKeys(self, cmd=None):
         """ Return a list of the keywords describing our command. """
@@ -143,7 +149,7 @@ class CmdState(object):
         cmd = self._getCmd(cmd)
         cmd.inform("%sStages=%s" % (self.name,
                                     ",".join([qstr(sname) \
-                                                  for sname in self.allStages])))
+                                                  for sname in self.activeStages])))
         self.genCmdStateKeys(cmd=cmd)
 
     def getUserKeys(self):

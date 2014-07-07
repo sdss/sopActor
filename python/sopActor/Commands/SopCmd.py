@@ -236,7 +236,7 @@ class SopCmd(object):
         if cmdState.nFlat: activeStages.append('flat')
         if cmdState.nArc: activeStages.append('arc')
         activeStages.append('cleanup') # we always may have to cleanup...
-        cmdState.setupCommand('doBossCalibs', cmd, activeStages)
+        cmdState.setupCommand(cmd, activeStages)
         
         sopState.queues[sopActor.MASTER].put(Msg.DO_BOSS_CALIBS, cmd, replyQueue=self.replyQueue,
                                              actorState=sopState, cmdState=cmdState)
@@ -278,6 +278,7 @@ class SopCmd(object):
             return
 
         sopState.doBossScience.cmd = None
+        sopState.doBossScience.reinitialize(cmd)
 
         sopState.doBossScience.nExp = int(cmd.cmd.keywords["nexp"].values[0])   \
                                  if "nexp" in cmd.cmd.keywords else 1
@@ -287,12 +288,10 @@ class SopCmd(object):
         if sopState.doBossScience.nExp == 0:
             cmd.fail('text="You must take at least one exposure"')
             return
-        #
+        
         # How many exposures we have left/have done
-        #
         sopState.doBossScience.nExpLeft = sopState.doBossScience.nExp; sopState.doBossScience.nExpDone = 0
 
-        sopState.doBossScience.setupCommand("doBossScience", cmd, ["expose"])
         if not MultiCommand(cmd, 2, None,
                             sopActor.MASTER, Msg.DO_BOSS_SCIENCE, actorState=sopState,
                             cartridge=sopState.cartridge,
@@ -363,7 +362,7 @@ class SopCmd(object):
         comment = cmd.cmd.keywords["comment"].values[0] \
                     if "comment" in cmd.cmd.keywords else ""
 
-        cmdState.cmd = cmd
+        cmdState.reinitialize(cmd)
         cmdState.ditherSeq = ditherSeq
         cmdState.seqCount = seqCount
         cmdState.comment = comment
@@ -377,9 +376,6 @@ class SopCmd(object):
             cmd.fail('text="You must take at least one exposure"')
             return
 
-        cmdState.setupCommand("doApogeeScience", cmd,
-                              ["expose"])
-        cmd.diag('text="Issuing doApogeeScience"')
         if not MultiCommand(cmd, 2, None,
                             sopActor.MASTER, Msg.DO_APOGEE_EXPOSURES, actorState=sopState,
                             cartridge=sopState.cartridge,
@@ -402,7 +398,7 @@ class SopCmd(object):
         ditherSeq = cmd.cmd.keywords["ditherSeq"].values[0] \
                     if "ditherSeq" in cmd.cmd.keywords else "ABBA"
 
-        cmdState.cmd = cmd
+        cmdState.reinitialize(cmd)
         cmdState.ditherSeq = ditherSeq
         cmdState.seqCount = seqCount
         cmdState.comment = "sky flat, offset 0.01 degree in RA"
@@ -414,10 +410,6 @@ class SopCmd(object):
         if len(cmdState.exposureSeq) == 0:
             cmd.fail('text="You must take at least one exposure"')
             return
-
-        cmdState.setupCommand("doApogeeSkyFlats", cmd,
-                              ["expose"])
-        cmd.diag('text="Issuing doApogeeSkyFlats"')
         
         # Turn off the guider, if it's on.
         guideState = myGlobals.actorState.models["guider"].keyVarDict["guideState"]
@@ -461,7 +453,7 @@ class SopCmd(object):
         expTime = cmd.cmd.keywords["expTime"].values[0] \
                     if "expTime" in cmd.cmd.keywords else None
         cmdState.set('expTime',expTime)
-        
+
         sopState.queues[sopActor.MASTER].put(Msg.DO_MANGA_DITHER, cmd, replyQueue=self.replyQueue,
                                              actorState=sopState, cmdState=cmdState)
     
@@ -754,7 +746,7 @@ class SopCmd(object):
         if cmdState.doCalibs: activeStages.append("calibs")
         if cmdState.doGuider: activeStages.append("guider")
         activeStages.append('cleanup') # we always may have to cleanup...
-        cmdState.setupCommand("gotoField", cmd, activeStages)
+        cmdState.setupCommand(cmd, activeStages)
                 
         sopState.queues[sopActor.MASTER].put(Msg.GOTO_FIELD, cmd, replyQueue=self.replyQueue,
                                              actorState=sopState, cmdState=cmdState)
@@ -828,7 +820,7 @@ class SopCmd(object):
             cmd.fail('text=%s' % (qstr('will not go to instrument change: %s' % (blocked))))
             return
 
-        sopState.gotoInstrumentChange.setupCommand("gotoInstrumentChange", cmd, ['slew'])
+        sopState.gotoInstrumentChange.reinitialize(cmd)
         self.gotoPosition(cmd, "instrument change", sopState.gotoInstrumentChange, 121, 90)
 
     def gotoStow(self, cmd):
@@ -841,7 +833,7 @@ class SopCmd(object):
             cmd.fail('text=%s' % (qstr('will not go to stow position: %s' % (blocked))))
             return
 
-        sopState.gotoStow.setupCommand("gotoStow", cmd, ['slew'])
+        sopState.gotoStow.reinitialize(cmd)
         self.gotoPosition(cmd, "stow", sopState.gotoStow, None, 30, rot=None)
 
     def gotoGangChange(self, cmd):
