@@ -48,7 +48,7 @@ class CmdState(object):
         self.hiddenKeywords = hiddenKeywords
         self.reset_keywords()
         self.reset_nonkeywords()
-        
+
         self.setStages(allStages)
 
     def reset_keywords(self):
@@ -394,7 +394,7 @@ class DoApogeeMangaDitherCmd(CmdState):
 
 class DoApogeeMangaSequenceCmd(CmdState):
     def __init__(self):
-        CmdState.__init__(self, 'doApgoeeMangaSequence',
+        CmdState.__init__(self, 'doApogeeMangaSequence',
                           ['expose','calibs','dither'],
                           keywords=dict(mangaExpTime=900.0,
                                         apogeeExpTime=450.0,
@@ -417,7 +417,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
         
     def getUserKeys(self):
         msg = []
-        msg.append("%s_ditherSeq=%s,%s,%s,%s%s" % (self.name, self.mangaDitherSeq,
+        msg.append("%s_ditherSeq=%s,%s,%s,%s,%s" % (self.name, self.mangaDitherSeq,
                    self.mangaDithersDone, self.apogeeDitherSeq, self.apogeeDithersDone,
                    self.index))
         return msg

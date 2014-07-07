@@ -63,18 +63,19 @@ class SopTester(TestHelper.ActorTester):
         actorState.tccState = TCCState(actorState.models["tcc"])
         actorState.guiderState = GuiderState(actorState.models["guider"])
         actorState.apogeeGang = ApogeeGang()
-        # TBD: waiting on a better FakeActor, so I can actually use these.
-        #actorState.actor.commandSets['SopCmd'].initCommands()
-        #actorState.actor.commandSets['SopCmd'].updateCartridge(11)
+        actorState.threads = {} # so things that look for threads here don't fail.
         
         actorState.timeout = 10
         actorState.aborting = False
         self._load_lamptimes()
         self._clear_bypasses()
 
-        # so we can call sopCmds
+        # so we can call sopCmds, but init things silently.
+        self.cmd.verbose = False
         self.sopCmd = SopCmd.SopCmd(self.actor)
         self.sopCmd.initCommands()
+        self.cmd.clear_msgs()
+        self.cmd.verbose = self.verbose
 
     def _load_lamptimes(self):
         """Load the lamp timeouts from the conf file."""

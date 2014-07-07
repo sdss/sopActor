@@ -163,6 +163,54 @@ class TestUpdateCartridge(SopCmdTester,unittest.TestCase):
         expected['surveyCommands'] = TestHelper.sopApogeeMangaCommands['surveyCommands']
         self._updateCartridge(1,'APOGEE-2&MaNGA',expected)
 
+class TestStatus(SopCmdTester,unittest.TestCase):
+    def _status(self, nInfo, args=''):
+        self._run_cmd('status %s'%args, None)
+        self._check_cmd(0,nInfo,0,0,True)
+    def test_status(self):
+        self._status(51)
+    def test_status_geek(self):
+        self._status(53,args='geek')
+    def test_status_noFinish(self):
+        self.sopCmd.status(self.cmd,finish=False)
+        self._check_cmd(0,51,0,0,False)
+
+    def _oneCommand(self, nInfo, oneCommand):
+        """
+        nInfo here is the number of messages specific to oneCommand.
+        This is usually 3, or 4 if there are userKeys in that CmdState.
+        """
+        self.sopCmd.status(self.cmd,oneCommand=oneCommand)
+        self._check_cmd(0,6+nInfo,0,0,True)
+    def test_gotoGangChange(self):
+        self._oneCommand(3,'gotoGangChange')
+    def test_doApogeeDomeFlat(self):
+        self._oneCommand(3,'doApogeeDomeFlat')
+    def test_hartmann(self):
+        self._oneCommand(3,'hartmann')
+    def test_gotoField(self):
+        self._oneCommand(3,'gotoField')
+    def test_doBossCalibs(self):
+        self._oneCommand(4,'doBossCalibs')
+    def test_doApogeeScience(self):
+        self._oneCommand(4,'doApogeeScience')
+    def test_doApogeeSkyFlats(self):
+        self._oneCommand(3,'doApogeeSkyFlats')
+    def test_doBossScience(self):
+        self._oneCommand(4,'doBossScience')
+    def test_doMangaSequence(self):
+        self._oneCommand(4,'doMangaSequence')
+    def test_doMangaDither(self):
+        self._oneCommand(3,'doMangaDither')
+    def test_doApogeeMangaDither(self):
+        self._oneCommand(3,'doApogeeMangaDither')
+    def test_doApogeeMangaSequence(self):
+        self._oneCommand(4,'doApogeeMangaSequence')
+    def test_gotoStow(self):
+        self._oneCommand(2,'gotoStow')
+    def test_gotoInstrumentChange(self):
+        self._oneCommand(2,'gotoInstrumentChange')
+
 
 class TestGotoGangChange(SopCmdTester,unittest.TestCase):
     def _gotoGangChange(self, nCart, survey, args, expect):
@@ -489,12 +537,13 @@ if __name__ == '__main__':
     # to test just one piece
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoGangChange)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestDoMangaDither)
-    #suite = unittest.TestLoader().loadTestsFromTestCase(TestDoMangaSequence)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoMangaSequence)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestClassifyCartridge)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestHartmann)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoField)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestBossCalibs)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestUpdateCartridge)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestStatus)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestIsSlewingDisabled)
     if suite:
         unittest.TextTestRunner(verbosity=verbosity).run(suite)

@@ -945,14 +945,16 @@ class SopCmd(object):
         cmd.finish('')
 
     def status(self, cmd, threads=False, finish=True, oneCommand=None):
-        """Return sop status. 
+        """Return sop status.
         
-        If threads is true report on SOP's threads; 
+        If threads is true report on SOP's threads; (also if geek in cmd.keywords)
         If finish complete the command.
         Trim output to contain just keys relevant to oneCommand.
         """
 
         sopState = myGlobals.actorState
+
+        self.actor.sendVersionKey(cmd)
 
         if hasattr(cmd, 'cmd') and cmd.cmd != None and "geek" in cmd.cmd.keywords:
             threads = True
@@ -971,12 +973,11 @@ class SopCmd(object):
         cmd.inform("bypassNames=" + ", ".join(bypassNames))
         cmd.inform("bypassed=" + ", ".join(bypassStates))
         cmd.inform("bypassedNames=" + ", ".join(bypassedNames))
+        cmd.inform('text="apogeeGang: %s"' % (sopState.apogeeGang.getPos()))
 
         cmd.inform("surveyCommands=" + ", ".join(sopState.validCommands))
 
-        #
         # major commands
-        #
         sopState.gotoField.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.doBossCalibs.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.doBossScience.genKeys(cmd=cmd, trimKeys=oneCommand)
@@ -990,12 +991,12 @@ class SopCmd(object):
         sopState.doApogeeDomeFlat.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.hartmann.genKeys(cmd=cmd, trimKeys=oneCommand)
 
-        #
         # commands with no state
-        #
         sopState.gotoStow.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.gotoInstrumentChange.genKeys(cmd=cmd, trimKeys=oneCommand)
 
+        # TBD: threads arg is only used with "geek" option, apparently?
+        # TBD: I guess its useful for live debugging of the threads.
         if threads:
             try:
                 sopState.ignoreAborting = True
@@ -1013,8 +1014,6 @@ class SopCmd(object):
             finally:
                 sopState.ignoreAborting = False
 
-        cmd.inform('text="apogeeGang: %s"' % (sopState.apogeeGang.getPos()))
-        self.actor.sendVersionKey(cmd)
         if finish:
             cmd.finish("")
 
