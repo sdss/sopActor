@@ -174,7 +174,6 @@ class CmdState(object):
         
     def genKeys(self, cmd=None, trimKeys=False):
         """ generate all our keywords. """
-
         if not trimKeys or trimKeys == self.name:
             self.genCommandKeys(cmd=cmd)
             self.genStateKeys(cmd=cmd)
@@ -273,17 +272,15 @@ class DoApogeeScienceCmd(CmdState):
                           ['expose'],
                           keywords=dict(ditherSeq="ABBA",
                                         expTime=500.0,
-                                        comment=""))
-        self.seqCount = 0
+                                        comment="",
+                                        seqCount=2))
         self.seqDone = 0
-        self.exposureSeq = "ABBA"*2
+        self.exposureSeq = self.ditherSeq*self.seqCount
         self.index = 0
         self.expType = "object"
 
     def getUserKeys(self):
         msg = []
-        msg.append("%s_seqCount=%d,%d" % (self.name,
-                                          self.seqDone, self.seqCount))
         msg.append('%s_sequenceState="%s",%d' % (self.name,
                                                  self.exposureSeq,
                                                  self.index))
