@@ -552,10 +552,9 @@ def do_one_manga_dither(cmd, cmdState, actorState):
     dither = cmdState.dither
     expTime = cmdState.expTime
     readout = cmdState.readout
-    
     show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
     duration = flushDuration + expTime + actorState.timeout + guiderDecenterDuration
-    if readout: 
+    if readout:
         duration += readoutDuration
     multiCmd = SopMultiCommand(cmd, duration, cmdState.name+".expose")
     multiCmd.append(sopActor.BOSS, Msg.EXPOSE,
@@ -620,46 +619,11 @@ def do_manga_sequence(cmd, cmdState, actorState):
         except IndexError:
             # We're at the end, so don't need to move to new dither position.
             pass
-        if do_cals_now(cmdState.index):
-            multiCmd.append(sopActor.GUIDER, Msg.START, on=False)
-            prep_for_arc(multiCmd, precondition=False)
         pendingReadout = False
         if not multiCmd.run():
             failMsg = "failed to readout exposure/change dither position"
             break
         
-        # Take a mid-sequence calibration
-        if do_cals_now(cmdState.index):
-            stageName = 'calibs'
-            cmdState.setStageState(stageName, 'running')
-            expTime, expType = cmdState.arcTime, "arc"
-            timeout = flushDuration + expTime + actorState.timeout + myGlobals.warmupTime[sopActor.HGCD_LAMP]
-            multiCmd = SopMultiCommand(cmd, timeout, '.'.join((cmdState.name,stageName)))
-            multiCmd.append(sopActor.BOSS, Msg.EXPOSE,
-                            expTime=expTime, expType=expType, readout=False)
-            prep_for_arc(multiCmd,precondition=True)
-            # jkp TBD: use the below instead to make testing quicker!
-            #prep_quick_hartmann(multiCmd)
-            pendingReadout = True
-            if not multiCmd.run():
-                cmdState.setStageState(stageName, 'failed')
-                failMsg = "failed arc after MaNGA dither set %d"%(cmdState.index//arcExp)
-                break
-            # Don't bother resetting guiding if we're all done.
-            if cmdState.index < len(cmdState.ditherSeq):
-                stageName = 'dither'
-                # Readout arc, restart guider and reset lamps/ffs
-                multiCmd = SopMultiCommand(cmd, actorState.timeout + readoutDuration,
-                                           cmdState.name+".readout_restartGuider",
-                                           sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
-                multiCmd.append(sopActor.GUIDER, Msg.START, on=True)
-                prep_for_science(multiCmd, precondition=False)
-                prep_manga_dither(multiCmd, dither=dither, precondition=False)
-                pendingReadout = False
-                if not multiCmd.run():
-                    cmdState.setStageState(stageName, 'failed')
-                    failMsg = "failed to restart guider after MaNGA dither set %d post-calibs"%(cmdState.index//arcExp)
-                    break
     show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
     deactivate_guider_decenter(cmd, cmdState, actorState, 'dither')
     
@@ -675,11 +639,6 @@ def do_manga_sequence(cmd, cmdState, actorState):
         if pendingReadout and not multiCmd.run():
             cmd.error('text="Failed to readout last exposure"')
         return fail_command(cmd, cmdState, failMsg)
-    else:
-        # Turn off lamps, since we're all done successfully.
-        prep_lamps_off(multiCmd, precondition=False)
-        if not multiCmd.run():
-            return fail_command(cmd, cmdState, "Failed to readout last exposure or cleanup lamps/guider.")
     
     finish_command(cmd,cmdState,actorState,finishMsg)
 #...

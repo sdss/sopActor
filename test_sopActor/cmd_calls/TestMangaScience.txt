@@ -38,23 +38,6 @@ boss exposure science itime=900 noreadout
 
 boss exposure   readout
 guider mangaDither ditherPos=N
-guider off
-mcp ff.off
-mcp ne.on
-mcp ffs.close
-mcp hgcd.on
-
-mcp hgcd.on
-mcp ne.on
-boss exposure arc itime=4 noreadout
-
-boss exposure   readout
-mcp hgcd.off
-mcp ff.off
-guider on
-mcp ffs.open
-mcp ne.off
-guider mangaDither ditherPos=N
 
 boss exposure science itime=900 noreadout
 
@@ -70,23 +53,6 @@ boss exposure science itime=900 noreadout
 
 boss exposure   readout
 guider mangaDither ditherPos=N
-guider off
-mcp ff.off
-mcp ne.on
-mcp ffs.close
-mcp hgcd.on
-
-mcp hgcd.on
-mcp ne.on
-boss exposure arc itime=4 noreadout
-
-boss exposure   readout
-mcp hgcd.off
-mcp ff.off
-guider on
-mcp ffs.open
-mcp ne.off
-guider mangaDither ditherPos=N
 
 boss exposure science itime=900 noreadout
 
@@ -99,23 +65,9 @@ boss exposure   readout
 guider mangaDither ditherPos=E
 
 boss exposure science itime=900 noreadout
-
-boss exposure   readout
-guider off
-mcp ff.off
-mcp ne.on
-mcp ffs.close
-mcp hgcd.on
-
-mcp hgcd.on
-mcp ne.on
-boss exposure arc itime=4 noreadout
 
 boss exposure   readout
 guider decenter off
-mcp ff.off
-mcp hgcd.off
-mcp ne.off
 
 [test_do_manga_sequence_one_set]
 guider decenter on
@@ -135,18 +87,4 @@ guider mangaDither ditherPos=E
 boss exposure science itime=900 noreadout
 
 boss exposure   readout
-guider off
-mcp ff.off
-mcp ne.on
-mcp ffs.close
-mcp hgcd.on
-
-mcp hgcd.on
-mcp ne.on
-boss exposure arc itime=4 noreadout
-
-boss exposure   readout
 guider decenter off
-mcp ff.off
-mcp hgcd.off
-mcp ne.off

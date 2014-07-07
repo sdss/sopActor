@@ -426,7 +426,7 @@ class TestBossScience(MasterThreadTester):
         self._update_cart(11, 'BOSS')
         cmdState = CmdState.DoBossScienceCmd()
         cmdState.nExpLeft = nExp
-        cmdState.setupCommand("doBossScience", self.cmd,["exposure"])
+        cmdState.setupCommand("doBossScience", self.cmd)
         masterThread.do_boss_science(self.cmd, cmdState, myGlobals.actorState)
         self._check_cmd(nCall,nInfo,nWarn,nErr,True)
         
@@ -441,11 +441,13 @@ class TestApogeeScience(MasterThreadTester):
     """do_apogee_science tests"""
     def _do_apogee_science(self, nCall, nInfo, nWarn, nErr, ditherSeq='ABBA', seqCount=1):
         """Helper for boss science tests"""
+        self._update_cart(1, 'APOGEE')
         cmdState = CmdState.DoApogeeScienceCmd()
         cmdState.ditherSeq = ditherSeq
         cmdState.exposureSeq = ditherSeq * seqCount
         cmdState.seqCount = seqCount
         masterThread.do_apogee_science(self.cmd, cmdState, myGlobals.actorState)
+        cmdState.setupCommand("doApogeeScience", self.cmd)
         self._check_cmd(nCall,nInfo,nWarn,nErr,True)
     def test_do_apogee_science(self):
         """open shutter, one call per exposure, dither moves"""
@@ -460,80 +462,58 @@ class TestApogeeScience(MasterThreadTester):
 class TestMangaScience(MasterThreadTester):
     """do_manga_* tests"""
     def _do_one_manga_dither(self, nCall, nInfo, nWarn, nErr, dither='N'):
+        self._update_cart(1, 'MaNGA')
         cmdState = CmdState.DoMangaDitherCmd()
         cmdState.dither = dither
+        cmdState.setupCommand(self.cmd)
         masterThread.do_one_manga_dither(self.cmd, cmdState, myGlobals.actorState)
         self._check_cmd(nCall,nInfo,nWarn,nErr,False)
     def test_do_one_manga_dither(self):
-        """gudier decenter, guider dither, boss exposure"""
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         dither = 'N'
-        self._do_one_manga_dither(3,9,0,0,dither=dither)
+        self._do_one_manga_dither(3,20,0,0,dither=dither)
     
     def _do_manga_dither(self, nCall, nInfo, nWarn, nErr, dither='N', didFail=False):
         cmdState = CmdState.DoMangaDitherCmd()
+        cmdState.setupCommand(self.cmd)
         cmdState.dither = dither
         masterThread.do_manga_dither(self.cmd, cmdState, myGlobals.actorState)
         self._check_cmd(nCall,nInfo,nWarn,nErr,True,didFail=didFail)
     def test_do_manga_dither(self):
-        """decenter on, guider dither, boss exposure, decenter off"""
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         dither = 'N'
-        self._do_manga_dither(4,17,0,0,dither=dither)
+        self._do_manga_dither(4,28,0,0,dither=dither)
     def test_do_manga_dither_fails_ffs(self):
-        """decenter on, guider dither, ffs open->fail, decenter off (cleanup)"""
         self.cmd.failOn = "mcp ffs.open"
         dither = 'S'
-        self._do_manga_dither(4,17,1,0,dither=dither, didFail=True)
+        self._do_manga_dither(4,28,1,0,dither=dither, didFail=True)
     
     def _do_manga_sequence(self,nCall,nInfo,nWarn,nErr,count,dithers='NSE'):
+        self._update_cart(1, 'MaNGA')
         cmdState = CmdState.DoMangaSequenceCmd()
         cmdState.count = count
         cmdState.dithers = dithers
         cmdState.ditherSeq = dithers*count
+        cmdState.setupCommand(self.cmd)
         masterThread.do_manga_sequence(self.cmd, cmdState, myGlobals.actorState)
         self._check_cmd(nCall,nInfo,nWarn,nErr,True)
         self.assertTrue(self.cmd.finished)
     def test_do_manga_sequence(self):
-        """
-        decenter on,
-        count*nDithers*(new dither, expose, readout),
-        count*(guider off, ffs closed, ne on, hgcd on, ff off),
-        count*(ne on, hgcd on),
-        count*(boss expose, readout),
-        (count-1)*(ffs open, ne off, hgcd off, ff off, guider on, new dither),
-        decenter off, ne off, hgcd off, ff off
-        """
         # TBD": Note: until multiCmds are smarter about whether we have to run
         # non-preconditions, things like wht.off will always be sent as part of
         # prepping for things, even though they aren't necessary.
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         count = 3
         dithers = 'NSE'
-        self._do_manga_sequence(1 +
-                                count*len(dithers)*3 +
-                                count*5 + count*2 + count*2 +
-                                (count-1)*6 + 4, 151,0,0,count,dithers)
+        self._do_manga_sequence(29, 204,0,0,count,dithers)
     def test_do_manga_sequence_one_set(self):
-        """
-        decenter on,
-        count*nDithers*(new dither, expose, readout),
-        count*(guider off, ffs closed, ne on, hgcd on, ff off),
-        count*(ne on, hgcd on),
-        count*(boss expose, readout),
-        (count-1)*(ffs open, ne off, hgcd off, ff off, guider on, new dither),
-        decenter off, ne off, hgcd off, ff off
-        """
         # TBD": Note: until multiCmds are smarter about whether we have to run
         # non-preconditions, things like wht.off will always be sent as part of
         # prepping for things, even though they aren't necessary.
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         count = 1
         dithers = 'NSE'
-        self._do_manga_sequence(1 +
-                                count*len(dithers)*3 +
-                                count*5 + count*2 + count*2 +
-                                (count-1)*6 + 4, 57,0,0,count,dithers)
+        self._do_manga_sequence(11, 84,0,0,count,dithers)
 
 
 class TestBossCalibs(MasterThreadTester):
@@ -651,11 +631,11 @@ if __name__ == '__main__':
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoGangChange)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestApogeeDomeFlat)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestApogeeScience)
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestBossScience)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestBossScience)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestHartmann)
-    #suite = unittest.TestLoader().loadTestsFromTestCase(TestMangaScience)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestMangaScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestBossCalibs)
-    # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestGotoField.test_goto_field_boss_ffs_open_fails')
+    # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestMangaScience.test_do_manga_dither')
     # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestBossCalibs.test_do_boss_calibs_one_arc_coobserve')
     if suite:
         unittest.TextTestRunner(verbosity=verbosity).run(suite)
