@@ -200,7 +200,7 @@ class Bypass(object):
 
             return bypassed
 
-        return  Bypass._bypassed.items()
+        return  sorted(Bypass._bypassed.items())
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

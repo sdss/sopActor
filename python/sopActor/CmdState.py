@@ -121,7 +121,7 @@ class CmdState(object):
             self.genKeys()
 
     def setStageState(self, name, stageState, genKeys=True):
-        """Set a stage to a new state, adn output the stage state keys."""
+        """Set a stage to a new state, and output the stage state keys."""
         assert name in self.stages, "stage %s is unknown, out of %s"%(name,repr(self.stages))
         assert stageState in self.validStageStates, "state %s is unknown, out of %s" % (stageState,repr(self.validStageStates))
         self.stages[name] = stageState
