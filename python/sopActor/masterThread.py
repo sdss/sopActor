@@ -789,7 +789,7 @@ def _run_slew(cmd, cmdState, actorState, multiCmd):
 
 def goto_field_apogeemanga(cmd, cmdState, actorState, slewTimeout):
     """Process a goto field sequence for an APOGEE-MaNGA co-observing plate."""
-    cmd.error('text="This command is not yet supported."')
+    cmd.fail('text="This command is not yet supported."')
     return False
 
 def goto_field_apogee(cmd, cmdState, actorState, slewTimeout):
