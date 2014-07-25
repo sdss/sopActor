@@ -679,9 +679,13 @@ class SopCmd(object):
             if "guiderTime" in cmd.cmd.keywords:
                 cmdState.guiderTime = float(cmd.cmd.keywords["guiderTime"].values[0])
 
+            # TBD: WARNING! this isn't going to work as written:
+            # * "pending" and "off" are not valid stage states.
+            # * also, this does not keep track of what's already been done.
+            # * would be best off if I had a unified cmdState modification system.
             cmdState.setStageState("slew", "pending" if cmdState.doSlew else "off")
             cmdState.setStageState("hartmann", "pending" if cmdState.doHartmann else "off")
-            cmdState.setStageState("calibs", "pending" if doCalibs else "off")
+            cmdState.setStageState("calibs", "pending" if cmdState.doCalibs else "off")
             cmdState.setStageState("guider", "pending" if cmdState.doGuider else "off")
 
             self.status(cmd, threads=False, finish=True, oneCommand="gotoField")
@@ -1049,30 +1053,30 @@ class SopCmd(object):
         sopState.survey = survey
 
         if survey == sopActor.BOSS:
-            sopState.gotoField.setStages(['slew', 'hartmann', 'calibs', 'guider'])
+            sopState.gotoField.setStages(['slew', 'hartmann', 'calibs', 'guider', 'cleanup'])
             sopState.validCommands = ['gotoField',
                                       'hartmann', 'doBossCalibs', 'doBossScience',
                                       'gotoInstrumentChange']
         elif survey == sopActor.APOGEE:
-            sopState.gotoField.setStages(['slew', 'guider'])
+            sopState.gotoField.setStages(['slew', 'guider', 'cleanup'])
             sopState.validCommands = ['gotoField',
                                       'doApogeeScience', 'doApogeeSkyFlats',
                                       'gotoGangChange', 'gotoInstrumentChange', 'doApogeeDomeFlat']
         elif survey == sopActor.MANGA:
-            sopState.gotoField.setStages(['slew', 'hartmann', 'calibs', 'guider'])
+            sopState.gotoField.setStages(['slew', 'hartmann', 'calibs', 'guider', 'cleanup'])
             sopState.validCommands = ['gotoField',
                                       'hartmann', 'doBossCalibs',
                                       'doMangaDither','doMangaSequence',
                                       'gotoInstrumentChange']
         elif survey == sopActor.APOGEEMANGA:
-            sopState.gotoField.setStages(['slew', 'hartmann', 'calibs', 'guider'])
+            sopState.gotoField.setStages(['slew', 'hartmann', 'calibs', 'guider', 'cleanup'])
             sopState.validCommands = ['gotoField',
                                       'hartmann', 'doBossCalibs',
                                       'doApogeeMangaDither','doApogeeMangaSequence',
                                       'doApogeeSkyFlats', 'gotoGangChange',
                                       'gotoInstrumentChange', 'doApogeeDomeFlat']
         else:
-            sopState.gotoField.setStages(['slew', 'guider'])
+            sopState.gotoField.setStages(['slew', 'guider', 'cleanup'])
             sopState.validCommands = ['gotoStow', 'gotoInstrumentChange']
 
         self.status(cmd, threads=False, finish=False)
