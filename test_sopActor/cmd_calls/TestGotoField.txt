@@ -228,3 +228,5 @@ guider flat time=0.5
 mcp ff.off
 boss exposure   readout
 mcp ffs.open
+
+[test_goto_field_apogeemanga_all]

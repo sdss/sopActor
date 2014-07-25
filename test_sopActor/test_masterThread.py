@@ -54,74 +54,77 @@ class TestGuider(MasterThreadTester):
     """guider_* tests"""
     def _guider_start(self,nCall,nInfo,nWarn,nErr,finish=False,didFail=False):
         """Helper for running guider start tests."""
-        cmdState = CmdState.GotoFieldCmd()
+        cmdState = self.actorState.gotoField
+        cmdState.reinitialize(self.cmd)
         result = masterThread.guider_start(self.cmd, cmdState, myGlobals.actorState, "gotoField")
         self.assertEqual(result,not didFail)
         self._check_cmd(nCall, nInfo, nWarn, nErr, finish, didFail=didFail)
         
     def test_guider_start_ffsClosed(self):
         """ffs open, 3x axis clear, guider on"""
-        self._guider_start(5,9,0,0)
+        self._guider_start(5,19,0,0)
     def test_guider_start_ffsOpen(self):
         """3x axis clear, guider on"""
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
-        self._guider_start(4,6,0,0)
+        self._guider_start(4,16,0,0)
     def test_guider_start_arcsOn(self):
         """ffs open, he off, hgcd off, 3x axis clear, guider on"""
         sopTester.updateModel('mcp',TestHelper.mcpState['arcs'])
-        self._guider_start(7,9,0,0)
+        self._guider_start(7,19,0,0)
     def test_guider_start_flatsOn(self):
         """ffs open, flat off, 3x axis clear, guider on"""
         sopTester.updateModel('mcp',TestHelper.mcpState['flats'])
-        self._guider_start(6,9,0,0)
+        self._guider_start(6,19,0,0)
     def test_guider_start_fails(self):
         self.cmd.failOn = "guider on time=5"
-        self._guider_start(5,12,0,1,finish=True,didFail=True)
+        self._guider_start(5,13,0,1,finish=True,didFail=True)
 
     def _guider_flat(self,nCall,nInfo,nWarn,nErr,finish=False,didFail=False):
         """Helper for running guider flat tests."""
-        cmdState = CmdState.GotoFieldCmd()
+        cmdState = self.actorState.gotoField
+        cmdState.reinitialize(self.cmd)
         result = masterThread.guider_flat(self.cmd, cmdState, myGlobals.actorState, "guider")
         self.assertEqual(result,not didFail)
         self._check_cmd(nCall, nInfo, nWarn, nErr, finish, didFail=didFail)
     def test_guider_flat_ffsClosed(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
-        self._guider_flat(2,8,0,0)
+        self._guider_flat(2,19,0,0)
     def test_guider_flat_ffsOpen(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
-        self._guider_flat(3,8,0,0)
+        self._guider_flat(3,19,0,0)
     def test_guider_flat_fails(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
         self.cmd.failOn = "guider flat time=0.5"
-        self._guider_flat(2,11,0,0,finish=True,didFail=True)
+        self._guider_flat(2,13,0,0,finish=True,didFail=True)
     
     def _guider_flat_apogeeShutter(self,nCall,nInfo,nWarn,nErr,finish=False,didFail=False):
         """Helper for running guider flat tests that check the APOGEE shutter."""
-        cmdState = CmdState.GotoFieldCmd()
+        cmdState = self.actorState.gotoField
+        cmdState.reinitialize(self.cmd)
         result = masterThread.guider_flat(self.cmd, cmdState, myGlobals.actorState, "guider", apogeeShutter=True)
         self.assertEqual(result,not didFail)
         self._check_cmd(nCall,nInfo,nWarn,nErr, finish, didFail=didFail)
     def test_guider_flat_apogeeShutter_open(self):
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
-        self._guider_flat_apogeeShutter(3,8,0,0)
+        self._guider_flat_apogeeShutter(3,19,0,0)
     def test_guider_flat_apogeeShutter_closed(self):
         sopTester.updateModel('apogee',TestHelper.apogeeState['A_closed'])
-        self._guider_flat_apogeeShutter(2,8,0,0)
+        self._guider_flat_apogeeShutter(2,19,0,0)
         
     def _deactivate_guider_decenter(self,nCall,nInfo,nWarn,nErr, didFail=False):
         stageName = 'dither'
-        cmdName = 'doMangaDither'
-        cmdState = CmdState.DoMangaDitherCmd()
+        cmdState = self.actorState.doMangaDither
+        cmdState.reinitialize(self.cmd)
         result = masterThread.deactivate_guider_decenter(self.cmd, cmdState, myGlobals.actorState, stageName)
         self.assertEqual(result,not didFail)
         self._check_cmd(nCall, nInfo, nWarn, nErr, False, didFail=didFail)
     def test_deactivate_guider_decenter_on(self):
         """decenter off"""
         sopTester.updateModel('guider',TestHelper.guiderState['guiderOnDecenter'])
-        self._deactivate_guider_decenter(1,4,0,0)
+        self._deactivate_guider_decenter(1,6,0,0)
     def test_deactivate_guider_decenter_off(self):
         """(nothing: already off)"""
-        self._deactivate_guider_decenter(0,2,0,0)
+        self._deactivate_guider_decenter(0,4,0,0)
     def test_deactivate_guider_decenter_fails(self):
         """
         decenter off
@@ -129,17 +132,18 @@ class TestGuider(MasterThreadTester):
         """
         sopTester.updateModel('guider',TestHelper.guiderState['guiderOnDecenter'])
         self.cmd.failOn="guider decenter off"
-        self._deactivate_guider_decenter(1,7,0,1,didFail=True)
+        self._deactivate_guider_decenter(1,9,0,1,didFail=True)
 
     
 class TestGotoField(MasterThreadTester):
     """GotoField and slewing tests"""
     def test_start_slew(self):
-        cmdState = CmdState.GotoFieldCmd()
+        cmdState = self.actorState.gotoField
+        cmdState.reinitialize(self.cmd)
         result = masterThread.start_slew(self.cmd, cmdState, myGlobals.actorState, self.timeout)
         self.assertIsInstance(result,sopActor.MultiCommand)
         self.assertEqual(result.timeout, self.timeout+myGlobals.actorState.timeout)
-        self._check_cmd(0,1,0,0,False)
+        self._check_cmd(0,3,0,0,False)
     
     def _goto_feld_apogee(self, nCall, nInfo, nWarn, nErr, cmdState):
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
@@ -151,33 +155,37 @@ class TestGotoField(MasterThreadTester):
         3xguider axes off, guider on
         One warning from "in slew with halted=False slewing=False"
         """
-        cmdState = CmdState.GotoFieldCmd()
-        self._goto_feld_apogee(12,26,1,0,cmdState)
+        cmdState = self.actorState.gotoField
+        cmdState.reinitialize(self.cmd)
+        self._goto_feld_apogee(12,45,1,0,cmdState)
     def test_goto_field_apogee_no_guider(self):
         """
         axis status, axis init, slew
         One warning from "in slew with halted=False slewing=False"
         """
-        cmdState = CmdState.GotoFieldCmd()
+        cmdState = self.actorState.gotoField
+        cmdState.reinitialize(self.cmd)
         cmdState.doGuider = False
-        self._goto_feld_apogee(3,9,1,0,cmdState)
+        self._goto_feld_apogee(3,11,1,0,cmdState)
     def test_goto_field_apogee_no_slew(self):
         """
         FF on, guider flat, FF off, open FFS
         3xguider axes off, guider on
         """
-        cmdState = CmdState.GotoFieldCmd()
+        cmdState = self.actorState.gotoField
+        cmdState.reinitialize(self.cmd)
         cmdState.doSlew = False
-        self._goto_feld_apogee(8,17,0,0,cmdState)
+        self._goto_feld_apogee(8,36,0,0,cmdState)
     def test_goto_field_apogee_no_slew_decenter_off(self):
         """
         FF on, guider flat, FF off, open FFS
         guider decenter off, 3xguider axes off, guider on
         """
         sopTester.updateModel('guider',TestHelper.guiderState['guiderOnDecenter'])
-        cmdState = CmdState.GotoFieldCmd()
+        cmdState = self.actorState.gotoField
+        cmdState.reinitialize(self.cmd)
         cmdState.doSlew = False
-        self._goto_feld_apogee(9,18,0,0,cmdState)
+        self._goto_feld_apogee(9,37,0,0,cmdState)
 
     def test_goto_field_apogee_no_slew_shutter_open(self):
         """
@@ -185,9 +193,10 @@ class TestGotoField(MasterThreadTester):
         3xguider axes off, guider on
         """
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
-        cmdState = CmdState.GotoFieldCmd()
+        cmdState = self.actorState.gotoField
+        cmdState.reinitialize(self.cmd)
         cmdState.doSlew = False
-        self._goto_feld_apogee(9,17,0,0,cmdState)
+        self._goto_feld_apogee(9,36,0,0,cmdState)
     
     def _goto_field_boss(self, nCall, nInfo, nWarn, nErr, cmdState, finish=False, didFail=False):
         masterThread.goto_field_boss(self.cmd,cmdState,myGlobals.actorState,self.timeout)
@@ -198,43 +207,47 @@ class TestGotoField(MasterThreadTester):
         One warning from "in slew with halted=False slewing=False"
         """
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
-        cmdState = CmdState.GotoFieldCmd()
-        self._goto_field_boss(25,58,1,0,cmdState)
+        cmdState = self.actorState.gotoField
+        cmdState.reinitialize(self.cmd)
+        self._goto_field_boss(25,104,1,0,cmdState)
     def test_goto_field_boss_slew(self):
         """
         axis status, axis init, slew
         One warning from "in slew with halted=False slewing=False"
         """
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
-        cmdState = CmdState.GotoFieldCmd()
+        cmdState = self.actorState.gotoField
+        cmdState.reinitialize(self.cmd)
         cmdState.doGuider = False
         cmdState.doHartmann = False
         cmdState.doCalibs = False
         cmdState.arcTime = 0
         cmdState.flatTime = 0
-        self._goto_field_boss(3,15,1,0,cmdState)
+        self._goto_field_boss(3,26,1,0,cmdState)
     def test_goto_field_boss_hartmann(self):
         """
         ne on, hgcd on, ff off, doHartmann, ne off, hgcd off
         """
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
-        cmdState = CmdState.GotoFieldCmd()
+        cmdState = self.actorState.gotoField
+        cmdState.reinitialize(self.cmd)
         cmdState.doSlew = False
         cmdState.doCalibs = False
         cmdState.arcTime = 0
         cmdState.flatTime = 0
         cmdState.doGuider = False
-        self._goto_field_boss(5,18,0,0,cmdState)
+        self._goto_field_boss(5,29,0,0,cmdState)
     def test_goto_field_boss_calibs(self):
         """
         see cmd_calls/TestGotoField.txt for command list.
         """
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
-        cmdState = CmdState.GotoFieldCmd()
+        cmdState = self.actorState.gotoField
+        cmdState.reinitialize(self.cmd)
         cmdState.doSlew = False
         cmdState.doHartmann = False
         cmdState.doGuider = False
-        self._goto_field_boss(10,37,0,0,cmdState)
+        self._goto_field_boss(10,57,0,0,cmdState)
     def test_goto_field_boss_guider(self):
         """
         Start with decentered guiding on, to check that we clear it.
@@ -242,71 +255,83 @@ class TestGotoField(MasterThreadTester):
         """
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
         sopTester.updateModel('guider',TestHelper.guiderState['guiderOnDecenter'])
-        cmdState = CmdState.GotoFieldCmd()
+        cmdState = self.actorState.gotoField
+        cmdState.reinitialize(self.cmd)
         cmdState.doSlew = False
         cmdState.doHartmann = False
         cmdState.doCalibs = False
         cmdState.arcTime = 0
         cmdState.flatTime = 0
-        self._goto_field_boss(9,18,0,0,cmdState)
+        self._goto_field_boss(9,37,0,0,cmdState)
     
     def test_goto_field_boss_flat_on_fails(self):
         """Fail on ff.on, but still readout the arc."""
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
-        cmdState = CmdState.GotoFieldCmd()
+        cmdState = self.actorState.gotoField
+        cmdState.reinitialize(self.cmd)
         self.cmd.failOn = "mcp ff.on"
-        self._goto_field_boss(16,42,1,1,cmdState,didFail=True,finish=True)
+        self._goto_field_boss(16,71,1,1,cmdState,didFail=True,finish=True)
     def test_goto_field_boss_ne_on_fails(self):
         """Fail on ne.on."""
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
-        cmdState = CmdState.GotoFieldCmd()
+        cmdState = self.actorState.gotoField
+        cmdState.reinitialize(self.cmd)
         self.cmd.failOn = "mcp ne.on"
-        self._goto_field_boss(6,13,1,1,cmdState,didFail=True,finish=True)
+        self._goto_field_boss(6,15,1,1,cmdState,didFail=True,finish=True)
     def test_goto_field_boss_sos_doHartmann_fails(self):
         """Fail on sos doHartmann."""
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
-        cmdState = CmdState.GotoFieldCmd()
+        cmdState = self.actorState.gotoField
+        cmdState.reinitialize(self.cmd)
         self.cmd.failOn = "sos doHartmann"
-        self._goto_field_boss(9,23,1,1,cmdState,didFail=True,finish=True)
+        # TBD: NOTE: Something wrong with this test!
+        # Should produce 0 errors, but the failure usually (not always!)
+        # cascades through to hgcd lampThread.
+        # I'm pretty sure that's not correct.
+        self._goto_field_boss(9,34,1,0,cmdState,didFail=True,finish=True)
     def test_goto_field_boss_ffs_open_fails(self):
         """Fail on ffs.open, but still readout flat."""
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
-        cmdState = CmdState.GotoFieldCmd()
+        cmdState = self.actorState.gotoField
+        cmdState.reinitialize(self.cmd)
         self.cmd.failOn = "mcp ffs.open"
-        self._goto_field_boss(21,64,2,1,cmdState,didFail=True,finish=True)
+        self._goto_field_boss(21,102,2,1,cmdState,didFail=True,finish=True)
     
     def _goto_field_apogeemanga(self, nCall, nInfo, nWarn, nErr, cmdState, finish=False, didFail=False):
         masterThread.goto_field_apogeemanga(self.cmd,cmdState,myGlobals.actorState,self.timeout)
         self._check_cmd(nCall, nInfo, nWarn, nErr, finish, didFail)
+    @unittest.skip('not applicable yet!')
     def test_goto_field_apogeemanga_all(self):
         """
         see cmd_calls/TestGotoField.txt for command list.
         One warning from "in slew with halted=False slewing=False"
         """
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
-        cmdState = CmdState.GotoFieldCmd()
+        cmdState = self.actorState.gotoField
+        cmdState.reinitialize(self.cmd)
         self._goto_field_apogeemanga(25,58,1,0,cmdState)
 
 class TestHartmann(MasterThreadTester):
     """hartmann tests"""
     def _hartmann(self,nCall,nInfo,nWarn,nErr, finish=True, didFail=False):
-        cmdState = CmdState.HartmannCmd()
+        cmdState = self.actorState.hartmann
+        cmdState.reinitialize(self.cmd)
         masterThread.hartmann(self.cmd,cmdState,myGlobals.actorState)
         self._check_cmd(nCall,nInfo,nWarn,nErr,finish,didFail)
     def test_hartmann_open(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
-        self._hartmann(9,27,0,0)
+        self._hartmann(9,56,0,0)
     def test_hartmann_closed(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
-        self._hartmann(7,26,0,0)
+        self._hartmann(7,55,0,0)
     def test_hartmann_fails(self):
         self.cmd.failOn="boss exposure arc itime=4 hartmann=left"
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
-        self._hartmann(4,12,0,0,didFail=True)
+        self._hartmann(4,23,0,0,didFail=True)
     def test_hartmann_fails_cleanup(self):
         self.cmd.failOn="mcp ne.off"
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
-        self._hartmann(7,26,0,1,didFail=True)
+        self._hartmann(7,55,0,1,didFail=True)
         
 
 class TestApogeeDomeFlat(MasterThreadTester):
@@ -317,6 +342,7 @@ class TestApogeeDomeFlat(MasterThreadTester):
     #     One for ff.on and one for ff.off
     def _apogee_dome_flat(self,nCall,nInfo,nWarn,nErr, multiCmd, finish=False, didFail=False):
         cmdState = CmdState.DoApogeeDomeFlatCmd()
+        cmdState.setupCommand(self.cmd)
         result = masterThread.apogee_dome_flat(self.cmd, cmdState, myGlobals.actorState, multiCmd)
         self._check_cmd(nCall,nInfo,nWarn,nErr,finish,didFail)
         self.assertEqual(result, not didFail)
@@ -363,6 +389,7 @@ class TestGotoGangChange(MasterThreadTester):
     #     One for ff.on and one for ff.off
     def _goto_gang_change(self, nCall, nInfo, nWarn, nErr, finish=True, didFail=False):
         cmdState = CmdState.GotoGangChangeCmd()
+        cmdState.setupCommand(self.cmd)
         masterThread.goto_gang_change(self.cmd, cmdState, myGlobals.actorState)
         self._check_cmd(nCall,nInfo,nWarn,nErr,finish,didFail)
     def test_goto_gang_change_apogee_open(self):
@@ -426,7 +453,7 @@ class TestBossScience(MasterThreadTester):
         self._update_cart(11, 'BOSS')
         cmdState = CmdState.DoBossScienceCmd()
         cmdState.nExpLeft = nExp
-        cmdState.setupCommand("doBossScience", self.cmd)
+        cmdState.setupCommand(self.cmd)
         masterThread.do_boss_science(self.cmd, cmdState, myGlobals.actorState)
         self._check_cmd(nCall,nInfo,nWarn,nErr,True)
         
@@ -446,8 +473,8 @@ class TestApogeeScience(MasterThreadTester):
         cmdState.ditherSeq = ditherSeq
         cmdState.exposureSeq = ditherSeq * seqCount
         cmdState.seqCount = seqCount
+        cmdState.setupCommand(self.cmd)
         masterThread.do_apogee_science(self.cmd, cmdState, myGlobals.actorState)
-        cmdState.setupCommand("doApogeeScience", self.cmd)
         self._check_cmd(nCall,nInfo,nWarn,nErr,True)
     def test_do_apogee_science(self):
         """open shutter, one call per exposure, dither moves"""
@@ -519,6 +546,7 @@ class TestMangaScience(MasterThreadTester):
 class TestBossCalibs(MasterThreadTester):
     """do_boss_calibs tests"""
     def _do_boss_calibs(self, nCall, nInfo, nWarn, nErr, cmdState, didFail=False):
+        cmdState.setupCommand(self.cmd)
         masterThread.do_boss_calibs(self.cmd, cmdState, myGlobals.actorState)
         self._check_cmd(nCall,nInfo,nWarn,nErr,True,didFail=didFail)
     
@@ -626,16 +654,16 @@ if __name__ == '__main__':
     
     suite = None
     # to test just one piece
-    #suite = unittest.TestLoader().loadTestsFromTestCase(TestGuider)
-    # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoField)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestGuider)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoField)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoGangChange)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestApogeeDomeFlat)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestApogeeScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestBossScience)
-    #suite = unittest.TestLoader().loadTestsFromTestCase(TestHartmann)
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestMangaScience)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestHartmann)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestMangaScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestBossCalibs)
-    # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestMangaScience.test_do_manga_dither')
+    # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestGotoField.test_goto_field_boss_sos_doHartmann_fails')
     # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestBossCalibs.test_do_boss_calibs_one_arc_coobserve')
     if suite:
         unittest.TextTestRunner(verbosity=verbosity).run(suite)
