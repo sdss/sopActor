@@ -387,7 +387,8 @@ class DoApogeeMangaDitherCmd(CmdState):
                           keywords=dict(mangaExpTime=900.0,
                                         apogeeExpTime=450.0,
                                         apogeeDithers='AB',
-                                        mangaDither='C'))
+                                        mangaDither='C',
+                                        comment=''))
         self.readout = True
     
     def isSlewingDisabled(self):
@@ -406,7 +407,8 @@ class DoApogeeMangaSequenceCmd(CmdState):
                                         apogeeExpTime=450.0,
                                         apogeeDithers='AB',
                                         mangaDithers='NSE',
-                                        count=3))
+                                        count=3,
+                                        comment=''))
         self.reset_ditherSeq()
         
     def reset_nonkeywords(self):
