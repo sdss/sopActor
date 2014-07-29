@@ -13,7 +13,7 @@ def twistedSleep(secs):
     reactor.callLater(secs, d.callback, None)
     return d
 
-def checkFailure(msg,cmdVar,failmsg,finish=True):
+def checkFailure(cmd, cmdVar, failmsg, finish=True):
     """
     Test whether cmdVar has failed, and if so issue failmsg as a 'warn' level text.
     Returns True if cmdVar failed, False if not.
@@ -21,16 +21,16 @@ def checkFailure(msg,cmdVar,failmsg,finish=True):
     Always send success=False if it did fail.
     """
     if cmdVar.didFail:
-        msg.cmd.warn('text=%s'%qstr(failmsg))
-        msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
+        cmd.error('text=%s'%qstr(failmsg))
+        replyQueue.put(Msg.REPLY, cmd=cmd, success=False)
         return True
     else:
         if finish:
-            msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
+            replyQueue.put(Msg.REPLY, cmd=cmd, success=True)
         return False
 #...
 
-def doDither(cmd, actorState, dither):
+def do_dither(cmd, actorState, dither):
     """Move the APOGEE dither position."""
     timeLim = 30.0  # seconds
     cmdVar = actorState.actor.cmdr.call(actor="apogee", forUserCmd=cmd,
@@ -39,13 +39,52 @@ def doDither(cmd, actorState, dither):
     return cmdVar
 #...
 
-def doShutter(cmd,actorState,position):
+def do_shutter(cmd,actorState,position):
     """Move the APOGEE shutter position."""
     cmdVar = actorState.actor.cmdr.call(actor="apogee", forUserCmd=cmd,
                                         cmdStr="shutter %s" % (position),
                                         timeLim=20)
     return cmdVar
 #...
+
+def do_expose(cmd, actorState, expTime, dither, expType, comment):
+    """Take an exposure, moving the dither position if requested (not None)."""
+    if dither != None:
+        cmdVar = do_dither(cmd, actorState, dither)
+        if cmdVar.didFail:
+            cmd.error('text=%s'%qstr("Failed to move APOGEE dither to %s position."%(dither)))
+            return False
+
+    timeLim = expTime + 15.0  # seconds
+    cmdVar = actorState.actor.cmdr.call(actor="apogee", forUserCmd=cmd,
+                                        cmdStr="expose time=%0.1f object=%s %s" %
+                                        (expTime, expType,
+                                         ("comment=%s" % qstr(comment)) if comment else ""),
+                                        keyVars=[], timeLim=timeLim)
+    success = not cmdVar.didFail
+
+    if not success:
+        cmd.error('text="failed to start %s exposure"' % (expType))
+    else:
+        cmd.inform('text="done with %s exposure"' % (expType))
+    return success
+
+def do_expose_dither_set(cmd, actorState, expTime, dithers, expType, comment):
+    """
+    A set of exposures at multiple dither positions, moving the dither
+    in between as needed.
+    """
+    for dither in dithers:
+        currentDither = actorState.models['apogee'].keyVarDict["ditherPosition"][1]
+        # Per ticket #1756, APOGEE now does not want dither move requests unless necessary
+        print currentDither, dither
+        if dither == currentDither:
+            dither = None
+            cmd.inform('text="APOGEE dither already at desired position %s: not commanding move."'%(dither))
+        success = do_expose(cmd, actorState, expTime, dither, expType, comment)
+        if not success:
+            return False
+    return True
 
 class ApogeeCB(object):
     def __init__(self):
@@ -157,55 +196,28 @@ def main(actor, queues):
                 return
 
             elif msg.type == Msg.DITHER:
-                cmdVar = doDither(msg.cmd, actorState, msg.dither)
+                cmdVar = do_dither(msg.cmd, actorState, msg.dither)
                 checkFailure(msg,cmdVar,"Failed to move APOGEE dither to %s position."%(dither))
                 
             elif msg.type == Msg.APOGEE_SHUTTER:
                 position = "open" if msg.open else "close"
-                cmdVar = doShutter(msg.cmd, actorState, position)
+                cmdVar = do_shutter(msg.cmd, actorState, position)
                 checkFailure(msg,cmdVar,"Failed to %s APOGEE internal shutter."%(position))
 
             elif msg.type == Msg.EXPOSE:
-                msg.cmd.respond("text=\"starting %s%s exposure\"" % (
-                        ((("%gs " % msg.expTime) if msg.expTime > 0 else ""), msg.expType)))
+                dither = getattr(msg,'dither',None)
+                expType = getattr(msg,'expType','dark')
+                comment = getattr(msg,'comment','')
+                success = do_expose(msg.cmd, actorState, msg.expTime, dither, expType, comment)
 
-                try:
-                    dither = msg.dither
-                except AttributeError as e:
-                    dither = None
+                msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=success)
 
-                try:
-                    expType = msg.expType
-                except AttributeError as e:
-                    expType = "dark"
+            elif msg.type == Msg.EXPOSE_DITHER_SET:
+                dithers = getattr(msg,'dithers','AB')
+                expType = getattr(msg,'expType','object')
+                comment = getattr(msg,'comment','')
+                success = do_expose_dither_set(msg.cmd, actorState, msg.expTime, dither, expType, comment)
 
-                try:
-                    comment = msg.comment
-                except AttributeError as e:
-                    comment = ""
-
-                if dither != None:
-                    cmdVar = doDither(msg.cmd, actorState, dither)
-                    if checkFailure(msg,cmdVar,"Failed to move APOGEE dither to %s position."%(dither),finish=False):
-                        continue
-
-                timeLim = msg.expTime + 15.0  # seconds
-                if True:                # really take data
-                    cmdVar = actorState.actor.cmdr.call(actor="apogee", forUserCmd=msg.cmd,
-                                                        cmdStr="expose time=%0.1f object=%s %s" %
-                                                        (msg.expTime, expType,
-                                                         ("comment=%s" % qstr(comment)) if comment else ""),
-                                                        keyVars=[], timeLim=timeLim)
-                    success = not cmdVar.didFail
-
-                else:
-                    msg.cmd.warn('text="Not taking a %gs exposure"' % (msg.expTime))
-                    success = True
-
-                if not success:
-                    msg.cmd.warn('text="failed to start %s exposure"' % (expType))
-                else:
-                    msg.cmd.inform('text="done with %s exposure"' % (expType))
                 msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=success)
 
             elif msg.type == Msg.STATUS:

@@ -1,11 +1,50 @@
-[test_doDither_A]
-apogee dither A
+[test_do_dither_A]
+apogee dither namedpos=A
 
-[test_doDither_B]
-apogee dither B
+[test_do_dither_B]
+apogee dither namedpos=B
 
-[test_doShutter_open]
+[test_do_shutter_open]
 apogee shutter open
 
-[test_doShutter_close]
+[test_do_shutter_close]
 apogee shutter close
+
+[test_expose]
+apogee dither namedpos=A
+
+apogee expose time=500.0 object=dark
+
+[test_expose_no_dither]
+apogee expose time=500.0 object=dark
+
+[test_expose_dither_fails]
+apogee dither namedpos=A
+
+[test_expose_dither_set]
+apogee dither namedpos=A
+
+apogee expose time=500.0 object=object
+
+apogee dither namedpos=B
+
+apogee expose time=500.0 object=object
+
+[test_expose_dither_set_no_first_dither]
+apogee expose time=500.0 object=object
+
+apogee dither namedpos=A
+
+apogee expose time=500.0 object=object
+
+[test_expose_dither_set_B_dither_fails]
+apogee dither namedpos=A
+
+apogee expose time=500.0 object=object
+
+apogee dither namedpos=B
+
+[test_expose_dither_set_expose_fails]
+apogee dither namedpos=A
+
+apogee expose time=500.0 object=object

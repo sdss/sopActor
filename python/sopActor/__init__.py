@@ -79,6 +79,7 @@ except NameError:
         class AXIS_INIT(): pass
         class WAIT_UNTIL(): pass
         class DITHER(): pass
+        class EXPOSE_DITHER_SET(): pass
         class DECENTER(): pass
         class MANGA_DITHER(): pass
         class GOTO_GANG_CHANGE(): pass

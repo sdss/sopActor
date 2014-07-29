@@ -28,36 +28,73 @@ class TestApogeeThread(sopTester.SopThreadTester,unittest.TestCase):
                            ("apogeeScript",  sopActor.APOGEE_SCRIPT, apogeeThread.script_main),]
         super(TestApogeeThread,self).setUp()
     
-    # These are kinda dumb, since all the "stuff" happens in the APOGEE ICC
+    # These first two are kinda dumb, since all the "stuff" happens in the APOGEE ICC
     # but they're a useful and simple demonstration of how to test command calls.
     # Plus, they were useful for debugging the actual fake Cmd.call system.
-    def _doDither(self,dither):
+    def _do_dither(self,dither):
         """Test moving the dither position."""
         sopTester.updateModel('apogee',TestHelper.apogeeState['unknown'])
-        cmdVar = apogeeThread.doDither(self.cmd,myGlobals.actorState,dither)
-        self._check_levels(1,0,0,0)
-        self.assertEquals(dither,myGlobals.actorState.models['apogee'].keyVarDict['ditherPosition'][1])        
+        cmdVar = apogeeThread.do_dither(self.cmd,myGlobals.actorState,dither)
+        self._check_cmd(1,0,0,0,finish=False)
+        self.assertEquals(dither,myGlobals.actorState.models['apogee'].keyVarDict['ditherPosition'][1])
         self.assertFalse(cmdVar.didFail)
-    def test_doDither_A(self):
-        self._doDither('A')
-    def test_doDither_B(self):
-        self._doDither('B')
+    def test_do_dither_A(self):
+        self._do_dither('A')
+    def test_do_dither_B(self):
+        self._do_dither('B')
 
-    def _doShutter(self,position):
+
+    def _do_shutter(self,position):
         """Test commanding the shutter open/closed."""
         sopTester.updateModel('apogee',TestHelper.apogeeState['unknown'])
-        cmdVar = apogeeThread.doShutter(self.cmd,myGlobals.actorState,position)
-        self._check_levels(1,0,0,0)
+        cmdVar = apogeeThread.do_shutter(self.cmd,myGlobals.actorState,position)
+        self._check_cmd(1,0,0,0, finish=False)
         self.assertFalse(cmdVar.didFail)
-    def test_doShutter_open(self):
-        self._doShutter('open')
+    def test_do_shutter_open(self):
+        self._do_shutter('open')
         self.assertTrue(myGlobals.actorState.models['apogee'].keyVarDict['shutterLimitSwitch'][0])
         self.assertFalse(myGlobals.actorState.models['apogee'].keyVarDict['shutterLimitSwitch'][1])
-    def test_doShutter_close(self):
-        self._doShutter('close')
+    def test_do_shutter_close(self):
+        self._do_shutter('close')
         self.assertFalse(myGlobals.actorState.models['apogee'].keyVarDict['shutterLimitSwitch'][0])
         self.assertTrue(myGlobals.actorState.models['apogee'].keyVarDict['shutterLimitSwitch'][1])
+
     
+    def _do_expose(self, nCall,nInfo,nWarn,nErr, expTime, dither, didFail=False):
+        success = apogeeThread.do_expose(self.cmd,myGlobals.actorState,expTime,dither,'dark','')
+        self._check_cmd(nCall,nInfo,nWarn,nErr, finish=False)
+    def test_expose(self):
+        sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
+        self._do_expose(2,1,0,0, 500, 'A')
+    def test_expose_no_dither(self):
+        sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
+        self._do_expose(1,1,0,0, 500, None)
+
+    def test_expose_dither_fails(self):
+        self.cmd.failOn = 'apogee dither namedpos=A'
+        sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
+        self._do_expose(1,0,0,1, 500, 'A')
+
+
+    def _do_expose_dither_set(self, nCall,nInfo,nWarn,nErr, expTime, dithers, didFail=False):
+        cmdVar = apogeeThread.do_expose_dither_set(self.cmd,myGlobals.actorState,expTime,dithers,'object','')
+        self._check_cmd(nCall,nInfo,nWarn,nErr, finish=False, didFail=didFail)
+    def test_expose_dither_set(self):
+        sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
+        self._do_expose_dither_set(4,2,0,0, 500, 'AB')
+    def test_expose_dither_set_no_first_dither(self):
+        sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
+        self._do_expose_dither_set(3,3,0,0, 500, 'BA')
+
+    def test_expose_dither_set_B_dither_fails(self):
+        sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
+        self.cmd.failOn = 'apogee dither namedpos=B'
+        self._do_expose_dither_set(3,1,0,1, 500, 'AB')
+    def test_expose_dither_set_expose_fails(self):
+        sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
+        self.cmd.failOn = 'apogee expose time=500.0 object=object'
+        self._do_expose_dither_set(2,0,0,1, 500, 'AB', didFail=True)
+
 
 # NOTE: commented out, as it doesn't actually test the thing I want it to test: 
 # the failure of RO.AddCallback on ApogeeCB.listenToReads.
