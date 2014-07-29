@@ -1,0 +1,28 @@
+[test_do_one_apogee_manga_dither_at_BC]
+guider decenter on
+guider mangaDither ditherPos=N
+
+apogee dither namedpos=A
+apogee expose time=450.0 object=object
+boss exposure science itime=900
+apogee dither namedpos=B
+apogee expose time=450.0 object=object
+
+[test_do_one_apogee_manga_dither_at_AC_shutter_closed]
+apogee shutter open
+guider decenter on
+guider mangaDither ditherPos=N
+
+apogee expose time=450.0 object=object
+boss exposure science itime=900
+apogee dither namedpos=B
+apogee expose time=450.0 object=object
+
+[test_do_one_apogee_manga_dither_apogee_led]
+guider decenter on
+
+apogee dither namedpos=A
+apogee expose time=450.0 object=object
+boss exposure science itime=900
+apogee dither namedpos=B
+apogee expose time=450.0 object=object

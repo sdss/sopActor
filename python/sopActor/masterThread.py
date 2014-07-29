@@ -643,6 +643,41 @@ def do_manga_sequence(cmd, cmdState, actorState):
     finish_command(cmd,cmdState,actorState,finishMsg)
 #...
 
+def do_one_apogee_manga_dither(cmd, cmdState, actorState):
+    """A single APOGEE/MaNGA co-observing dither."""
+
+    mangaDither = cmdState.mangaDither
+    apogeeDithers = cmdState.apogeeDithers
+    mangaExpTime = cmdState.mangaExpTime
+    apogeeExpTime = cmdState.apogeeExpTime
+    expTime = max(2*apogeeExpTime,mangaExpTime) # need the longest expTime.
+
+    readout = cmdState.readout
+    show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
+    duration = flushDuration + expTime + actorState.timeout + guiderDecenterDuration
+    if readout:
+        duration += readoutDuration
+    multiCmd = SopMultiCommand(cmd, duration, cmdState.name+".expose")
+    multiCmd.append(sopActor.BOSS, Msg.EXPOSE,
+                    expTime=mangaExpTime, expType="science", readout=readout)
+    multiCmd.append(sopActor.APOGEE, Msg.EXPOSE_DITHER_SET,
+                    expTime=apogeeExpTime, dithers=apogeeDithers,
+                    expType="object", comment=cmdState.comment)
+    prep_for_science(multiCmd, precondition=True)
+    prep_apogee_shutter(multiCmd,open=True)
+    prep_manga_dither(multiCmd, dither=mangaDither, precondition=True)
+    
+    return multiCmd.run()
+#...
+
+def do_apogee_manga_dither(cmd, cmdState, actorState):
+    """Complete an APOGEE/MaNGA co-observing single dither."""
+    pass
+
+def do_apogee_manga_sequence(cmd, cmdState, actorState):
+    """Complete an APOGEE/MaNGA co-observing dither sequence."""
+    pass
+
 def do_boss_calibs(cmd, cmdState, actorState):
     """Start a BOSS instrument calibration sequence (flats, arcs, Hartmanns)"""
     

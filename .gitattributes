@@ -27,6 +27,7 @@ scripts/morningcals.inp -text
 /setup.py -text
 test_sopActor/cmd_calls/README -text
 test_sopActor/cmd_calls/TestApogeeDomeFlat.txt -text
+test_sopActor/cmd_calls/TestApogeeMangaScience.txt -text
 test_sopActor/cmd_calls/TestApogeeScience.txt -text
 test_sopActor/cmd_calls/TestApogeeThread.txt -text
 test_sopActor/cmd_calls/TestBossCalibs.txt -text

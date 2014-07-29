@@ -543,6 +543,46 @@ class TestMangaScience(MasterThreadTester):
         self._do_manga_sequence(11, 84,0,0,count,dithers)
 
 
+class TestApogeeMangaScience(MasterThreadTester):
+    def _do_one_apogee_manga_dither(self, nCall, nInfo, nWarn, nErr, mangaDither, apogeeDithers):
+        self._update_cart(1, 'APOGEE&MaNGA')
+        cmdState = CmdState.DoApogeeMangaDitherCmd()
+        cmdState.mangaDither = mangaDither
+        cmdState.mangaDithers = apogeeDithers
+        cmdState.setupCommand(self.cmd)
+        masterThread.do_one_apogee_manga_dither(self.cmd, cmdState, myGlobals.actorState)
+        self._check_cmd(nCall,nInfo,nWarn,nErr,False)
+    def test_do_one_apogee_manga_dither_at_BC(self):
+        sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
+        sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
+        mangaDither = 'N'
+        apogeeDithers = 'AB'
+        self._do_one_apogee_manga_dither(7,22,0,0, mangaDither, apogeeDithers)
+    def test_do_one_apogee_manga_dither_at_AC_shutter_closed(self):
+        sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
+        sopTester.updateModel('apogee',TestHelper.apogeeState['A_closed'])
+        mangaDither = 'N'
+        apogeeDithers = 'AB'
+        self._do_one_apogee_manga_dither(7,23,0,0, mangaDither, apogeeDithers)
+    def test_do_one_apogee_manga_dither_apogee_led(self):
+        sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
+        sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
+        mangaDither = 'C'
+        apogeeDithers = 'AB'
+        self._do_one_apogee_manga_dither(6,21,0,0, mangaDither, apogeeDithers)
+
+
+    def _do_apogee_manga_sequence(self,nCall,nInfo,nWarn,nErr):
+        self._update_cart(1, 'MaNGA')
+        cmdState = CmdState.DoMangaSequenceCmd()
+        cmdState.count = count
+        cmdState.apogeeDithers = apogeeDithers
+        cmdState.setupCommand(self.cmd)
+        masterThread.do_apogee_manga_sequence(self.cmd, cmdState, myGlobals.actorState)
+        self._check_cmd(nCall,nInfo,nWarn,nErr,True)
+        self.assertTrue(self.cmd.finished)
+
+
 class TestBossCalibs(MasterThreadTester):
     """do_boss_calibs tests"""
     def _do_boss_calibs(self, nCall, nInfo, nWarn, nErr, cmdState, didFail=False):
@@ -655,13 +695,14 @@ if __name__ == '__main__':
     suite = None
     # to test just one piece
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestGuider)
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoField)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoField)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoGangChange)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestApogeeDomeFlat)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestApogeeScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestBossScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestHartmann)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestMangaScience)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestApogeeMangaScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestBossCalibs)
     # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestGotoField.test_goto_field_boss_sos_doHartmann_fails')
     # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestBossCalibs.test_do_boss_calibs_one_arc_coobserve')
