@@ -77,7 +77,6 @@ def do_expose_dither_set(cmd, actorState, expTime, dithers, expType, comment):
     for dither in dithers:
         currentDither = actorState.models['apogee'].keyVarDict["ditherPosition"][1]
         # Per ticket #1756, APOGEE now does not want dither move requests unless necessary
-        print currentDither, dither
         if dither == currentDither:
             dither = None
             cmd.inform('text="APOGEE dither already at desired position %s: not commanding move."'%(dither))
