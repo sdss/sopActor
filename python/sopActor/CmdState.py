@@ -420,14 +420,14 @@ class DoApogeeMangaSequenceCmd(CmdState):
     def reset_ditherSeq(self):
         """Reset dither sequence based on dithers,count parameters."""
         self.mangaDitherSeq = self.mangaDithers*self.count
-        # one manga exposure is two apogee exposures.
+        # One manga exposure is two apogee exposures.
+        # Make the dither mechanism happier by flipping the sequence for each pair.
         self.apogeeDitherSeq = (self.apogeeDithers+self.apogeeDithers[::-1])*self.count*2
         
     def getUserKeys(self):
         msg = []
-        msg.append("%s_ditherSeq=%s,%s,%s,%s,%s" % (self.name, self.mangaDitherSeq,
-                   self.mangaDithersDone, self.apogeeDitherSeq, self.apogeeDithersDone,
-                   self.index))
+        msg.append("%s_ditherSeq=%s,%s,%s" % (self.name, self.mangaDitherSeq,
+                   self.apogeeDitherSeq, self.index))
         return msg
     
     def isSlewingDisabled(self):

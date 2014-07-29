@@ -46,3 +46,64 @@ guider decenter on
 guider mangaDither ditherPos=N
 
 guider decenter off
+
+[test_do_apogee_manga_sequence_count_1]
+guider decenter on
+guider mangaDither ditherPos=N
+
+apogee dither namedpos=A
+apogee expose time=450.0 object=object
+boss exposure science itime=900 noreadout
+apogee dither namedpos=B
+apogee expose time=450.0 object=object
+
+boss exposure   readout
+guider mangaDither ditherPos=S
+
+apogee expose time=450.0 object=object
+boss exposure science itime=900 noreadout
+apogee dither namedpos=A
+apogee expose time=450.0 object=object
+
+boss exposure   readout
+guider mangaDither ditherPos=E
+
+apogee expose time=450.0 object=object
+boss exposure science itime=900 noreadout
+apogee dither namedpos=B
+apogee expose time=450.0 object=object
+
+boss exposure   readout
+guider decenter off
+
+[test_do_apogee_manga_sequence_count_2_shutter_closed_at_A]
+apogee shutter open
+guider decenter on
+guider mangaDither ditherPos=N
+
+apogee expose time=450.0 object=object
+boss exposure science itime=900 noreadout
+apogee dither namedpos=B
+apogee expose time=450.0 object=object
+
+boss exposure   readout
+guider mangaDither ditherPos=S
+
+apogee expose time=450.0 object=object
+boss exposure science itime=900 noreadout
+apogee dither namedpos=A
+apogee expose time=450.0 object=object
+
+boss exposure   readout
+guider mangaDither ditherPos=E
+
+apogee expose time=450.0 object=object
+boss exposure science itime=900 noreadout
+apogee dither namedpos=B
+apogee expose time=450.0 object=object
+
+boss exposure   readout
+guider decenter off
+
+[test_do_apogee_manga_sequence_gang_podium]
+

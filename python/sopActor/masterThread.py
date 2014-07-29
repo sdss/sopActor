@@ -596,7 +596,8 @@ def do_manga_sequence(cmd, cmdState, actorState):
     while cmdState.index < len(cmdState.ditherSeq):
         show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
         
-        ditherState = CmdState.DoMangaDitherCmd()
+        ditherState = actorState.DoMangaDither
+        ditherState.reinitialize(cmd)
         ditherState.expTime = cmdState.expTime
         ditherState.dither = dither
         ditherState.readout = False
@@ -687,7 +688,66 @@ def do_apogee_manga_dither(cmd, cmdState, actorState):
 
 def do_apogee_manga_sequence(cmd, cmdState, actorState):
     """Complete an APOGEE/MaNGA co-observing dither sequence."""
-    pass
+    
+    finishMsg = "Your Nobel Prize is a little closer!"
+    failMsg = ""            # message to use if we've failed
+    pendingReadout = False
+    if not is_gang_at_cart(cmd, cmdState, actorState):
+        return False
+
+    # set at start, and then update after each exposure.
+    mangaDither = cmdState.mangaDitherSeq[cmdState.index]
+    while cmdState.index < len(cmdState.mangaDitherSeq):
+        show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
+        
+        ditherState = actorState.doApogeeMangaDither
+        ditherState.reinitialize(cmd)
+        ditherState.mangaExpTime = cmdState.mangaExpTime
+        ditherState.apogeeExpTime = cmdState.apogeeExpTime
+        ditherState.mangaDither = mangaDither
+        ditherState.apogeeDithers = cmdState.apogeeDitherSeq[cmdState.index*2:(cmdState.index*2)+2]
+        ditherState.readout = False
+        pendingReadout = True
+        stageName = 'expose'
+        cmdState.setStageState(stageName, 'running')
+        if not do_one_apogee_manga_dither(cmd, ditherState, actorState):
+            cmdState.setStageState(stageName, 'failed')
+            failMsg = "failed one dither of a MaNGA dither sequence"
+            break
+        
+        cmdState.index += 1
+        
+        multiCmd = SopMultiCommand(cmd, readoutDuration + actorState.timeout,
+                                   cmdState.name+".readout")
+        multiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
+        try:
+            mangaDither = cmdState.mangaDitherSeq[cmdState.index]
+            prep_manga_dither(multiCmd, dither=mangaDither, precondition=False)
+        except IndexError:
+            # We're at the end, so don't need to move to new dither position.
+            pass
+        pendingReadout = False
+        if not multiCmd.run():
+            failMsg = "failed to readout exposure/change dither position"
+            break
+        
+    show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
+    deactivate_guider_decenter(cmd, cmdState, actorState, 'dither')
+    
+    if pendingReadout:
+        multiCmd = SopMultiCommand(cmd, actorState.timeout + readoutDuration,
+                                   cmdState.name+".readout",
+                                   sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
+    else:
+        multiCmd = SopMultiCommand(cmd, actorState.timeout,cmdState.name+'.cleanup')
+
+    if failMsg:
+        # handle the readout, but don't touch lamps, guider state, etc.
+        if pendingReadout and not multiCmd.run():
+            cmd.error('text="Failed to readout last exposure"')
+        return fail_command(cmd, cmdState, failMsg)
+    
+    finish_command(cmd,cmdState,actorState,finishMsg)
 
 def do_boss_calibs(cmd, cmdState, actorState):
     """Start a BOSS instrument calibration sequence (flats, arcs, Hartmanns)"""
