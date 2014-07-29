@@ -672,7 +672,18 @@ def do_one_apogee_manga_dither(cmd, cmdState, actorState):
 
 def do_apogee_manga_dither(cmd, cmdState, actorState):
     """Complete an APOGEE/MaNGA co-observing single dither."""
-    pass
+    finishMsg = "Your Nobel Prize is a little closer!"
+    stageName = 'expose'
+    cmdState.setStageState(stageName, 'running')
+    if not is_gang_at_cart(cmd, cmdState, actorState):
+        return False
+    if not do_one_apogee_manga_dither(cmd, cmdState, actorState):
+        failMsg = "failed to take APOGEE&MaNGA science exposure"
+        cmdState.setStageState(stageName, 'failed')
+        deactivate_guider_decenter(cmd, cmdState, actorState, stageName)
+        return fail_command(cmd, cmdState, failMsg)
+    deactivate_guider_decenter(cmd, cmdState, actorState, stageName)
+    finish_command(cmd,cmdState,actorState,finishMsg)
 
 def do_apogee_manga_sequence(cmd, cmdState, actorState):
     """Complete an APOGEE/MaNGA co-observing dither sequence."""
