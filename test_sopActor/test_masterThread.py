@@ -341,8 +341,8 @@ class TestApogeeDomeFlat(MasterThreadTester):
     # TBD: That would increase the nCalls in each of these by 2:
     #     One for ff.on and one for ff.off
     def _apogee_dome_flat(self,nCall,nInfo,nWarn,nErr, multiCmd, finish=False, didFail=False):
-        cmdState = CmdState.DoApogeeDomeFlatCmd()
-        cmdState.setupCommand(self.cmd)
+        cmdState = self.actorState.doApogeeDomeFlat
+        cmdState.reinitialize(self.cmd)
         result = masterThread.apogee_dome_flat(self.cmd, cmdState, myGlobals.actorState, multiCmd)
         self._check_cmd(nCall,nInfo,nWarn,nErr,finish,didFail)
         self.assertEqual(result, not didFail)
@@ -388,8 +388,8 @@ class TestGotoGangChange(MasterThreadTester):
     # TBD: That would increase the nCalls in each of these by 2:
     #     One for ff.on and one for ff.off
     def _goto_gang_change(self, nCall, nInfo, nWarn, nErr, finish=True, didFail=False):
-        cmdState = CmdState.GotoGangChangeCmd()
-        cmdState.setupCommand(self.cmd)
+        cmdState = self.actorState.gotoGangChange
+        cmdState.reinitialize(self.cmd)
         masterThread.goto_gang_change(self.cmd, cmdState, myGlobals.actorState)
         self._check_cmd(nCall,nInfo,nWarn,nErr,finish,didFail)
     def test_goto_gang_change_apogee_open(self):
@@ -451,9 +451,9 @@ class TestBossScience(MasterThreadTester):
     def _do_boss_science(self, nCall, nInfo, nWarn, nErr, nExp=1):
         """Helper for boss science tests"""
         self._update_cart(11, 'BOSS')
-        cmdState = CmdState.DoBossScienceCmd()
+        cmdState = self.actorState.doBossScience
+        cmdState.reinitialize(self.cmd)
         cmdState.nExpLeft = nExp
-        cmdState.setupCommand(self.cmd)
         masterThread.do_boss_science(self.cmd, cmdState, myGlobals.actorState)
         self._check_cmd(nCall,nInfo,nWarn,nErr,True)
         
@@ -469,11 +469,11 @@ class TestApogeeScience(MasterThreadTester):
     def _do_apogee_science(self, nCall, nInfo, nWarn, nErr, ditherSeq='ABBA', seqCount=1):
         """Helper for boss science tests"""
         self._update_cart(1, 'APOGEE')
-        cmdState = CmdState.DoApogeeScienceCmd()
+        cmdState = self.actorState.doApogeeScience
+        cmdState.reinitialize(self.cmd)
         cmdState.ditherSeq = ditherSeq
         cmdState.exposureSeq = ditherSeq * seqCount
         cmdState.seqCount = seqCount
-        cmdState.setupCommand(self.cmd)
         masterThread.do_apogee_science(self.cmd, cmdState, myGlobals.actorState)
         self._check_cmd(nCall,nInfo,nWarn,nErr,True)
     def test_do_apogee_science(self):
@@ -490,9 +490,9 @@ class TestMangaScience(MasterThreadTester):
     """do_manga_* tests"""
     def _do_one_manga_dither(self, nCall, nInfo, nWarn, nErr, dither='N', didFail=False):
         self._update_cart(1, 'MaNGA')
-        cmdState = CmdState.DoMangaDitherCmd()
+        cmdState = self.actorState.doMangaDither
+        cmdState.reinitialize(self.cmd)
         cmdState.dither = dither
-        cmdState.setupCommand(self.cmd)
         result = masterThread.do_one_manga_dither(self.cmd, cmdState, myGlobals.actorState)
         self.assertEqual(result, didFail)
         self._check_cmd(nCall,nInfo,nWarn,nErr,False)
@@ -502,8 +502,8 @@ class TestMangaScience(MasterThreadTester):
         self._do_one_manga_dither(3,20,0,0,dither=dither)
     
     def _do_manga_dither(self, nCall, nInfo, nWarn, nErr, dither='N', didFail=False):
-        cmdState = CmdState.DoMangaDitherCmd()
-        cmdState.setupCommand(self.cmd)
+        cmdState = self.actorState.doMangaDither
+        cmdState.reinitialize(self.cmd)
         cmdState.dither = dither
         masterThread.do_manga_dither(self.cmd, cmdState, myGlobals.actorState)
         self._check_cmd(nCall,nInfo,nWarn,nErr,True,didFail=didFail)
@@ -518,11 +518,11 @@ class TestMangaScience(MasterThreadTester):
     
     def _do_manga_sequence(self,nCall,nInfo,nWarn,nErr,count,dithers='NSE'):
         self._update_cart(1, 'MaNGA')
-        cmdState = CmdState.DoMangaSequenceCmd()
+        cmdState = self.actorState.doMangaSequence
+        cmdState.reinitialize(self.cmd)
         cmdState.count = count
         cmdState.dithers = dithers
         cmdState.ditherSeq = dithers*count
-        cmdState.setupCommand(self.cmd)
         masterThread.do_manga_sequence(self.cmd, cmdState, myGlobals.actorState)
         self._check_cmd(nCall,nInfo,nWarn,nErr,True)
         self.assertTrue(self.cmd.finished)
@@ -547,10 +547,10 @@ class TestMangaScience(MasterThreadTester):
 class TestApogeeMangaScience(MasterThreadTester):
     def _do_one_apogee_manga_dither(self, nCall, nInfo, nWarn, nErr, mangaDither, apogeeDithers):
         self._update_cart(1, 'APOGEE&MaNGA')
-        cmdState = CmdState.DoApogeeMangaDitherCmd()
+        cmdState = self.actorState.doApogeeMangaDither
+        cmdState.reinitialize(self.cmd)
         cmdState.mangaDither = mangaDither
         cmdState.mangaDithers = apogeeDithers
-        cmdState.setupCommand(self.cmd)
         masterThread.do_one_apogee_manga_dither(self.cmd, cmdState, myGlobals.actorState)
         self._check_cmd(nCall,nInfo,nWarn,nErr,False)
     def test_do_one_apogee_manga_dither_at_BC(self):
@@ -574,10 +574,10 @@ class TestApogeeMangaScience(MasterThreadTester):
 
     def _do_apogee_manga_dither(self, nCall, nInfo, nWarn, nErr, mangaDither, apogeeDithers, didFail=False):
         self._update_cart(1, 'APOGEE&MaNGA')
-        cmdState = CmdState.DoApogeeMangaDitherCmd()
+        cmdState = self.actorState.doApogeeMangaDither
+        cmdState.reinitialize(self.cmd)
         cmdState.mangaDither = mangaDither
         cmdState.mangaDithers = apogeeDithers
-        cmdState.setupCommand(self.cmd)
         masterThread.do_apogee_manga_dither(self.cmd, cmdState, myGlobals.actorState)
         self._check_cmd(nCall,nInfo,nWarn,nErr,finish=True,didFail=didFail)
     def test_do_apogee_manga_dither_at_BC(self):
@@ -593,13 +593,21 @@ class TestApogeeMangaScience(MasterThreadTester):
         apogeeDithers = 'AB'
         self._do_apogee_manga_dither(0,6,0,0, mangaDither, apogeeDithers, didFail=True)
 
+    def test_do_apogee_manga_dither_guider_dither_fails(self):
+        sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
+        sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
+        self.cmd.failOn = 'guider mangaDither ditherPos=N'
+        mangaDither = 'N'
+        apogeeDithers = 'AB'
+        self._do_apogee_manga_dither(3,28,0,0, mangaDither, apogeeDithers, didFail=True)
+
 
     def _do_apogee_manga_sequence(self,nCall,nInfo,nWarn,nErr):
         self._update_cart(1, 'MaNGA')
-        cmdState = CmdState.DoMangaSequenceCmd()
+        cmdState = actorState.doMangaSequenceCmd()
+        cmdState.reinitialize(self.cmd)
         cmdState.count = count
         cmdState.apogeeDithers = apogeeDithers
-        cmdState.setupCommand(self.cmd)
         masterThread.do_apogee_manga_sequence(self.cmd, cmdState, myGlobals.actorState)
         self._check_cmd(nCall,nInfo,nWarn,nErr,True)
         self.assertTrue(self.cmd.finished)

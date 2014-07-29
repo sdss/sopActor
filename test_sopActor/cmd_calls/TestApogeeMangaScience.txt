@@ -41,3 +41,8 @@ guider decenter off
 
 [test_do_apogee_manga_dither_gang_at_podium]
 
+[test_do_apogee_manga_dither_guider_dither_fails]
+guider decenter on
+guider mangaDither ditherPos=N
+
+guider decenter off
