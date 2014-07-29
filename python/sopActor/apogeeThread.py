@@ -13,7 +13,7 @@ def twistedSleep(secs):
     reactor.callLater(secs, d.callback, None)
     return d
 
-def checkFailure(cmd, cmdVar, failmsg, finish=True):
+def checkFailure(cmd, replyQueue, cmdVar, failmsg, finish=True):
     """
     Test whether cmdVar has failed, and if so issue failmsg as a 'warn' level text.
     Returns True if cmdVar failed, False if not.
@@ -196,12 +196,12 @@ def main(actor, queues):
 
             elif msg.type == Msg.DITHER:
                 cmdVar = do_dither(msg.cmd, actorState, msg.dither)
-                checkFailure(msg,cmdVar,"Failed to move APOGEE dither to %s position."%(dither))
+                checkFailure(msg.cmd,msg.replyQueue,cmdVar,"Failed to move APOGEE dither to %s position."%(dither))
                 
             elif msg.type == Msg.APOGEE_SHUTTER:
                 position = "open" if msg.open else "close"
                 cmdVar = do_shutter(msg.cmd, actorState, position)
-                checkFailure(msg,cmdVar,"Failed to %s APOGEE internal shutter."%(position))
+                checkFailure(msg.cmd,msg.replyQueue,cmdVar,"Failed to %s APOGEE internal shutter."%(position))
 
             elif msg.type == Msg.EXPOSE:
                 dither = getattr(msg,'dither',None)
@@ -215,7 +215,7 @@ def main(actor, queues):
                 dithers = getattr(msg,'dithers','AB')
                 expType = getattr(msg,'expType','object')
                 comment = getattr(msg,'comment','')
-                success = do_expose_dither_set(msg.cmd, actorState, msg.expTime, dither, expType, comment)
+                success = do_expose_dither_set(msg.cmd, actorState, msg.expTime, dithers, expType, comment)
 
                 msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=success)
 
