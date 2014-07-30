@@ -240,6 +240,29 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
     def test_isSlewingDisabled_cmd_finished(self):
         self._isSlewingDisabled_cmd_finished()
 
+    def test_isSlewingDisabled_because_exposing(self):
+        sopTester.updateModel('boss',TestHelper.bossState['integrating'])
+        survey = 'APOGEE&MaNGA'
+        self.cmdState.cmd = self.cmd
+        result = self.cmdState.isSlewingDisabled()
+        self.assertIsInstance(result,str)
+        self.assertIn('slewing disallowed for %s'%survey,result)
+        self.assertIn('with a sequence in progress.',result)
+        
+    def test_isSlewingDisabled_no(self):
+        sopTester.updateModel('boss',TestHelper.bossState['reading'])
+        self.cmdState.cmd = self.cmd
+        result = self.cmdState.isSlewingDisabled()
+        self.assertFalse(result)
+
+    def test_ditherSeq(self):
+        self.assertEqual(len(self.cmdState.apogeeDitherSeq)/2,len(self.cmdState.mangaDitherSeq))
+    def test_ditherSeq_count1(self):
+        self.cmdState = sopActor.CmdState.DoApogeeMangaSequenceCmd()
+        self.cmdState.count = 1
+        self.cmdState.reset_ditherSeq()
+        self.assertEqual(len(self.cmdState.apogeeDitherSeq)/2,len(self.cmdState.mangaDitherSeq))
+
 class TestDoApogeeMangaDither(CmdStateTester,unittest.TestCase):
     def setUp(self):
         super(TestDoApogeeMangaDither,self).setUp()
@@ -248,7 +271,7 @@ class TestDoApogeeMangaDither(CmdStateTester,unittest.TestCase):
     
     def test_isSlewingDisabled_because_exposing(self):
         sopTester.updateModel('boss',TestHelper.bossState['integrating'])
-        self._isSlewingDisabled_because_exposing('APOGEE-MaNGA',1,'INTEGRATING')
+        self._isSlewingDisabled_because_exposing('APOGEE&MaNGA',1,'INTEGRATING')
     
     def test_isSlewingDisabled_no(self):
         sopTester.updateModel('boss',TestHelper.bossState['reading'])
@@ -260,7 +283,6 @@ class TestDoApogeeMangaDither(CmdStateTester,unittest.TestCase):
         self._isSlewingDisabled_no_cmd()
     def test_isSlewingDisabled_cmd_finished(self):
         self._isSlewingDisabled_cmd_finished()
-
 
 if __name__ == '__main__':
     verbosity = 2

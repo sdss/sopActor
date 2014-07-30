@@ -390,12 +390,30 @@ class DoApogeeMangaDitherCmd(CmdState):
                                         mangaDither='C',
                                         comment=''))
         self.readout = True
-    
+
+    def set_apogeeLead(self):
+        """Setup to use this for APOGEE lead observations."""
+        self.keywords={mangaExpTime:900.0,
+                       apogeeExpTime:500.0,
+                       apogeeDithers:'AB',
+                       mangaDither:'C',
+                       comment:''}
+        self.reinitialize()
+
+    def set_manga(self):
+        """Setup to use this for MaNGA (stare or dither) observations."""
+        self.keywords={mangaExpTime:900.0,
+                       apogeeExpTime:450.0,
+                       apogeeDithers:'AB',
+                       mangaDither:'C',
+                       comment:''}
+        self.reinitialize()
+
     def isSlewingDisabled(self):
         """If slewing is disabled, return a string describing why, else False."""
         exp_state,exp_text = self.isSlewingDisabled_BOSS()
         if (self.cmd and self.cmd.isAlive() and exp_state):
-            return "slewing disallowed for APOGEE-MaNGA, with 1 science exposures left%s"%exp_text
+            return "slewing disallowed for APOGEE&MaNGA, with 1 science exposures left%s"%exp_text
         else:
             return False
 
@@ -407,22 +425,55 @@ class DoApogeeMangaSequenceCmd(CmdState):
                                         apogeeExpTime=450.0,
                                         apogeeDithers='AB',
                                         mangaDithers='NSE',
-                                        count=3,
+                                        count=2,
                                         comment=''))
         self.reset_ditherSeq()
-        
+    
+    def set_apogeeLead(self):
+        """Setup to use this for APOGEE lead observations."""
+        self.keywords={mangaExpTime:900.0,
+                       apogeeExpTime:500.0,
+                       apogeeDithers:'AB',
+                       mangaDither:'CC',
+                       count:2,
+                       comment:''}
+        self.reinitialize()
+
+    def set_mangaDither(self):
+        """Setup to use this for MaNGA (stare or dither) observations."""
+        self.keywords={mangaExpTime:900.0,
+                       apogeeExpTime:450.0,
+                       apogeeDithers:'AB',
+                       mangaDither:'NSE',
+                       count:2,
+                       comment:''}
+        self.reinitialize()
+
+    def set_mangaStare(self):
+        """Setup to use this for MaNGA (stare or dither) observations."""
+        self.keywords={mangaExpTime:900.0,
+                       apogeeExpTime:450.0,
+                       apogeeDithers:'AB',
+                       mangaDithers:'CCC',
+                       count:2,
+                       comment:''}
+        self.reinitialize()
+
     def reset_nonkeywords(self):
-        self.mangaDithersDone = 0
-        self.apogeeDithersDone = 0
         self.nSet = 0
         self.index = 0
+        self.reset_ditherSeq()
     
     def reset_ditherSeq(self):
         """Reset dither sequence based on dithers,count parameters."""
         self.mangaDitherSeq = self.mangaDithers*self.count
-        # One manga exposure is two apogee exposures.
+        # Note: Two APOGEE exposures are taken for each MaNGA exposure.
         # Make the dither mechanism happier by flipping the sequence for each pair.
-        self.apogeeDitherSeq = (self.apogeeDithers+self.apogeeDithers[::-1])*self.count*2
+        d1 = self.apogeeDithers
+        d2 = self.apogeeDithers[::-1]
+        self.apogeeDitherSeq = [d1,]*len(self.mangaDitherSeq)
+        self.apogeeDitherSeq[1::2] = [d2,]*len(self.apogeeDitherSeq[1::2])
+        self.apogeeDitherSeq = ''.join(self.apogeeDitherSeq)
         
     def getUserKeys(self):
         msg = []
@@ -433,6 +484,6 @@ class DoApogeeMangaSequenceCmd(CmdState):
     def isSlewingDisabled(self):
         exp_state,exp_text = self.isSlewingDisabled_BOSS()
         if (self.cmd and self.cmd.isAlive() and exp_state):
-            return "slewing disallowed for APOGEE-MaNGA, with a sequence in progress."
+            return "slewing disallowed for APOGEE&MaNGA, with a sequence in progress."
         else:
             return False
