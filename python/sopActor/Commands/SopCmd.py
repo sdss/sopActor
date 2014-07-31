@@ -518,7 +518,9 @@ class SopCmd(object):
                 return
 
             # NOTE: TBD: SDSS4: See #2007 for how this needs to be restructured.
-            cartBypasses = ["isBoss", "isApogee", "isManga", "isApogeeManga"]
+            cartBypasses = ["isBoss", "isApogee",
+                            "isMangaDither", "isMangaStare",
+                            "isApogeeLead", "isApogeeMangaDither", "isApogeeMangaStare"]
             if subSystem in cartBypasses:
                 # Clear the others
                 if doBypass:
