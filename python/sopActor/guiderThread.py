@@ -21,6 +21,57 @@ def get_expTime(msg):
         expTime = 0
     return expTime,expTimeOpt
 
+def time_text(expTime):
+    """Return an appropriate time=value string to pass to the gcamera."""
+    return '' if not expTime else "time=%g" % expTime
+
+def guider_start(cmd, replyQueue, actorState, start, expTime, clearCorrections, force, oneExposure):
+    """Start/stop the guider and put an appropriate message on replyQueue if it succeeded."""
+
+    if clearCorrections:
+        for corr in ("axes", "scale", "focus"):
+            cmdVar = actorState.actor.cmdr.call(actor="guider", forUserCmd=cmd,
+                                                cmdStr=("%s off" % (corr)),
+                                                keyVars=[], timeLim=3)
+            if cmdVar.didFail:
+                cmd.error('text="failed to disable %s guider corrections!!!"' % (corr))
+                replyQueue.put(Msg.DONE, cmd=cmd, success=not cmdVar.didFail)
+                return
+
+    # If we are starting a "permanent" guide loop, we can't wait for the command to finish.
+    # So, wait long enough to see whether it blows up on the pad,
+    # and watch the guideState value for success.
+    timeLim = expTime + 15  # seconds
+
+    cmdStr = "%s %s %s %s" % (("on" if start else "off"),
+                              time_text(expTime), force, oneExposure)
+    cmdVar = actorState.actor.cmdr.call(actor="guider", forUserCmd=cmd,
+                                        cmdStr=cmdStr,
+                                        keyVars=[], timeLim=timeLim)
+    if start and not oneExposure:
+        # The value of the guider.guideState keyword tells us if it started successfully:
+        # it will go to "starting", then "on" if it succeeded,
+        # or "stopping"/"failed" if something went wrong.
+        guideState = actorState.models["guider"].keyVarDict['guideState']
+        if guideState[0] == 'on':
+            replyQueue.put(Msg.DONE, cmd=cmd, success=True)
+        elif guideState[0] == 'failed' or guideState[0] == 'stopping':
+            cmd.error('text="Failed to start guide exposure loop: %s"' % (cmdStr))
+            replyQueue.put(Msg.DONE, cmd=cmd, success=False)
+        elif "Timeout" in cmdVar.lastReply.keywords:
+            # command timed out -- assume the loop is running OK.
+            replyQueue.put(Msg.DONE, cmd=cmd, success=True)
+        else:
+            # Uncertain, but probably didn't work.
+            cmd.warn('text="probably failed to start guide exposure loop: %s"' % (cmdStr))
+            replyQueue.put(Msg.DONE, cmd=cmd, success=False)
+        return
+    else:
+        if cmdVar.didFail:
+            cmd.warn('text="guider command failed: %s"' % (cmdStr))
+    replyQueue.put(Msg.DONE, cmd=cmd, success=not cmdVar.didFail)
+
+
 def main(actor, queues):
     """Main loop for guider thread"""
 
@@ -50,57 +101,14 @@ def main(actor, queues):
                 msg.replyQueue.put(Msg.DONE, cmd=msg.cmd, success=not cmdVar.didFail)
 
             elif msg.type == Msg.START:
-                msg.cmd.respond("text=\"%s guider\"" % (("starting" if msg.on else "stopping")))
-                
                 expTime,expTimeOpt = get_expTime(msg)
-                forceOpt = "force" if (hasattr(msg, 'force') and msg.force) else ""
-                oneExposureOpt = "oneExposure" if (hasattr(msg, 'oneExposure') and msg.oneExposure) else ""
+                force = "force" if (hasattr(msg, 'force') and msg.force) else ""
+                oneExposure = "oneExposure" if (hasattr(msg, 'oneExposure') and msg.oneExposure) else ""
                 clearCorrections = "clearCorrections" if (hasattr(msg, 'clearCorrections')
                                                           and msg.clearCorrections) else ""
+                start = msg.on
 
-                if clearCorrections:
-                    for corr in ("axes", "scale", "focus"):
-                        cmdVar = actorState.actor.cmdr.call(actor="guider", forUserCmd=msg.cmd,
-                                                            cmdStr=("%s off" % (corr)),
-                                                            keyVars=[], timeLim=3)
-                        if cmdVar.didFail:
-                            msg.cmd.warn('text="failed to disable %s guider corrections!!!"' (corr))
-                            msg.replyQueue.put(Msg.DONE, cmd=msg.cmd, success=not cmdVar.didFail)
-                            continue
-                    
-                timeLim = expTime   # seconds
-
-                # If we are starting a "permanent" guide loop, we can't wait for the command to finish.
-                # But wait long enough to see whether it blows up on the pad. Ugh - CPL.
-                timeLim += 15
-                cmdStr = "%s %s %s %s" % (("on" if msg.on else "off"),
-                                          expTimeOpt, forceOpt, oneExposureOpt)
-                cmdVar = actorState.actor.cmdr.call(actor="guider", forUserCmd=msg.cmd,
-                                                    cmdStr=cmdStr,
-                                                    keyVars=[], timeLim=timeLim)
-                if msg.on and not oneExposureOpt:
-                    # NOTE: TBD: we can determine if it started successfully
-                    # from the value of the guider.guideState keyword:
-                    # it will go to "starting", then "on" if it succeeded,
-                    # or "stopping"/"failed" if something went wrong.
-                    guideState = actorState.models["guider"].keyVarDict['guideState']
-                    if cmdVar.didFail:
-                        # We know we failed!
-                        msg.cmd.error('text="Failed to start guide exposure loop: %s"' % (cmdStr))
-                        msg.replyQueue.put(Msg.DONE, cmd=msg.cmd, success=False)
-                    elif "Timeout" in cmdVar.lastReply.keywords or guideState[0] == 'on':
-                        # command timed out -- assume the loop is running OK.
-                        msg.replyQueue.put(Msg.DONE, cmd=msg.cmd, success=True)
-                    else:
-                        # Uncertain, but probably didn't work.
-                        msg.cmd.warn('text="probably failed to start guide exposure loop: %s"' % (cmdStr))
-                        msg.replyQueue.put(Msg.DONE, cmd=msg.cmd, success=False)
-                    continue
-                else:
-                    if cmdVar.didFail:
-                        cmd.warn('text="guider command failed: %s"' % (cmdStr))
-                           
-                msg.replyQueue.put(Msg.DONE, cmd=msg.cmd, success=not cmdVar.didFail)
+                guider_start(msg.cmd, msg.replyQueue, actorState, start, expTime, clearCorrections, force, oneExposure)
 
             elif msg.type == Msg.EXPOSE:
                 msg.cmd.respond('text="starting guider flat"')
