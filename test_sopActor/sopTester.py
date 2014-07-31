@@ -108,10 +108,10 @@ class SopTester(TestHelper.ActorTester):
         self.cmd.clear_msgs()
         self.cmd.verbose = self.verbose
 
-    def _update_cart(self, nCart, survey):
+    def _update_cart(self, nCart, survey, surveyMode=None):
         """Update cartridge without being verbose, and clear those messages."""
         self.cmd.verbose = False
-        self.sopCmd.updateCartridge(nCart, survey)
+        self.sopCmd.updateCartridge(nCart, survey, surveyMode)
         self.cmd.clear_msgs()
         self.cmd.verbose = self.verbose
 

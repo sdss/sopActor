@@ -13,7 +13,8 @@ class GuiderState(object):
         self.cartridgeChangeCallback = None
         guiderModel.keyVarDict["cartridgeLoaded"].addCallback(self.listenToCartridgeLoaded, callNow=True)
 
-        self.currentSurvey = 'NONE'
+        self.plateType = 'NONE'
+        self.surveyMode = 'None'
         self.surveyCallback = None
         guiderModel.keyVarDict["survey"].addCallback(self.listenToSurvey, callNow=True)
 
@@ -22,6 +23,11 @@ class GuiderState(object):
         """
         Have both necessary keywords been updated?
         Setter sets both to same value (helpful for clearing)
+
+        When the guider runs loadCartridge, SOP needs both the survey and
+        cartridgeLoaded keywords to correctly process it.
+        This helps handle that, by letting us only run a callback once both
+        have been updated.
         """
         return self.surveyUpdated and self.cartridgeUpdated
     @updated.setter
@@ -29,22 +35,12 @@ class GuiderState(object):
         self.surveyUpdated = value
         self.cartridgeUpdated = value
 
-    def clearUpdates(self):
-        """
-        When the guider runs loadCartridge, SOP needs both the survey and
-        cartridgeLoaded keywords to correctly process it.
-        This helps handle that, by letting us only run a callback once both
-        have been updated.
-        """
-        self.surveyUpdated = False
-        self.cartridgeUpdated = False
-
     def setCartridgeLoadedCallback(self, cb):
         """Set a method to call when cartridgeLoaded has been updated."""
         self.cartridgeChangeCallback = cb
         if self.cartridgeChangeCallback and self.updated:
             self.updated = False
-            self.cartridgeChangeCallback(self.currentCartridge, self.currentSurvey)
+            self.cartridgeChangeCallback(self.currentCartridge, self.plateType, self.surveyMode)
 
     def listenToCartridgeLoaded(self, cartridgeLoaded):
         """Grab the cartridge loaded value and pass it and survey on to the defined callback."""
@@ -54,22 +50,23 @@ class GuiderState(object):
 
         if self.cartridgeChangeCallback and self.updated:
             self.updated = False
-            self.cartridgeChangeCallback(self.currentCartridge, self.currentSurvey)
+            self.cartridgeChangeCallback(self.currentCartridge, self.plateType, self.surveyMode)
 
     def setSurveyCallback(self, cb):
         """Set a method to call when survey has been updated."""
         self.surveyCallback = cb
         if self.surveyCallback and self.updated:
             self.updated = False
-            self.surveyCallback(self.currentCartridge, self.currentSurvey)
+            self.surveyCallback(self.currentCartridge, self.plateType, self.surveyMode)
 
     def listenToSurvey(self, surveyUpdate):
         """Grab the survey value and pass it and cartridge loaded on to the defined callback."""
-        survey = surveyUpdate.valueList[0]
+        survey = surveyUpdate.valueList
         self.surveyUpdated = True
-        self.currentSurvey = survey
+        self.plateType = survey[0]
+        self.surveyMode = survey[1]
 
         if self.surveyCallback and self.updated:
             self.updated = False
-            self.surveyCallback(self.currentCartridge, self.currentSurvey)
+            self.surveyCallback(self.currentCartridge, self.plateType, self.surveyMode)
 

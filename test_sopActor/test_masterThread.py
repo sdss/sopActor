@@ -300,7 +300,6 @@ class TestGotoField(MasterThreadTester):
     def _goto_field_apogeemanga(self, nCall, nInfo, nWarn, nErr, cmdState, finish=False, didFail=False):
         masterThread.goto_field_apogeemanga(self.cmd,cmdState,myGlobals.actorState,self.timeout)
         self._check_cmd(nCall, nInfo, nWarn, nErr, finish, didFail)
-    @unittest.skip('not applicable yet!')
     def test_goto_field_apogeemanga_all(self):
         """
         see cmd_calls/TestGotoField.txt for command list.

@@ -340,15 +340,30 @@ class DoMangaSequenceCmd(CmdState):
                           ['expose','calibs','dither'],
                           keywords=dict(expTime=900.0,
                                         dithers='NSE',
-                                        count=3,
-                                        arcTime=4.0,))
+                                        count=3))
         self.reset_ditherSeq()
         
     def reset_nonkeywords(self):
         self.dithersDone = 0
         self.nSet = 0
         self.index = 0
-    
+
+    def set_mangaDither(self):
+        """Setup to use this for MaNGA dither observations."""
+        self.keywords=dict(expTime=900.0,
+                           dithers='NSE',
+                           count=3)
+        if not (self.cmd and self.cmd.isAlive()):
+            self.reset_ditherSeq()
+
+    def set_mangaStare(self):
+        """Setup to use this for MaNGA Stare observations."""
+        self.keywords=dict(expTime=900.0,
+                           dithers='CCC',
+                           count=1)
+        if not (self.cmd and self.cmd.isAlive()):
+            self.reset_ditherSeq()
+
     def reset_ditherSeq(self):
         """Reset dither sequence based on dithers and count."""
         self.ditherSeq = self.dithers*self.count
@@ -393,21 +408,19 @@ class DoApogeeMangaDitherCmd(CmdState):
 
     def set_apogeeLead(self):
         """Setup to use this for APOGEE lead observations."""
-        self.keywords={mangaExpTime:900.0,
-                       apogeeExpTime:500.0,
-                       apogeeDithers:'AB',
-                       mangaDither:'C',
-                       comment:''}
-        self.reinitialize()
+        self.keywords=dict(mangaExpTime=900.0,
+                           apogeeExpTime=500.0,
+                           apogeeDithers='AB',
+                           mangaDither='C',
+                           comment='')
 
     def set_manga(self):
         """Setup to use this for MaNGA (stare or dither) observations."""
-        self.keywords={mangaExpTime:900.0,
-                       apogeeExpTime:450.0,
-                       apogeeDithers:'AB',
-                       mangaDither:'C',
-                       comment:''}
-        self.reinitialize()
+        self.keywords=dict(mangaExpTime=900.0,
+                           apogeeExpTime=450.0,
+                           apogeeDithers='AB',
+                           mangaDither='C',
+                           comment='')
 
     def isSlewingDisabled(self):
         """If slewing is disabled, return a string describing why, else False."""
@@ -431,33 +444,36 @@ class DoApogeeMangaSequenceCmd(CmdState):
     
     def set_apogeeLead(self):
         """Setup to use this for APOGEE lead observations."""
-        self.keywords={mangaExpTime:900.0,
-                       apogeeExpTime:500.0,
-                       apogeeDithers:'AB',
-                       mangaDither:'CC',
-                       count:2,
-                       comment:''}
-        self.reinitialize()
+        self.keywords=dict(mangaExpTime=900.0,
+                           apogeeExpTime=500.0,
+                           apogeeDithers='AB',
+                           mangaDithers='CC',
+                           count=2,
+                           comment='')
+        if not (self.cmd and self.cmd.isAlive()):
+            self.reset_ditherSeq()
 
     def set_mangaDither(self):
-        """Setup to use this for MaNGA (stare or dither) observations."""
-        self.keywords={mangaExpTime:900.0,
-                       apogeeExpTime:450.0,
-                       apogeeDithers:'AB',
-                       mangaDither:'NSE',
-                       count:2,
-                       comment:''}
-        self.reinitialize()
+        """Setup to use this for MaNGA dither observations."""
+        self.keywords=dict(mangaExpTime=900.0,
+                           apogeeExpTime=450.0,
+                           apogeeDithers='AB',
+                           mangaDithers='NSE',
+                           count=2,
+                           comment='')
+        if not (self.cmd and self.cmd.isAlive()):
+            self.reset_ditherSeq()
 
     def set_mangaStare(self):
-        """Setup to use this for MaNGA (stare or dither) observations."""
-        self.keywords={mangaExpTime:900.0,
-                       apogeeExpTime:450.0,
-                       apogeeDithers:'AB',
-                       mangaDithers:'CCC',
-                       count:2,
-                       comment:''}
-        self.reinitialize()
+        """Setup to use this for MaNGA stare observations."""
+        self.keywords=dict(mangaExpTime=900.0,
+                           apogeeExpTime=450.0,
+                           apogeeDithers='AB',
+                           mangaDithers='CCC',
+                           count=2,
+                           comment='')
+        if not (self.cmd and self.cmd.isAlive()):
+            self.reset_ditherSeq()
 
     def reset_nonkeywords(self):
         self.nSet = 0
