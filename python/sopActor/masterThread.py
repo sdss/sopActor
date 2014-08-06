@@ -596,7 +596,7 @@ def do_manga_sequence(cmd, cmdState, actorState):
     while cmdState.index < len(cmdState.ditherSeq):
         show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
         
-        ditherState = actorState.DoMangaDither
+        ditherState = actorState.doMangaDither
         ditherState.reinitialize(cmd)
         ditherState.expTime = cmdState.expTime
         ditherState.dither = dither
