@@ -644,7 +644,7 @@ def do_manga_sequence(cmd, cmdState, actorState):
     finish_command(cmd,cmdState,actorState,finishMsg)
 #...
 
-def do_one_apogee_manga_dither(cmd, cmdState, actorState):
+def do_one_apogeemanga_dither(cmd, cmdState, actorState):
     """A single APOGEE/MaNGA co-observing dither."""
 
     mangaDither = cmdState.mangaDither
@@ -671,14 +671,14 @@ def do_one_apogee_manga_dither(cmd, cmdState, actorState):
     return multiCmd.run()
 #...
 
-def do_apogee_manga_dither(cmd, cmdState, actorState):
+def do_apogeemanga_dither(cmd, cmdState, actorState):
     """Complete an APOGEE/MaNGA co-observing single dither."""
     finishMsg = "Your Nobel Prize is a little closer!"
     stageName = 'expose'
     cmdState.setStageState(stageName, 'running')
     if not is_gang_at_cart(cmd, cmdState, actorState):
         return False
-    if not do_one_apogee_manga_dither(cmd, cmdState, actorState):
+    if not do_one_apogeemanga_dither(cmd, cmdState, actorState):
         failMsg = "failed to take APOGEE&MaNGA science exposure"
         cmdState.setStageState(stageName, 'failed')
         deactivate_guider_decenter(cmd, cmdState, actorState, stageName)
@@ -686,7 +686,7 @@ def do_apogee_manga_dither(cmd, cmdState, actorState):
     deactivate_guider_decenter(cmd, cmdState, actorState, stageName)
     finish_command(cmd,cmdState,actorState,finishMsg)
 
-def do_apogee_manga_sequence(cmd, cmdState, actorState):
+def do_apogeemanga_sequence(cmd, cmdState, actorState):
     """Complete an APOGEE/MaNGA co-observing dither sequence."""
     
     finishMsg = "Your Nobel Prize is a little closer!"
@@ -710,7 +710,7 @@ def do_apogee_manga_sequence(cmd, cmdState, actorState):
         pendingReadout = True
         stageName = 'expose'
         cmdState.setStageState(stageName, 'running')
-        if not do_one_apogee_manga_dither(cmd, ditherState, actorState):
+        if not do_one_apogeemanga_dither(cmd, ditherState, actorState):
             cmdState.setStageState(stageName, 'failed')
             failMsg = "failed one dither of a MaNGA dither sequence"
             break
@@ -1254,7 +1254,15 @@ def main(actor, queues):
             elif msg.type == Msg.DO_MANGA_SEQUENCE:
                 cmd,cmdState,actorState = preprocess_msg(msg)
                 do_manga_sequence(cmd, cmdState, actorState)
+
+            elif msg.type == Msg.DO_APOGEEMANGA_DITHER:
+                cmd,cmdState,actorState = preprocess_msg(msg)
+                do_apogeemanga_dither(cmd, cmdState, actorState)
             
+            elif msg.type == Msg.DO_APOGEEMANGA_SEQUENCE:
+                cmd,cmdState,actorState = preprocess_msg(msg)
+                do_apogeemanga_sequence(cmd, cmdState, actorState)
+
             elif msg.type == Msg.GOTO_FIELD:
                 cmd,cmdState,actorState = preprocess_msg(msg)
                 goto_field(cmd, cmdState, actorState)
