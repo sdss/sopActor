@@ -65,6 +65,8 @@ except NameError:
         class DO_APOGEE_EXPOSURES(): pass
         class DO_MANGA_DITHER(): pass
         class DO_MANGA_SEQUENCE(): pass
+        class DO_APOGEEMANGA_DITHER(): pass
+        class DO_APOGEEMANGA_SEQUENCE(): pass
         class DONE(): pass
         class EXIT(): pass
         class ENABLE(): pass

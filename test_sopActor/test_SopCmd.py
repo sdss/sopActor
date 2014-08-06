@@ -290,23 +290,23 @@ class TestDoMangaDither(SopCmdTester,unittest.TestCase):
                   'dither':'C',
                   }
         self._doMangaDither(expect)
-    def test_DoMangaDither_N(self):
+    def test_doMangaDither_N(self):
         expect = {'expTime':900,
                   'dither':'N',
                   }
         args = 'dither=N'
         self._doMangaDither(expect,args)
-    def test_DoMangaDither_expTime(self):
+    def test_doMangaDither_expTime(self):
         expect = {'expTime':1000,
                   'dither':'C',
                   }
         args = 'expTime=1000'
         self._doMangaDither(expect,args)
 
-    def test_DoMangaDither_abort(self):
+    def test_doMangaDither_abort(self):
         expect = {}
         self._doMangaDither(expect,'abort')
-    def test_DoMangeaDither_stop(self):
+    def test_doMangeaDither_stop(self):
         expect = {}
         self._doMangaDither(expect,'stop')
 
@@ -330,12 +330,94 @@ class TestDoMangaSequence(SopCmdTester,unittest.TestCase):
                   'ditherSeq':'NSE'}
         self._doMangaSequence(expect,'count=1')
 
-    def test_DoMangaSequence_abort(self):
+    def test_doMangaSequence_abort(self):
         expect = {}
         self._doMangaSequence(expect,'abort')
-    def test_DoMangeaSequence_stop(self):
+    def test_doMangeaSequence_stop(self):
         expect = {}
         self._doMangaSequence(expect,'stop')
+
+
+class TestDoApogeeMangaDither(SopCmdTester,unittest.TestCase):
+    def _doApogeeMangaDither(self, expect, args=''):
+        stages = ['expose', 'dither']
+        queue = myGlobals.actorState.queues[sopActor.MASTER]
+        msg = self._run_cmd('doApogeeMangaDither %s'%(args),queue)
+        self.assertEqual(msg.type,sopActor.Msg.DO_APOGEEMANGA_DITHER)
+        stages = dict(zip(stages,['idle']*len(stages)))
+        self.assertEqual(msg.cmdState.stages,stages)
+        self.assertEqual(msg.cmdState.mangaExpTime,expect['mangaExpTime'])
+        self.assertEqual(msg.cmdState.apogeeExpTime,expect['apogeeExpTime'])
+        self.assertEqual(msg.cmdState.apogeeDithers,expect['apogeeDithers'])
+        self.assertEqual(msg.cmdState.mangaDither,expect['mangaDither'])
+
+    def test_doApogeeMangaDither_default(self):
+        expect = {'mangaExpTime':900,
+                  'apogeeExpTime':450,
+                  'apogeeDithers':'AB',
+                  'mangaDither':'C'
+                  }
+        self._doApogeeMangaDither(expect)
+    def test_doApogeeMangaDither_N(self):
+        expect = {'mangaExpTime':900,
+                  'apogeeExpTime':450,
+                  'apogeeDithers':'AB',
+                  'mangaDither':'N'
+                  }
+        args = 'mangaDither=N'
+        self._doApogeeMangaDither(expect,args)
+    def test_doApogeeMangaDither_apogeeLead(self):
+        expect = {'mangaExpTime':900,
+                  'apogeeExpTime':500,
+                  'apogeeDithers':'AB',
+                  'mangaDither':'C'
+                  }
+        args = 'apogeeExpTime=500'
+        self._doApogeeMangaDither(expect,args)
+
+    def test_doApogeeMangaDither_abort(self):
+        expect = {}
+        self._doApogeeMangaDither(expect,'abort')
+    def test_doApogeeMangeaDither_stop(self):
+        expect = {}
+        self._doApogeeMangaDither(expect,'stop')
+
+
+class TestDoApogeeMangaSequence(SopCmdTester,unittest.TestCase):
+    def _doApogeeMangaSequence(self, expect, args=''):
+        stages = ['expose', 'dither', 'calibs']
+        queue = myGlobals.actorState.queues[sopActor.MASTER]
+        msg = self._run_cmd('doApogeeMangaSequence %s'%(args),queue)
+        self.assertEqual(msg.type,sopActor.Msg.DO_APOGEEMANGA_SEQUENCE)
+        stages = dict(zip(stages,['idle']*len(stages)))
+        self.assertEqual(msg.cmdState.stages,stages)
+        self.assertEqual(msg.cmdState.mangaExpTime,expect['mangaExpTime'])
+        self.assertEqual(msg.cmdState.apogeeExpTime,expect['apogeeExpTime'])
+        self.assertEqual(msg.cmdState.apogeeDithers,expect['apogeeDithers'])
+        self.assertEqual(msg.cmdState.mangaDithers,expect['mangaDithers'])
+
+    def test_doApogeeMangaSequence_default(self):
+        expect = {'mangaExpTime':900,
+                  'apogeeExpTime':450,
+                  'apogeeDithers':'AB',
+                  'mangaDithers':'NSE'
+                  }
+        self._doApogeeMangaSequence(expect)
+    def test_doApogeeMangaSequence_apogeeLead(self):
+        expect = {'mangaExpTime':900,
+                  'apogeeExpTime':500,
+                  'apogeeDithers':'AB',
+                  'mangaDithers':'CCC'
+                  }
+        args = 'apogeeExpTime=500 mangaDithers=CCC'
+        self._doApogeeMangaSequence(expect,args)
+
+    def test_doApogeeMangaSequence_abort(self):
+        expect = {}
+        self._doApogeeMangaSequence(expect,'abort')
+    def test_doApogeeMangeaSequence_stop(self):
+        expect = {}
+        self._doApogeeMangaSequence(expect,'stop')
 
 
 class TestGotoField(SopCmdTester,unittest.TestCase):
@@ -574,6 +656,7 @@ if __name__ == '__main__':
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoGangChange)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestDoMangaDither)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoMangaSequence)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestDoApogeeMangaSequence)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestClassifyCartridge)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestHartmann)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoField)

@@ -76,6 +76,11 @@ class SopCmd(object):
                                         keys.Key("comment", types.String(), help="comment for headers"),
                                         keys.Key("dither", types.String(), help="MaNGA dither position for a single dither."),
                                         keys.Key("dithers", types.String(), help="MaNGA dither positions for a dither sequence."),
+                                        keys.Key("apogeeExpTime", types.Float(), help="APOGEE exposure time per apogeeDither"),
+                                        keys.Key("mangaExpTime", types.Float(), help="MaNGA exposure time per mangaDither"),
+                                        keys.Key("apogeeDithers", types.String(), help="APOGEE dither positions for a single MaNGA dither."),
+                                        keys.Key("mangaDithers", types.String(), help="MaNGA dither positions for a dither sequence."),
+                                        keys.Key("mangaDither", types.String(), help="MaNGA dither position for a single dither."),
                                         keys.Key("count", types.Int(), help="Number of MaNGA dither sets to perform."),
                                         keys.Key("scriptName", types.String(), help="name of script to run"),
                                         keys.Key("az", types.Float(), help="what azimuth to slew to"),
@@ -95,6 +100,8 @@ class SopCmd(object):
             ("doApogeeSkyFlats", "[<expTime>] [<ditherSeq>] [stop] [abort]", self.doApogeeSkyFlats),
             ("doMangaDither", "[<expTime>] [<dither>] [stop] [abort]", self.doMangaDither),
             ("doMangaSequence", "[<expTime>] [<dithers>] [<count>] [stop] [abort]", self.doMangaSequence),
+            ("doApogeeMangaDither", "[<apogeeExpTime>] [<mangaExpTime>] [<apogeeDithers>] [<mangaDither>] [<comment>] [stop] [abort]", self.doApogeeMangaDither),
+            ("doApogeeMangaSequence", "[<apogeeExpTime>] [<mangaExpTime>] [<apogeeDithers>] [<mangaDithers>] [<comment>] [<count>] [stop] [abort]", self.doApogeeMangaSequence),
             ("ditheredFlat", "[sp1] [sp2] [<expTime>] [<nStep>] [<nTick>]", self.ditheredFlat),
             ("hartmann", "[<expTime>]", self.hartmann),
             ("lampsOff", "", self.lampsOff),
@@ -482,6 +489,65 @@ class SopCmd(object):
         cmdState.reset_ditherSeq()
         
         sopState.queues[sopActor.MASTER].put(Msg.DO_MANGA_SEQUENCE, cmd, replyQueue=self.replyQueue,
+                                             actorState=sopState, cmdState=cmdState)
+        
+    def doApogeeMangaDither(self, cmd):
+        """Take an exposure at a single manga dither position."""
+        sopState = myGlobals.actorState
+        cmdState = sopState.doApogeeMangaDither
+        
+        if "stop" in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
+            cmd.fail('text="Sorry, I cannot stop or abort a doMangaDither command. (yet)"')
+            return
+        
+        cmdState.reinitialize(cmd)
+
+        apogeeDithers = cmd.cmd.keywords['apogeeDithers'].values[0] \
+                    if "apogeeDithers" in cmd.cmd.keywords else None
+        cmdState.set('apogeeDithers',apogeeDithers)
+        apogeeExpTime = cmd.cmd.keywords["apogeeExpTime"].values[0] \
+                    if "apogeeExpTime" in cmd.cmd.keywords else None
+        cmdState.set('apogeeExpTime',apogeeExpTime)
+
+        mangaDither = cmd.cmd.keywords['mangaDither'].values[0] \
+                    if "mangaDither" in cmd.cmd.keywords else None
+        cmdState.set('mangaDither',mangaDither)
+        mangaExpTime = cmd.cmd.keywords["mangaExpTime"].values[0] \
+                    if "mangaExpTime" in cmd.cmd.keywords else None
+        cmdState.set('mangaExpTime',mangaExpTime)
+
+        sopState.queues[sopActor.MASTER].put(Msg.DO_APOGEEMANGA_DITHER, cmd, replyQueue=self.replyQueue,
+                                             actorState=sopState, cmdState=cmdState)
+    
+    def doApogeeMangaSequence(self, cmd):
+        """Take an exposure at a sequence of dither positions, including calibrations."""
+        
+        sopState = myGlobals.actorState
+        cmdState = sopState.doApogeeMangaSequence
+        
+        if "stop" in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
+            cmd.fail('text="Sorry, I cannot stop or abort a doMangaSequence command. (yet)"')
+            return
+
+        cmdState.reinitialize(cmd)
+
+        apogeeDithers = cmd.cmd.keywords['apogeeDithers'].values[0] \
+                    if "apogeeDithers" in cmd.cmd.keywords else None
+        cmdState.set('apogeeDithers',apogeeDithers)
+        apogeeExpTime = cmd.cmd.keywords["apogeeExpTime"].values[0] \
+                    if "apogeeExpTime" in cmd.cmd.keywords else None
+        cmdState.set('apogeeExpTime',apogeeExpTime)
+
+        mangaDithers = cmd.cmd.keywords['mangaDithers'].values[0] \
+                    if "mangaDithers" in cmd.cmd.keywords else None
+        cmdState.set('mangaDithers',mangaDithers)
+        mangaExpTime = cmd.cmd.keywords["mangaExpTime"].values[0] \
+                    if "mangaExpTime" in cmd.cmd.keywords else None
+        cmdState.set('mangaExpTime',mangaExpTime)
+
+        cmdState.reset_ditherSeq()
+        
+        sopState.queues[sopActor.MASTER].put(Msg.DO_APOGEEMANGA_SEQUENCE, cmd, replyQueue=self.replyQueue,
                                              actorState=sopState, cmdState=cmdState)
     
     def lampsOff(self, cmd, finish=True):
