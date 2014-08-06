@@ -230,3 +230,75 @@ boss exposure   readout
 mcp ffs.open
 
 [test_goto_field_apogeemanga_all]
+tcc axis status
+tcc axis init
+tcc track 0.000000, 0.000000 icrs /rottype=object/rotang=0/rotwrap=mid
+mcp hgcd.on
+mcp ff.off
+mcp ne.on
+
+mcp ne.on
+mcp hgcd.on
+sos doHartmann
+
+mcp ne.on
+mcp hgcd.on
+
+boss exposure arc itime=4 noreadout
+
+mcp ne.off
+mcp hgcd.off
+mcp ff.on
+boss exposure   readout
+
+boss exposure flat itime=30 noreadout
+guider flat time=0.5
+
+# Though exposure readout is independent of the guider preconditions,
+# it could happen later because it is start()ed instead of run()ed.
+mcp ff.off
+boss exposure   readout
+mcp ffs.open
+guider axes off
+guider scale off
+guider focus off
+
+guider on time=5
+
+[test_goto_field_apogeemanga_all_shutter_open]
+apogee shutter close
+
+tcc axis status
+tcc axis init
+tcc track 0.000000, 0.000000 icrs /rottype=object/rotang=0/rotwrap=mid
+mcp hgcd.on
+mcp ff.off
+mcp ne.on
+
+mcp ne.on
+mcp hgcd.on
+sos doHartmann
+
+mcp ne.on
+mcp hgcd.on
+
+boss exposure arc itime=4 noreadout
+
+mcp ne.off
+mcp hgcd.off
+mcp ff.on
+boss exposure   readout
+
+boss exposure flat itime=30 noreadout
+guider flat time=0.5
+
+# Though exposure readout is independent of the guider preconditions,
+# it could happen later because it is start()ed instead of run()ed.
+mcp ff.off
+boss exposure   readout
+mcp ffs.open
+guider axes off
+guider scale off
+guider focus off
+
+guider on time=5
