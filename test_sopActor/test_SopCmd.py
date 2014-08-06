@@ -656,7 +656,7 @@ if __name__ == '__main__':
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoGangChange)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestDoMangaDither)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoMangaSequence)
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestDoApogeeMangaSequence)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoApogeeMangaSequence)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestClassifyCartridge)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestHartmann)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoField)
