@@ -895,8 +895,13 @@ def _run_slew(cmd, cmdState, actorState, multiCmd):
 
 def goto_field_apogeemanga(cmd, cmdState, actorState, slewTimeout):
     """Process a goto field sequence for an APOGEE-MaNGA co-observing plate."""
-    cmd.fail('text="This command is not yet supported."')
-    return False
+
+    # ensure the apogee shutter is closed for co-observing carts.
+    if not close_apogee_shutter_if_gang_on_cart(cmd, cmdState, actorState, 'slew'):
+        return False
+
+    # now use the BOSS/MaNGA goto field logic, with the APOGEE shutter safely closed.
+    return goto_field_boss(cmd, cmdState, actorState, slewTimeout)
 
 def goto_field_apogee(cmd, cmdState, actorState, slewTimeout):
     """Process a goto field sequence for an APOGEE plate."""

@@ -308,7 +308,17 @@ class TestGotoField(MasterThreadTester):
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
-        self._goto_field_apogeemanga(25,58,1,0,cmdState)
+        self._goto_field_apogeemanga(25,104,1,0,cmdState)
+    def test_goto_field_apogeemanga_all_shutter_open(self):
+        """
+        see cmd_calls/TestGotoField.txt for command list.
+        One warning from "in slew with halted=False slewing=False"
+        """
+        sopTester.updateModel('mcp',TestHelper.mcpState['apogee_parked'])
+        sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
+        cmdState = self.actorState.gotoField
+        cmdState.reinitialize(self.cmd)
+        self._goto_field_apogeemanga(26,111,1,0,cmdState)
 
 class TestHartmann(MasterThreadTester):
     """hartmann tests"""
@@ -756,7 +766,7 @@ if __name__ == '__main__':
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestMangaScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestApogeeMangaScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestBossCalibs)
-    # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestGotoField.test_goto_field_apogeemanga_all')
+    # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestGotoField.test_goto_field_apogeemanga_all_shutter_open')
     # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestBossCalibs.test_do_boss_calibs_one_arc_coobserve')
     # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestApogeeMangaScience.test_do_apogee_manga_dither_guider_dither_fails')
     if suite:
