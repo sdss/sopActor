@@ -255,13 +255,10 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
         result = self.cmdState.isSlewingDisabled()
         self.assertFalse(result)
 
-    def test_ditherSeq(self):
-        self.assertEqual(len(self.cmdState.apogeeDitherSeq)/2,len(self.cmdState.mangaDitherSeq))
     def test_ditherSeq_count1(self):
         self.cmdState = sopActor.CmdState.DoApogeeMangaSequenceCmd()
         self.cmdState.count = 1
         self.cmdState.reset_ditherSeq()
-        self.assertEqual(len(self.cmdState.apogeeDitherSeq)/2,len(self.cmdState.mangaDitherSeq))
 
 class TestDoApogeeMangaDither(CmdStateTester,unittest.TestCase):
     def setUp(self):

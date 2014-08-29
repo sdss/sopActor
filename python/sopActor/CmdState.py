@@ -401,7 +401,6 @@ class DoApogeeMangaDitherCmd(CmdState):
                           ['expose','dither'],
                           keywords=dict(mangaExpTime=900.0,
                                         apogeeExpTime=450.0,
-                                        apogeeDithers='AB',
                                         mangaDither='C',
                                         comment=''))
         self.readout = True
@@ -410,7 +409,6 @@ class DoApogeeMangaDitherCmd(CmdState):
         """Setup to use this for APOGEE lead observations."""
         self.keywords=dict(mangaExpTime=900.0,
                            apogeeExpTime=500.0,
-                           apogeeDithers='AB',
                            mangaDither='C',
                            comment='')
 
@@ -418,7 +416,6 @@ class DoApogeeMangaDitherCmd(CmdState):
         """Setup to use this for MaNGA (stare or dither) observations."""
         self.keywords=dict(mangaExpTime=900.0,
                            apogeeExpTime=450.0,
-                           apogeeDithers='AB',
                            mangaDither='C',
                            comment='')
 
@@ -436,7 +433,6 @@ class DoApogeeMangaSequenceCmd(CmdState):
                           ['expose','calibs','dither'],
                           keywords=dict(mangaExpTime=900.0,
                                         apogeeExpTime=450.0,
-                                        apogeeDithers='AB',
                                         mangaDithers='NSE',
                                         count=2,
                                         comment=''))
@@ -446,7 +442,6 @@ class DoApogeeMangaSequenceCmd(CmdState):
         """Setup to use this for APOGEE lead observations."""
         self.keywords=dict(mangaExpTime=900.0,
                            apogeeExpTime=500.0,
-                           apogeeDithers='AB',
                            mangaDithers='CC',
                            count=2,
                            comment='')
@@ -457,7 +452,6 @@ class DoApogeeMangaSequenceCmd(CmdState):
         """Setup to use this for MaNGA dither observations."""
         self.keywords=dict(mangaExpTime=900.0,
                            apogeeExpTime=450.0,
-                           apogeeDithers='AB',
                            mangaDithers='NSE',
                            count=2,
                            comment='')
@@ -468,7 +462,6 @@ class DoApogeeMangaSequenceCmd(CmdState):
         """Setup to use this for MaNGA stare observations."""
         self.keywords=dict(mangaExpTime=900.0,
                            apogeeExpTime=450.0,
-                           apogeeDithers='AB',
                            mangaDithers='CCC',
                            count=2,
                            comment='')
@@ -485,16 +478,15 @@ class DoApogeeMangaSequenceCmd(CmdState):
         self.mangaDitherSeq = self.mangaDithers*self.count
         # Note: Two APOGEE exposures are taken for each MaNGA exposure.
         # Make the dither mechanism happier by flipping the sequence for each pair.
-        d1 = self.apogeeDithers
-        d2 = self.apogeeDithers[::-1]
-        self.apogeeDitherSeq = [d1,]*len(self.mangaDitherSeq)
-        self.apogeeDitherSeq[1::2] = [d2,]*len(self.apogeeDitherSeq[1::2])
-        self.apogeeDitherSeq = ''.join(self.apogeeDitherSeq)
+        # d1 = self.apogeeDithers
+        # d2 = self.apogeeDithers[::-1]
+        # self.apogeeDitherSeq = [d1,]*len(self.mangaDitherSeq)
+        # self.apogeeDitherSeq[1::2] = [d2,]*len(self.apogeeDitherSeq[1::2])
+        # self.apogeeDitherSeq = ''.join(self.apogeeDitherSeq)
         
     def getUserKeys(self):
         msg = []
-        msg.append("%s_ditherSeq=%s,%s,%s" % (self.name, self.mangaDitherSeq,
-                   self.apogeeDitherSeq, self.index))
+        msg.append("%s_ditherSeq=%s,%s,%s" % (self.name, self.mangaDitherSeq, self.index))
         return msg
     
     def isSlewingDisabled(self):
