@@ -1,6 +1,6 @@
 """sopActor masterThread"""
 import Queue, threading
-import sys, time
+import time
 
 from sopActor import *
 import sopActor

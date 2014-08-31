@@ -1,11 +1,8 @@
 import Queue, threading
-import math, numpy
-import time
 
 from sopActor import *
 import sopActor.myGlobals
 from opscore.utility.qstr import qstr
-from opscore.utility.tback import tback
 
 def get_expTime(msg):
     """Return expTime (float) and expTimeOpt (string to pass to guider cmd)."""
@@ -138,6 +135,8 @@ def main(actor, queues):
                 cmdVar = actorState.actor.cmdr.call(actor="guider", forUserCmd=msg.cmd,
                                                     cmdStr="mangaDither %s" % (ditherPos),
                                                     keyVars=[], timeLim=timeLim)
+                if cmdVar.didFail:
+                    msg.cmd.error('Failed to move guider to new dither position.')
                 msg.replyQueue.put(Msg.DONE, cmd=msg.cmd, success=not cmdVar.didFail)
                 
             elif msg.type == Msg.STATUS:
