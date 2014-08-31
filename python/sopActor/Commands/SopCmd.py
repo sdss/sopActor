@@ -123,7 +123,7 @@ class SopCmd(object):
     # Declare systems that can be bypassed
     #
     if not Bypass.get():
-        for ss in ("ffs", "ff_lamp", "hgcd_lamp", "ne_lamp", "axes",
+        for ss in ("ffs", "lamp_ff", "lamp_hgcd", "lamp_ne", "axes",
                    "isBoss", "isApogee",
                    "isMangaDither", "isMangaStare",
                    "isApogeeLead", "isApogeeMangaDither", "isApogeeMangaStare",

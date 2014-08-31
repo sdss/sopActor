@@ -74,9 +74,9 @@ class TestLampThread(sopTester.SopThreadTester,unittest.TestCase):
         self._do_lamp(1,0,0,1,'ff','on',didFail=True)
     def test_ff_on_fail_bypassed(self):
         self.cmd.failOn = "mcp ff.on"
-        Bypass.set('ff_lamp')
+        Bypass.set('lamp_ff')
         self._do_lamp(1,0,1,1,'ff','on',didFail=False)
-        Bypass.set('ff_lamp',bypassed=False)
+        Bypass.set('lamp_ff',bypassed=False)
 
     def test_uv_on_ignored(self):
         reply = sopActor.Msg.REPLY

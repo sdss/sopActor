@@ -42,7 +42,7 @@ class LampHandler(object):
             cmd.warn('text="Not waiting for response from: %s %s"' % (self.lampName, action))
             replyQueue.put(Msg.LAMP_COMPLETE, cmd=cmd, success=True)
         elif cmdVar.didFail:
-            bypassName = "%s_lamp" % (self.name)
+            bypassName = "lamp_%s" % (self.name)
             bypassed = Bypass.get(name=bypassName)
             cmd.error('text="Failed to turn %s lamps %s (bypass(%s) = %s)"' % (self.lampName, action, bypassName, bypassed))
             if bypassed:
