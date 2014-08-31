@@ -5,7 +5,6 @@ Test creating and destroying CmdStates.
 import unittest
 
 import sopActor
-import sopActor.myGlobals as myGlobals
 
 from actorcore import TestHelper
 import sopTester
@@ -227,6 +226,11 @@ class TestDoMangaDither(CmdStateTester,unittest.TestCase):
     def test_isSlewingDisabled_cmd_finished(self):
         self._isSlewingDisabled_cmd_finished()
 
+    def test_reinitialize(self):
+        self.cmdState.readout = False
+        self.cmdState.reinitialize()
+        self.assertTrue(self.cmdState.readout)
+
 
 class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
     def setUp(self):
@@ -280,6 +284,12 @@ class TestDoApogeeMangaDither(CmdStateTester,unittest.TestCase):
         self._isSlewingDisabled_no_cmd()
     def test_isSlewingDisabled_cmd_finished(self):
         self._isSlewingDisabled_cmd_finished()
+
+    def test_reinitialize(self):
+        self.cmdState.readout = False
+        self.cmdState.reinitialize()
+        self.assertTrue(self.cmdState.readout)
+
 
 if __name__ == '__main__':
     verbosity = 2

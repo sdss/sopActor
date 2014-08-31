@@ -385,8 +385,10 @@ class DoMangaDitherCmd(CmdState):
                           ['expose','dither'],
                           keywords=dict(expTime=900.0,
                                         dither='C'))
+
+    def reset_nonkeywords(self):
         self.readout = True
-    
+
     def isSlewingDisabled(self):
         """If slewing is disabled, return a string describing why, else False."""
         exp_state,exp_text = self.isSlewingDisabled_BOSS()
@@ -403,6 +405,8 @@ class DoApogeeMangaDitherCmd(CmdState):
                                         apogeeExpTime=450.0,
                                         mangaDither='C',
                                         comment=''))
+
+    def reset_nonkeywords(self):
         self.readout = True
 
     def set_apogeeLead(self):

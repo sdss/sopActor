@@ -535,7 +535,7 @@ class TestMangaScience(MasterThreadTester):
         cmdState.reset_ditherSeq()
         self.cmd.verbose = False
         masterThread.do_manga_sequence(self.cmd, cmdState, myGlobals.actorState)
-        self.cmd.clear_msgs()
+        self.cmd.reset()
         self.cmd.verbose = self.verbose
         self._do_manga_dither(4,28,0,0,dither=dither)
 
@@ -626,6 +626,21 @@ class TestApogeeMangaScience(MasterThreadTester):
         mangaDither = 'N'
         apogeeDithers = 'AB'
         self._do_apogeemanga_dither(0,6,0,0, mangaDither, apogeeDithers, didFail=True)
+    def test_do_apogeemanga_dither_after_sequence(self):
+        """See ticket #2107 for the bug that this tickles."""
+        sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
+        sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
+        dither = 'N'
+        cmdState = self.actorState.doApogeeMangaSequence
+        cmdState.reinitialize(self.cmd)
+        cmdState.count = 1
+        cmdState.mangaDithers = 'NSE'
+        cmdState.reset_ditherSeq()
+        self.cmd.verbose = False
+        masterThread.do_manga_sequence(self.cmd, cmdState, myGlobals.actorState)
+        self.cmd.reset()
+        self.cmd.verbose = self.verbose
+        self._do_manga_dither(8,30,0,0,dither=dither)
 
     def test_do_apogeemanga_dither_guider_dither_fails(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
@@ -642,7 +657,6 @@ class TestApogeeMangaScience(MasterThreadTester):
         cmdState = self.actorState.doApogeeMangaSequence
         cmdState.reinitialize(self.cmd)
         cmdState.count = count
-        cmdState.apogeeDithers = apogeeDithers
         cmdState.mangaDithers = mangaDithers
         cmdState.reset_ditherSeq()
         masterThread.do_apogeemanga_sequence(self.cmd, cmdState, myGlobals.actorState)
@@ -794,7 +808,7 @@ if __name__ == '__main__':
     # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestGotoField.test_goto_field_apogeemanga_all_shutter_open')
     # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestBossCalibs.test_do_boss_calibs_two_arc_fail_on_second_exposure')
     # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestApogeeMangaScience.test_do_apogee_manga_dither_guider_dither_fails')
-    suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestMangaScience.test_do_manga_dither_after_sequence')
+    # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestMangaScience.test_do_manga_dither_after_sequence')
     if suite:
         unittest.TextTestRunner(verbosity=verbosity).run(suite)
     else:
