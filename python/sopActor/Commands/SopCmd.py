@@ -1002,7 +1002,7 @@ class SopCmd(object):
         cmd.inform('text="recreating command objects"')
         try:
             self.initCommands()
-        except Exception, e:
+        except Exception as e:
             cmd.fail('text="failed to re-initialize command state"')
             return
 
@@ -1119,11 +1119,12 @@ class SopCmd(object):
         survey = sopState.survey
 
         cmd.warn('text="loadCartridge fired cart=%s survey=%s surveyMode=%s"' % (cartridge, plateType, surveyMode))
+        cmd.inform('')
 
         if survey is sopActor.BOSS:
             sopState.gotoField.setStages(['slew', 'hartmann', 'calibs', 'guider', 'cleanup'])
             sopState.validCommands = ['gotoField',
-                                      'hartmann', 'doBossCalibs', 'doBossScience',
+                                      'doBossCalibs', 'doBossScience',
                                       'gotoInstrumentChange']
         elif survey is sopActor.APOGEE:
             sopState.gotoField.setStages(['slew', 'guider', 'cleanup'])
@@ -1133,7 +1134,7 @@ class SopCmd(object):
         elif survey is sopActor.MANGA:
             sopState.gotoField.setStages(['slew', 'hartmann', 'calibs', 'guider', 'cleanup'])
             sopState.validCommands = ['gotoField',
-                                      'hartmann', 'doBossCalibs',
+                                      'doBossCalibs',
                                       'doMangaDither','doMangaSequence',
                                       'gotoInstrumentChange']
             if surveyMode is sopActor.MANGADITHER:
@@ -1143,7 +1144,7 @@ class SopCmd(object):
         elif survey is sopActor.APOGEEMANGA:
             sopState.gotoField.setStages(['slew', 'hartmann', 'calibs', 'guider', 'cleanup'])
             sopState.validCommands = ['gotoField',
-                                      'hartmann', 'doBossCalibs',
+                                      'doBossCalibs',
                                       'doApogeeMangaDither','doApogeeMangaSequence',
                                       'doApogeeSkyFlats', 'gotoGangChange',
                                       'gotoInstrumentChange', 'doApogeeDomeFlat']
@@ -1173,7 +1174,7 @@ class SopCmd(object):
                        'MaNGA':sopActor.MANGA,
                        'APOGEE-2&MaNGA':sopActor.APOGEEMANGA,
                        'APOGEE&MaNGA':sopActor.APOGEEMANGA}
-        surveyMode_dict = {'None':None,None:None,
+        surveyMode_dict = {'None':None, None:None,
                            'APOGEE lead':sopActor.APOGEELEAD,
                            'MaNGA dither':sopActor.MANGADITHER,
                            'MaNGA stare':sopActor.MANGASTARE}
