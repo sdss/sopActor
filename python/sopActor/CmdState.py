@@ -490,7 +490,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
         
     def getUserKeys(self):
         msg = []
-        msg.append("%s_ditherSeq=%s,%s,%s" % (self.name, self.mangaDitherSeq, self.index))
+        msg.append("%s_ditherSeq=%s,%s" % (self.name, self.mangaDitherSeq, self.index))
         return msg
     
     def isSlewingDisabled(self):
