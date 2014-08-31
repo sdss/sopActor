@@ -94,7 +94,8 @@ def main(actor, queues):
                 cmdVar = actorState.actor.cmdr.call(actor="guider", forUserCmd=msg.cmd,
                                                     cmdStr=("%s %s" % (msg.what, "on" if msg.on else "off")),
                                                     keyVars=[], timeLim=timeLim)
-                    
+                if cmdVar.didFail:
+                    msg.cmd.error('text=%s'%qstr("Failed to set guider %s %s."%(msg.what, "on" if msg.on else "off")))
                 msg.replyQueue.put(Msg.DONE, cmd=msg.cmd, success=not cmdVar.didFail)
 
             elif msg.type == Msg.START:
@@ -104,7 +105,7 @@ def main(actor, queues):
                 clearCorrections = "clearCorrections" if (hasattr(msg, 'clearCorrections')
                                                           and msg.clearCorrections) else ""
                 start = msg.on
-
+                
                 guider_start(msg.cmd, msg.replyQueue, actorState, start, expTime, clearCorrections, force, oneExposure)
 
             elif msg.type == Msg.EXPOSE:
@@ -117,6 +118,8 @@ def main(actor, queues):
                 cmdVar = actorState.actor.cmdr.call(actor="guider", forUserCmd=msg.cmd,
                                                     cmdStr="flat %s" % (expTimeOpt),
                                                     keyVars=[], timeLim=timeLim)
+                if cmdVar.didFail:
+                    msg.cmd.error('text="Failed to take guider flat"')
                 msg.replyQueue.put(Msg.DONE, cmd=msg.cmd, success=not cmdVar.didFail)
                 
             elif msg.type == Msg.DECENTER:
@@ -126,17 +129,19 @@ def main(actor, queues):
                 cmdVar = actorState.actor.cmdr.call(actor="guider", forUserCmd=msg.cmd,
                                                     cmdStr="decenter %s"%(state),
                                                     keyVars=[], timeLim=timeLim)
+                if cmdVar.didFail:
+                    msg.cmd.error('text=%s'%qstr("Failed to turn guider decentering %s."%state))
                 msg.replyQueue.put(Msg.DONE, cmd=msg.cmd, success=not cmdVar.didFail)
             
             elif msg.type == Msg.MANGA_DITHER:
                 msg.cmd.respond('text="Changing guider dither position."')
-                timeLim = 30 # could take as long as a long guider exposure.
+                timeLim = 60 # could take as long as a long guider exposure+readout, etc.
                 ditherPos = "ditherPos=%s"%msg.dither
                 cmdVar = actorState.actor.cmdr.call(actor="guider", forUserCmd=msg.cmd,
                                                     cmdStr="mangaDither %s" % (ditherPos),
                                                     keyVars=[], timeLim=timeLim)
                 if cmdVar.didFail:
-                    msg.cmd.error('Failed to move guider to new dither position.')
+                    msg.cmd.error('text="Failed to move guider to new dither position."')
                 msg.replyQueue.put(Msg.DONE, cmd=msg.cmd, success=not cmdVar.didFail)
                 
             elif msg.type == Msg.STATUS:
