@@ -4,6 +4,12 @@ guider mangaDither ditherPos=N
 
 boss exposure science itime=900
 
+[test_do_one_manga_dither_fails_exposure]
+guider decenter on
+guider mangaDither ditherPos=N
+
+boss exposure science itime=900
+
 [test_do_manga_dither]
 guider decenter on
 guider mangaDither ditherPos=N
@@ -13,6 +19,13 @@ boss exposure science itime=900
 guider decenter off
 
 [test_do_manga_dither_fails_ffs]
+mcp ffs.open
+guider decenter on
+guider mangaDither ditherPos=S
+
+guider decenter off
+
+[test_do_manga_dither_fails_dither]
 mcp ffs.open
 guider decenter on
 guider mangaDither ditherPos=S
@@ -83,6 +96,16 @@ boss exposure science itime=900 noreadout
 
 boss exposure   readout
 guider mangaDither ditherPos=E
+
+boss exposure science itime=900 noreadout
+
+boss exposure   readout
+guider decenter off
+
+[test_do_manga_sequence_fails_exposure]
+guider decenter on
+
+guider mangaDither ditherPos=N
 
 boss exposure science itime=900 noreadout
 

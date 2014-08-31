@@ -15,11 +15,9 @@ from sopActor import masterThread
 from sopActor import bossThread
 from sopActor import apogeeThread
 from sopActor import guiderThread
-from sopActor import gcameraThread
 from sopActor import ffsThread
 from sopActor import lampThreads
 from sopActor import tccThread
-from sopActor import scriptThread
 
 # False for less printing, True for more printing
 verbose = True
@@ -504,11 +502,17 @@ class TestMangaScience(MasterThreadTester):
         cmdState.dither = dither
         success = masterThread.do_one_manga_dither(self.cmd, cmdState, myGlobals.actorState)
         self.assertEqual(success, not didFail)
-        self._check_cmd(nCall,nInfo,nWarn,nErr,False)
+        self._check_cmd(nCall,nInfo,nWarn,nErr,False,didFail=didFail)
     def test_do_one_manga_dither(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         dither = 'N'
         self._do_one_manga_dither(3,20,0,0,dither=dither)
+    def test_do_one_manga_dither_fails_exposure(self):
+        sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
+        self.cmd.failOn = 'boss exposure science itime=900'
+        dither = 'N'
+        self._do_one_manga_dither(3,20,0,1,dither=dither,didFail=True)
+
     
     def _do_manga_dither(self, nCall, nInfo, nWarn, nErr, dither='N', didFail=False):
         cmdState = self.actorState.doMangaDither
@@ -524,8 +528,13 @@ class TestMangaScience(MasterThreadTester):
         self.cmd.failOn = "mcp ffs.open"
         dither = 'S'
         self._do_manga_dither(4,28,1,0,dither=dither, didFail=True)
+    def test_do_manga_dither_fails_dither(self):
+        self.cmd.failOn = "guider mangaDither ditherPos=S"
+        dither = 'S'
+        self._do_manga_dither(4,28,0,1,dither=dither, didFail=True)
+
     
-    def _do_manga_sequence(self,nCall,nInfo,nWarn,nErr,count,dithers='NSE'):
+    def _do_manga_sequence(self,nCall,nInfo,nWarn,nErr,count,dithers='NSE',didFail=False):
         self._update_cart(1, 'MaNGA')
         cmdState = self.actorState.doMangaSequence
         cmdState.reinitialize(self.cmd)
@@ -533,24 +542,25 @@ class TestMangaScience(MasterThreadTester):
         cmdState.dithers = dithers
         cmdState.reset_ditherSeq()
         masterThread.do_manga_sequence(self.cmd, cmdState, myGlobals.actorState)
-        self._check_cmd(nCall,nInfo,nWarn,nErr,True)
+        self._check_cmd(nCall,nInfo,nWarn,nErr,True,didFail=didFail)
         self.assertTrue(self.cmd.finished)
     def test_do_manga_sequence(self):
-        # TBD": Note: until multiCmds are smarter about whether we have to run
-        # non-preconditions, things like wht.off will always be sent as part of
-        # prepping for things, even though they aren't necessary.
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         count = 3
         dithers = 'NSE'
-        self._do_manga_sequence(29, 303,0,0,count,dithers)
+        self._do_manga_sequence(29,303,0,0,count,dithers)
     def test_do_manga_sequence_one_set(self):
-        # TBD": Note: until multiCmds are smarter about whether we have to run
-        # non-preconditions, things like wht.off will always be sent as part of
-        # prepping for things, even though they aren't necessary.
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         count = 1
         dithers = 'NSE'
-        self._do_manga_sequence(11, 117,0,0,count,dithers)
+        self._do_manga_sequence(11,117,0,0,count,dithers)
+    def test_do_manga_sequence_fails_exposure(self):
+        sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
+        self.cmd.failOn = 'boss exposure science itime=900 noreadout'
+        count = 3
+        dithers = 'NSE'
+        self._do_manga_sequence(5,56,0,1,count,dithers,didFail=True)
+
 
 
 class TestApogeeMangaScience(MasterThreadTester):
@@ -628,21 +638,21 @@ class TestApogeeMangaScience(MasterThreadTester):
         mangaDithers = 'NSE'
         apogeeDithers = 'AB'
         count = 1
-        self._do_apogeemanga_sequence(21,125,0,0, mangaDithers, apogeeDithers, count = 1)
+        self._do_apogeemanga_sequence(21,125,0,0, mangaDithers, apogeeDithers, count = count)
     def test_do_apogeemanga_sequence_count_2_shutter_closed_at_A(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['A_closed'])
         mangaDithers = 'NSE'
         apogeeDithers = 'AB'
         count = 2
-        self._do_apogeemanga_sequence(21,126,0,0, mangaDithers, apogeeDithers, count = 1)
+        self._do_apogeemanga_sequence(21,126,0,0, mangaDithers, apogeeDithers, count = count)
     def test_do_apogeemanga_sequence_gang_podium(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         mangaDithers = 'NSE'
         apogeeDithers = 'AB'
         count = 1
-        self._do_apogeemanga_sequence(0,6,0,0, mangaDithers, apogeeDithers, count = 1, didFail=True)
+        self._do_apogeemanga_sequence(0,6,0,0, mangaDithers, apogeeDithers, count = count, didFail=True)
 
 
 class TestBossCalibs(MasterThreadTester):
@@ -746,7 +756,7 @@ class TestBossCalibs(MasterThreadTester):
         self.cmd.failOn = "boss exposure arc itime=4 noreadout"
         self.cmd.failOnCount = 2
         cmdState.nArc = 2
-        self._do_boss_calibs(9,50,0,3,cmdState,didFail=True)
+        self._do_boss_calibs(9,50,0,1,cmdState,didFail=True)
 
 
 if __name__ == '__main__':
@@ -767,8 +777,9 @@ if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(TestApogeeMangaScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestBossCalibs)
     # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestGotoField.test_goto_field_apogeemanga_all_shutter_open')
-    # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestBossCalibs.test_do_boss_calibs_one_arc_coobserve')
+    # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestBossCalibs.test_do_boss_calibs_two_arc_fail_on_second_exposure')
     # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestApogeeMangaScience.test_do_apogee_manga_dither_guider_dither_fails')
+    # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestMangaScience.test_do_one_manga_dither_fails_exposure')
     if suite:
         unittest.TextTestRunner(verbosity=verbosity).run(suite)
     else:

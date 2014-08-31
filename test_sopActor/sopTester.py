@@ -3,7 +3,6 @@ To help testing the sop threads.
 """
 import ConfigParser
 import threading,Queue
-import time
 import sys
 import unittest
 import re
@@ -157,7 +156,7 @@ class SopThreadTester(SopTester,unittest.TestCase):
                     self.class_calls[name].remove(-1)
                 name = re_match.groups(0)[0]
                 # NOTE: If this happens, then we've duplicated a cmd list.
-                assert name not in self.class_calls
+                assert name not in self.class_calls, "%s missing from cmd_calls: check for duplicates?"%name
                 self.class_calls[name] = [[]]
             else:
                 self.class_calls[name][-1].append(line)
