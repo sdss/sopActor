@@ -9,7 +9,6 @@ import sopTester
 
 import sopActor
 import sopActor.myGlobals as myGlobals
-import sopActor.Commands.SopCmd as SopCmd
 
 from sopActor import apogeeThread
 
@@ -62,6 +61,7 @@ class TestApogeeThread(sopTester.SopThreadTester,unittest.TestCase):
     
     def _do_expose(self, nCall,nInfo,nWarn,nErr, expTime, dither, didFail=False):
         success = apogeeThread.do_expose(self.cmd,myGlobals.actorState,expTime,dither,'dark','')
+        self.assertEqual(success, not didFail)
         self._check_cmd(nCall,nInfo,nWarn,nErr, finish=False)
     def test_expose(self):
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
@@ -73,11 +73,12 @@ class TestApogeeThread(sopTester.SopThreadTester,unittest.TestCase):
     def test_expose_dither_fails(self):
         self.cmd.failOn = 'apogee dither namedpos=A'
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
-        self._do_expose(1,0,0,1, 500, 'A')
+        self._do_expose(1,0,0,1, 500, 'A', didFail=True)
 
 
     def _do_expose_dither_set(self, nCall,nInfo,nWarn,nErr, expTime, dithers, didFail=False):
-        cmdVar = apogeeThread.do_expose_dither_set(self.cmd,myGlobals.actorState,expTime,dithers,'object','')
+        success = apogeeThread.do_expose_dither_set(self.cmd,myGlobals.actorState,expTime,dithers,'object','')
+        self.assertEqual(success, not didFail)
         self._check_cmd(nCall,nInfo,nWarn,nErr, finish=False, didFail=didFail)
     def test_expose_dither_set(self):
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
@@ -89,7 +90,7 @@ class TestApogeeThread(sopTester.SopThreadTester,unittest.TestCase):
     def test_expose_dither_set_B_dither_fails(self):
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         self.cmd.failOn = 'apogee dither namedpos=B'
-        self._do_expose_dither_set(3,1,0,1, 500, 'AB')
+        self._do_expose_dither_set(3,1,0,1, 500, 'AB', didFail=True)
     def test_expose_dither_set_expose_fails(self):
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         self.cmd.failOn = 'apogee expose time=500.0 object=object'

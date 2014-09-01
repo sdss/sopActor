@@ -68,6 +68,30 @@ def guider_start(cmd, replyQueue, actorState, start, expTime, clearCorrections, 
             cmd.warn('text="guider command failed: %s"' % (cmdStr))
     replyQueue.put(Msg.DONE, cmd=cmd, success=not cmdVar.didFail)
 
+def decenter(cmd, state, actorState):
+    """Activate or deactive decentered guiding."""
+    cmd.respond('text="Turning decentered guiding %s."'%state)
+    timeLim = 30 # could take as long as a long guider exposure.
+    cmdVar = actorState.actor.cmdr.call(actor="guider", forUserCmd=cmd,
+                                        cmdStr="decenter %s"%(state),
+                                        keyVars=[], timeLim=timeLim)
+    if cmdVar.didFail:
+        cmd.error('text=%s'%qstr("Failed to turn guider decentering %s."%state))
+    return not cmdVar.didFail
+
+def manga_dither(cmd, dither, actorState):
+    """Move to a new named manga dither position."""
+    cmd.respond('text=%s'%qstr("Changing guider dither position to %s."%dither))
+    timeLim = 60 # could take as long as a long guider exposure+readout, etc.
+    ditherPos = "ditherPos=%s"%dither
+    cmdVar = actorState.actor.cmdr.call(actor="guider", forUserCmd=cmd,
+                                        cmdStr="mangaDither %s" % (ditherPos),
+                                        keyVars=[], timeLim=timeLim)
+    if cmdVar.didFail:
+        timeout = 'Timedout=%s'%("Timeout" in cmdVar.lastReply.keywords)
+        cmd.error('text=%s'%qstr('Failed to move guider to new dither position: %s'%timeout))
+    return not cmdVar.didFail
+
 
 def main(actor, queues):
     """Main loop for guider thread"""
@@ -124,25 +148,12 @@ def main(actor, queues):
                 
             elif msg.type == Msg.DECENTER:
                 state = ("on" if msg.on else "off")
-                msg.cmd.respond('text="Turning decentered guiding %s."'%state)
-                timeLim = 30 # could take as long as a long guider exposure.
-                cmdVar = actorState.actor.cmdr.call(actor="guider", forUserCmd=msg.cmd,
-                                                    cmdStr="decenter %s"%(state),
-                                                    keyVars=[], timeLim=timeLim)
-                if cmdVar.didFail:
-                    msg.cmd.error('text=%s'%qstr("Failed to turn guider decentering %s."%state))
-                msg.replyQueue.put(Msg.DONE, cmd=msg.cmd, success=not cmdVar.didFail)
+                success = decenter(msg.cmd, state, actorState)
+                msg.replyQueue.put(Msg.DONE, cmd=msg.cmd, success=success)
             
             elif msg.type == Msg.MANGA_DITHER:
-                msg.cmd.respond('text="Changing guider dither position."')
-                timeLim = 60 # could take as long as a long guider exposure+readout, etc.
-                ditherPos = "ditherPos=%s"%msg.dither
-                cmdVar = actorState.actor.cmdr.call(actor="guider", forUserCmd=msg.cmd,
-                                                    cmdStr="mangaDither %s" % (ditherPos),
-                                                    keyVars=[], timeLim=timeLim)
-                if cmdVar.didFail:
-                    msg.cmd.error('text="Failed to move guider to new dither position."')
-                msg.replyQueue.put(Msg.DONE, cmd=msg.cmd, success=not cmdVar.didFail)
+                success = manga_dither(msg.cmd, msg.dither, actorState)
+                msg.replyQueue.put(Msg.DONE, cmd=msg.cmd, success=success)
                 
             elif msg.type == Msg.STATUS:
                 msg.cmd.inform('text="%s thread"' % threadName)

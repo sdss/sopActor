@@ -88,7 +88,7 @@ class TestBypass(SopCmdTester,unittest.TestCase):
 class TestClassifyCartridge(SopCmdTester,unittest.TestCase):
     def _classifyCartridge(self,nCart,plateType,surveyMode,expect):
         """Expect is a tuple of expected survey and surveyMode IDs from sopActor."""
-        surveyGot = self.sopCmd.classifyCartridge(self.cmd,nCart,plateType,surveyMode)
+        self.sopCmd.classifyCartridge(self.cmd,nCart,plateType,surveyMode)
         sopState = self.actorState
         self.assertEqual(sopState.survey,expect[0])
         self.assertEqual(sopState.surveyMode,expect[1])
@@ -156,7 +156,7 @@ class TestClassifyCartridge(SopCmdTester,unittest.TestCase):
 class TestUpdateCartridge(SopCmdTester,unittest.TestCase):
     """Confirm that we get the right validCommands from each survey type."""
     def _updateCartridge(self, nCart, survey, surveyMode, expected):
-        surveyGot = self.sopCmd.updateCartridge(nCart, survey, surveyMode)
+        self.sopCmd.updateCartridge(nCart, survey, surveyMode)
         sop = myGlobals.actorState.models['sop']
         self.assertEqual(sop.keyVarDict['surveyCommands'].getValue(), expected['surveyCommands'])
 
@@ -165,7 +165,7 @@ class TestUpdateCartridge(SopCmdTester,unittest.TestCase):
         expected = {}
         expected['surveyCommands'] = TestHelper.sopBossCommands['surveyCommands']
         self._updateCartridge(11,'BOSS','None',expected)
-    def test_updateCartridge_boss(self):
+    def test_updateCartridge_eboss(self):
         sopTester.updateModel('guider',TestHelper.guiderState['bossLoaded'])
         expected = {}
         expected['surveyCommands'] = TestHelper.sopBossCommands['surveyCommands']
@@ -348,20 +348,17 @@ class TestDoApogeeMangaDither(SopCmdTester,unittest.TestCase):
         self.assertEqual(msg.cmdState.stages,stages)
         self.assertEqual(msg.cmdState.mangaExpTime,expect['mangaExpTime'])
         self.assertEqual(msg.cmdState.apogeeExpTime,expect['apogeeExpTime'])
-        self.assertEqual(msg.cmdState.apogeeDithers,expect['apogeeDithers'])
         self.assertEqual(msg.cmdState.mangaDither,expect['mangaDither'])
 
     def test_doApogeeMangaDither_default(self):
         expect = {'mangaExpTime':900,
                   'apogeeExpTime':450,
-                  'apogeeDithers':'AB',
                   'mangaDither':'C'
                   }
         self._doApogeeMangaDither(expect)
     def test_doApogeeMangaDither_N(self):
         expect = {'mangaExpTime':900,
                   'apogeeExpTime':450,
-                  'apogeeDithers':'AB',
                   'mangaDither':'N'
                   }
         args = 'mangaDither=N'
@@ -369,7 +366,6 @@ class TestDoApogeeMangaDither(SopCmdTester,unittest.TestCase):
     def test_doApogeeMangaDither_apogeeLead(self):
         expect = {'mangaExpTime':900,
                   'apogeeExpTime':500,
-                  'apogeeDithers':'AB',
                   'mangaDither':'C'
                   }
         args = 'apogeeExpTime=500'
@@ -393,20 +389,17 @@ class TestDoApogeeMangaSequence(SopCmdTester,unittest.TestCase):
         self.assertEqual(msg.cmdState.stages,stages)
         self.assertEqual(msg.cmdState.mangaExpTime,expect['mangaExpTime'])
         self.assertEqual(msg.cmdState.apogeeExpTime,expect['apogeeExpTime'])
-        self.assertEqual(msg.cmdState.apogeeDithers,expect['apogeeDithers'])
         self.assertEqual(msg.cmdState.mangaDithers,expect['mangaDithers'])
 
     def test_doApogeeMangaSequence_default(self):
         expect = {'mangaExpTime':900,
                   'apogeeExpTime':450,
-                  'apogeeDithers':'AB',
                   'mangaDithers':'NSE'
                   }
         self._doApogeeMangaSequence(expect)
     def test_doApogeeMangaSequence_apogeeLead(self):
         expect = {'mangaExpTime':900,
                   'apogeeExpTime':500,
-                  'apogeeDithers':'AB',
                   'mangaDithers':'CCC'
                   }
         args = 'apogeeExpTime=500 mangaDithers=CCC'

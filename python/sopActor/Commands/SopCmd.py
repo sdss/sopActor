@@ -502,9 +502,6 @@ class SopCmd(object):
         
         cmdState.reinitialize(cmd)
 
-        apogeeDithers = cmd.cmd.keywords['apogeeDithers'].values[0] \
-                    if "apogeeDithers" in cmd.cmd.keywords else None
-        cmdState.set('apogeeDithers',apogeeDithers)
         apogeeExpTime = cmd.cmd.keywords["apogeeExpTime"].values[0] \
                     if "apogeeExpTime" in cmd.cmd.keywords else None
         cmdState.set('apogeeExpTime',apogeeExpTime)
@@ -531,9 +528,6 @@ class SopCmd(object):
 
         cmdState.reinitialize(cmd)
 
-        apogeeDithers = cmd.cmd.keywords['apogeeDithers'].values[0] \
-                    if "apogeeDithers" in cmd.cmd.keywords else None
-        cmdState.set('apogeeDithers',apogeeDithers)
         apogeeExpTime = cmd.cmd.keywords["apogeeExpTime"].values[0] \
                     if "apogeeExpTime" in cmd.cmd.keywords else None
         cmdState.set('apogeeExpTime',apogeeExpTime)

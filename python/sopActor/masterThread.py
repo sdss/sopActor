@@ -405,6 +405,21 @@ def is_gang_at_cart(cmd, cmdState, actorState):
     else:
         return True
 
+def get_next_apogee_dither_pair(actorState):
+    """
+    Return the next APOGEE dither pair, based on the current dither position.
+    We want to minimize dither moves, so return the pair that starts with not
+    moving the dither.
+    """
+    currentDither = actorState.models['apogee'].keyVarDict["ditherPosition"][1]
+    if currentDither == 'B':
+        return 'BA'
+    elif currentDither == 'A':
+        return 'AB'
+    else:
+        # if the dither isn't in a defined position, just go with 'AB'
+        return 'AB'
+
 #
 # The actual SOP commands, and sub-commands.
 #
@@ -648,10 +663,11 @@ def do_one_apogeemanga_dither(cmd, cmdState, actorState):
     """A single APOGEE/MaNGA co-observing dither."""
 
     mangaDither = cmdState.mangaDither
-    apogeeDithers = cmdState.apogeeDithers
     mangaExpTime = cmdState.mangaExpTime
     apogeeExpTime = cmdState.apogeeExpTime
     expTime = max(2*apogeeExpTime,mangaExpTime) # need the longest expTime.
+
+    apogeeDithers = get_next_apogee_dither_pair(actorState)
 
     readout = cmdState.readout
     show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
@@ -662,7 +678,7 @@ def do_one_apogeemanga_dither(cmd, cmdState, actorState):
     multiCmd.append(sopActor.BOSS, Msg.EXPOSE,
                     expTime=mangaExpTime, expType="science", readout=readout)
     multiCmd.append(sopActor.APOGEE, Msg.EXPOSE_DITHER_SET,
-                    expTime=apogeeExpTime, dithers=apogeeDithers,
+                    expTime=apogeeExpTime,dithers=apogeeDithers,
                     expType="object", comment=cmdState.comment)
     prep_for_science(multiCmd, precondition=True)
     prep_apogee_shutter(multiCmd,open=True)
@@ -705,7 +721,6 @@ def do_apogeemanga_sequence(cmd, cmdState, actorState):
         ditherState.mangaExpTime = cmdState.mangaExpTime
         ditherState.apogeeExpTime = cmdState.apogeeExpTime
         ditherState.mangaDither = mangaDither
-        ditherState.apogeeDithers = cmdState.apogeeDitherSeq[cmdState.index*2:(cmdState.index*2)+2]
         ditherState.readout = False
         pendingReadout = True
         stageName = 'expose'

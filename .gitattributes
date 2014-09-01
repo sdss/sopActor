@@ -37,6 +37,7 @@ test_sopActor/cmd_calls/TestDoBossCalibs.txt -text
 test_sopActor/cmd_calls/TestGotoField.txt -text
 test_sopActor/cmd_calls/TestGotoGangChange.txt -text
 test_sopActor/cmd_calls/TestGuider.txt -text
+test_sopActor/cmd_calls/TestGuiderMethods.txt -text
 test_sopActor/cmd_calls/TestGuiderStart.txt -text
 test_sopActor/cmd_calls/TestHartmann.txt -text
 test_sopActor/cmd_calls/TestLampThread.txt -text

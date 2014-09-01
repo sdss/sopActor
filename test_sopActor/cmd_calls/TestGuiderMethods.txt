@@ -1,0 +1,14 @@
+[test_decenter_on]
+guider decenter on
+
+[test_decenter_off]
+guider decenter off
+
+[test_decenter_fails]
+guider decenter on
+
+[test_manga_dither_N]
+guider mangaDither ditherPos=N
+
+[test_manga_dither_fails_timeout]
+guider mangaDither ditherPos=E

@@ -465,6 +465,16 @@ class TestBossScience(MasterThreadTester):
 
 class TestApogeeScience(MasterThreadTester):
     """do_apogee_science tests"""
+    def _get_next_apogee_dither_pair(self, expect):
+        dithers = masterThread.get_next_apogee_dither_pair(myGlobals.actorState)
+        self.assertEqual(dithers,expect)
+    def test_get_next_apogee_dither_pair_AB(self):
+        sopTester.updateModel('apogee',TestHelper.apogeeState['A_closed'])
+        self._get_next_apogee_dither_pair('AB')
+    def test_get_next_apogee_dither_pair_BA(self):
+        sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
+        self._get_next_apogee_dither_pair('BA')
+
     def _do_apogee_science(self, nCall, nInfo, nWarn, nErr, ditherSeq='ABBA', seqCount=1):
         """Helper for boss science tests"""
         self._update_cart(1, 'APOGEE')
@@ -526,7 +536,7 @@ class TestMangaScience(MasterThreadTester):
         cmdState.dithers = 'NSE'
         cmdState.reset_ditherSeq()
         self.cmd.verbose = False
-        masterThread.do_manga_sequence(self.cmd, cmdState, myGlobals.actorState)
+        masterThread.do_apogeemanga_sequence(self.cmd, cmdState, myGlobals.actorState)
         self.cmd.reset()
         self.cmd.verbose = self.verbose
         self._do_manga_dither(4,28,0,0,dither=dither)
@@ -569,82 +579,74 @@ class TestMangaScience(MasterThreadTester):
         self._do_manga_sequence(5,56,0,1,count,dithers,didFail=True)
 
 
-
 class TestApogeeMangaScience(MasterThreadTester):
-    def _do_one_apogeemanga_dither(self, nCall, nInfo, nWarn, nErr, mangaDither, apogeeDithers):
+    def _do_one_apogeemanga_dither(self, nCall, nInfo, nWarn, nErr, mangaDither):
         self._update_cart(1, 'APOGEE&MaNGA')
         cmdState = self.actorState.doApogeeMangaDither
         cmdState.reinitialize(self.cmd)
         cmdState.mangaDither = mangaDither
-        cmdState.mangaDithers = apogeeDithers
         masterThread.do_one_apogeemanga_dither(self.cmd, cmdState, myGlobals.actorState)
         self._check_cmd(nCall,nInfo,nWarn,nErr,False)
     def test_do_one_apogeemanga_dither_at_BC(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         mangaDither = 'N'
-        apogeeDithers = 'AB'
-        self._do_one_apogeemanga_dither(7,22,0,0, mangaDither, apogeeDithers)
+        self._do_one_apogeemanga_dither(6,23,0,0, mangaDither)
     def test_do_one_apogeemanga_dither_at_AC_shutter_closed(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['A_closed'])
         mangaDither = 'N'
-        apogeeDithers = 'AB'
-        self._do_one_apogeemanga_dither(7,23,0,0, mangaDither, apogeeDithers)
+        self._do_one_apogeemanga_dither(7,23,0,0, mangaDither)
     def test_do_one_apogeemanga_dither_apogee_led(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         mangaDither = 'C'
-        apogeeDithers = 'AB'
-        self._do_one_apogeemanga_dither(6,21,0,0, mangaDither, apogeeDithers)
+        self._do_one_apogeemanga_dither(5,22,0,0, mangaDither)
 
-    def _do_apogeemanga_dither(self, nCall, nInfo, nWarn, nErr, mangaDither, apogeeDithers, didFail=False):
+    def _do_apogeemanga_dither(self, nCall, nInfo, nWarn, nErr, mangaDither, didFail=False):
         self._update_cart(1, 'APOGEE&MaNGA')
         cmdState = self.actorState.doApogeeMangaDither
         cmdState.reinitialize(self.cmd)
         cmdState.mangaDither = mangaDither
-        cmdState.mangaDithers = apogeeDithers
         masterThread.do_apogeemanga_dither(self.cmd, cmdState, myGlobals.actorState)
         self._check_cmd(nCall,nInfo,nWarn,nErr,finish=True,didFail=didFail)
     def test_do_apogeemanga_dither_at_BC(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         mangaDither = 'N'
-        apogeeDithers = 'AB'
-        self._do_apogeemanga_dither(8,30,0,0, mangaDither, apogeeDithers)
+        self._do_apogeemanga_dither(7,31,0,0, mangaDither)
     def test_do_apogeemanga_dither_gang_at_podium(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         mangaDither = 'N'
-        apogeeDithers = 'AB'
-        self._do_apogeemanga_dither(0,6,0,0, mangaDither, apogeeDithers, didFail=True)
+        self._do_apogeemanga_dither(0,6,0,0, mangaDither, didFail=True)
     def test_do_apogeemanga_dither_after_sequence(self):
         """See ticket #2107 for the bug that this tickles."""
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
-        dither = 'N'
+        mangaDither = 'N'
         cmdState = self.actorState.doApogeeMangaSequence
         cmdState.reinitialize(self.cmd)
         cmdState.count = 1
         cmdState.mangaDithers = 'NSE'
         cmdState.reset_ditherSeq()
         self.cmd.verbose = False
-        masterThread.do_manga_sequence(self.cmd, cmdState, myGlobals.actorState)
+        masterThread.do_apogeemanga_sequence(self.cmd, cmdState, myGlobals.actorState)
         self.cmd.reset()
         self.cmd.verbose = self.verbose
-        self._do_manga_dither(8,30,0,0,dither=dither)
+        sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
+        self._do_apogeemanga_dither(7,31,0,0, mangaDither)
 
     def test_do_apogeemanga_dither_guider_dither_fails(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         self.cmd.failOn = 'guider mangaDither ditherPos=N'
         mangaDither = 'N'
-        apogeeDithers = 'AB'
-        self._do_apogeemanga_dither(3,28,0,0, mangaDither, apogeeDithers, didFail=True)
+        self._do_apogeemanga_dither(3,28,0,1, mangaDither, didFail=True)
 
 
     def _do_apogeemanga_sequence(self,nCall,nInfo,nWarn,nErr, mangaDithers,
-                                  apogeeDithers, count, didFail=False):
+                                  count, didFail=False):
         self._update_cart(1, 'APOGEE&MaNGA')
         cmdState = self.actorState.doApogeeMangaSequence
         cmdState.reinitialize(self.cmd)
@@ -657,23 +659,20 @@ class TestApogeeMangaScience(MasterThreadTester):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         mangaDithers = 'NSE'
-        apogeeDithers = 'AB'
         count = 1
-        self._do_apogeemanga_sequence(21,125,0,0, mangaDithers, apogeeDithers, count = count)
+        self._do_apogeemanga_sequence(20,126,0,0, mangaDithers, count = count)
     def test_do_apogeemanga_sequence_count_2_shutter_closed_at_A(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['A_closed'])
         mangaDithers = 'NSE'
-        apogeeDithers = 'AB'
         count = 2
-        self._do_apogeemanga_sequence(21,126,0,0, mangaDithers, apogeeDithers, count = count)
+        self._do_apogeemanga_sequence(39,228,0,0, mangaDithers, count = count)
     def test_do_apogeemanga_sequence_gang_podium(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         mangaDithers = 'NSE'
-        apogeeDithers = 'AB'
         count = 1
-        self._do_apogeemanga_sequence(0,6,0,0, mangaDithers, apogeeDithers, count = count, didFail=True)
+        self._do_apogeemanga_sequence(0,6,0,0, mangaDithers, count = count, didFail=True)
 
 
 class TestBossCalibs(MasterThreadTester):
@@ -795,7 +794,7 @@ if __name__ == '__main__':
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestBossScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestHartmann)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestMangaScience)
-    # suite = unittest.TestLoader().loadTestsFromTestCase(TestApogeeMangaScience)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestApogeeMangaScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestBossCalibs)
     # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestGotoField.test_goto_field_apogeemanga_all_shutter_open')
     # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestBossCalibs.test_do_boss_calibs_two_arc_fail_on_second_exposure')

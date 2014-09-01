@@ -49,6 +49,30 @@ class TestGuiderStart(GuiderThreadTester):
         self.cmd.failOn = 'guider axes off'
         self._guider_start(1,0,0,1,args)
 
+class TestGuiderMethods(GuiderThreadTester):
+    """Tests for the short guider methods in guiderThread."""
+    def _decenter(self, nCall,nInfo,nWarn,nErr, state, didFail=False):
+        guiderThread.decenter(self.cmd, state, myGlobals.actorState)
+        self._check_cmd(nCall,nInfo,nWarn,nErr,False,didFail)
+    def test_decenter_on(self):
+        self._decenter(1,1,0,0,'on')
+    def test_decenter_off(self):
+        self._decenter(1,1,0,0,'off')
+    def test_decenter_fails(self):
+        self.cmd.failOn = 'guider decenter on'
+        self._decenter(1,1,0,1,'on',didFail=True)
+
+    def _manga_dither(self, nCall,nInfo,nWarn,nErr, dither, didFail=False):
+        guiderThread.manga_dither(self.cmd, dither, myGlobals.actorState)
+        self._check_cmd(nCall,nInfo,nWarn,nErr,False,didFail)
+    def test_manga_dither_N(self):
+        self._manga_dither(1,1,0,0,'N')
+    def test_manga_dither_fails_timeout(self):
+        self.cmd.failOn = 'guider mangaDither ditherPos=E'
+        self._manga_dither(1,1,0,1,'E',didFail=True)
+
+
+
 if __name__ == '__main__':
     verbosity = 1
     if verbose:
