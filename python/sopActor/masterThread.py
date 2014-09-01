@@ -1158,11 +1158,9 @@ def goto_gang_change(cmd, cmdState, actorState):
 
     # start with an axis init, in case the axes are not clear.
     multiCmd.append(SopPrecondition(sopActor.TCC, Msg.AXIS_INIT))
-    # TBD: SDSSIV: this should be a test based on 'APOGEE' in survey
-    # or maybe based off of survey_mode? Will have to discuss with
-    # APOGEE/MaNGA folks...
-    if actorState.survey == sopActor.APOGEE:
-        # Precondition: we want the shutter to be closed during the slew.
+    # if the gang is at the cart, we need to close the apogee shutter during
+    # the slew, no matter which survey is leading.
+    if actorState.apogeeGang.atCartridge():
         prep_apogee_shutter(multiCmd,open=False)
         # used to do darks on the way to the field.
         # multiCmd.append(sopActor.APOGEE_SCRIPT, Msg.APOGEE_PARK_DARKS)

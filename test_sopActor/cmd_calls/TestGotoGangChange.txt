@@ -22,7 +22,6 @@ tcc axis init
 tcc track 121.000000, 45.000000 mount/rottype=mount/rotangle=0.000000
 
 [test_goto_gang_change_apogee_gang_podium]
-apogee shutter close
 tcc axis status
 tcc axis init
 

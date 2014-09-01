@@ -401,7 +401,6 @@ class TestGotoGangChange(MasterThreadTester):
         self._check_cmd(nCall,nInfo,nWarn,nErr,finish,didFail)
     def test_goto_gang_change_apogee_open(self):
         """
-        axis status, axis init, slew, FFS close, expose +(ff on, ff off)
         One warning from "in slew with halted=False slewing=False"
         """
         myGlobals.actorState.survey = sopActor.APOGEE
@@ -410,8 +409,6 @@ class TestGotoGangChange(MasterThreadTester):
         self._goto_gang_change(6, 20, 1, 0)
     def test_goto_gang_change_apogee_closed(self):
         """
-        axis status, axis init, slew,
-        shutter open, FFS close, expose +(ff on, ff off), shutter close
         One warning from "in slew with halted=False slewing=False"
         """
         myGlobals.actorState.survey = sopActor.APOGEE
@@ -420,16 +417,14 @@ class TestGotoGangChange(MasterThreadTester):
         self._goto_gang_change(7, 20, 1, 0)
     def test_goto_gang_change_apogee_gang_podium(self):
         """
-        axis status, axis init, slew, shutter close
         One warning from "in slew with halted=False slewing=False"
         """
         myGlobals.actorState.survey = sopActor.APOGEE
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
-        self._goto_gang_change(4, 12, 1, 0)
+        self._goto_gang_change(3, 12, 1, 0)
     def test_goto_gang_change_boss(self):
         """
-        axis status, axis init, slew
         One warning from "in slew with halted=False slewing=False"
         """
         myGlobals.actorState.survey = sopActor.BOSS
@@ -443,9 +438,6 @@ class TestGotoGangChange(MasterThreadTester):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         self._goto_gang_change(2, 14, 0, 1, didFail=True)
     def test_goto_gang_change_apogee_fails_slew(self):
-        """
-        ffs close, exposure, shutter close, axis status, axis init, slew->fail
-        """
         self.cmd.failOn = "tcc axis init"
         myGlobals.actorState.survey = sopActor.APOGEE
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
