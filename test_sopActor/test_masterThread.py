@@ -93,7 +93,7 @@ class TestGuider(MasterThreadTester):
     def test_guider_flat_fails(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
         self.cmd.failOn = "guider flat time=0.5"
-        self._guider_flat(2,13,0,0,finish=True,didFail=True)
+        self._guider_flat(2,13,0,1,finish=True,didFail=True)
     
     def _guider_flat_apogeeShutter(self,nCall,nInfo,nWarn,nErr,finish=False,didFail=False):
         """Helper for running guider flat tests that check the APOGEE shutter."""
@@ -130,7 +130,7 @@ class TestGuider(MasterThreadTester):
         """
         sopTester.updateModel('guider',TestHelper.guiderState['guiderOnDecenter'])
         self.cmd.failOn="guider decenter off"
-        self._deactivate_guider_decenter(1,9,0,1,didFail=True)
+        self._deactivate_guider_decenter(1,9,0,2,didFail=True)
 
     
 class TestGotoField(MasterThreadTester):
@@ -179,6 +179,7 @@ class TestGotoField(MasterThreadTester):
         FF on, guider flat, FF off, open FFS
         guider decenter off, 3xguider axes off, guider on
         """
+        sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
         sopTester.updateModel('guider',TestHelper.guiderState['guiderOnDecenter'])
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
@@ -794,7 +795,7 @@ if __name__ == '__main__':
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestBossScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestHartmann)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestMangaScience)
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestApogeeMangaScience)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestApogeeMangaScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestBossCalibs)
     # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestGotoField.test_goto_field_apogeemanga_all_shutter_open')
     # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestBossCalibs.test_do_boss_calibs_two_arc_fail_on_second_exposure')

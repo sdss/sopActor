@@ -92,65 +92,88 @@ class TestClassifyCartridge(SopCmdTester,unittest.TestCase):
         sopState = self.actorState
         self.assertEqual(sopState.survey,expect[0])
         self.assertEqual(sopState.surveyMode,expect[1])
+        self.assertEqual(sopState.surveyText,expect[2])
     
     def test_classifyCartridge_bad(self):
-        self._classifyCartridge(-1,'unknown',None,[sopActor.UNKNOWN,None])
+        expect = [sopActor.UNKNOWN,None, ['UNKNOWN','None']]
+        self._classifyCartridge(-1,'unknown',None,expect)
     def test_classifyCartridge_bad_survey(self):
-        self._classifyCartridge(1,'mangled','APOGEE lead',[sopActor.UNKNOWN,sopActor.APOGEELEAD])
+        expect = [sopActor.UNKNOWN,sopActor.APOGEELEAD, ['UNKNOWN','APOGEE lead']]
+        self._classifyCartridge(1,'mangled','APOGEE lead',expect)
     def test_classifyCartridge_bad_surveyMode(self):
-        self._classifyCartridge(11,'MaNGA','mangled',[sopActor.MANGA,None])
+        expect = [sopActor.MANGA, None, ['MaNGA','None']]
+        self._classifyCartridge(11,'MaNGA','mangled',expect)
     def test_classifyCartridge_boss(self):
         sopTester.updateModel('guider',TestHelper.guiderState['bossLoaded'])
-        self._classifyCartridge(11,'BOSS','None',[sopActor.BOSS,None])
+        expect = [sopActor.BOSS, None, ['BOSS','None']]
+        self._classifyCartridge(11,'BOSS','None',expect)
     def test_classifyCartridge_eboss(self):
         sopTester.updateModel('guider',TestHelper.guiderState['bossLoaded'])
-        self._classifyCartridge(11,'eBOSS','None',[sopActor.BOSS,None])
+        expect = [sopActor.BOSS,None, ['eBOSS','None']]
+        self._classifyCartridge(11,'eBOSS','None',expect)
     def test_classifyCartridge_apogee(self):
         sopTester.updateModel('guider',TestHelper.guiderState['apogeeLoaded'])
-        self._classifyCartridge(1,'APOGEE','None',[sopActor.APOGEE,None])
+        expect = [sopActor.APOGEE,None, ['APOGEE','None']]
+        self._classifyCartridge(1,'APOGEE','None',expect)
     def test_classifyCartridge_apogee2(self):
         sopTester.updateModel('guider',TestHelper.guiderState['apogeeLoaded'])
-        self._classifyCartridge(1,'APOGEE-2','None',[sopActor.APOGEE,None])
+        expect = [sopActor.APOGEE,None, ['APOGEE-2','None']]
+        self._classifyCartridge(1,'APOGEE-2','None',expect)
     def test_classifyCartridge_mangaDither(self):
         sopTester.updateModel('guider',TestHelper.guiderState['mangaDitherLoaded'])
-        self._classifyCartridge(2,'MaNGA','MaNGA dither',[sopActor.MANGA,sopActor.MANGADITHER])
+        expect = [sopActor.MANGA,sopActor.MANGADITHER, ['MaNGA','MaNGA dither']]
+        self._classifyCartridge(2,'MaNGA','MaNGA dither',expect)
     def test_classifyCartridge_mangaStare(self):
         sopTester.updateModel('guider',TestHelper.guiderState['mangaStareLoaded'])
-        self._classifyCartridge(2,'MaNGA','MaNGA stare',[sopActor.MANGA,sopActor.MANGASTARE])
+        expect = [sopActor.MANGA,sopActor.MANGASTARE, ['MaNGA','MaNGA stare']]
+        self._classifyCartridge(2,'MaNGA','MaNGA stare',expect)
     def test_classifyCartridge_apogee_lead(self):
         sopTester.updateModel('guider',TestHelper.guiderState['apogeeLeadLoaded'])
-        self._classifyCartridge(3,'APOGEE-2&MaNGA','APOGEE lead',[sopActor.APOGEEMANGA,sopActor.APOGEELEAD])
-        self._classifyCartridge(3,'APOGEE&MaNGA','APOGEE lead',[sopActor.APOGEEMANGA,sopActor.APOGEELEAD])
+        expect = [sopActor.APOGEEMANGA,sopActor.APOGEELEAD, ['APOGEE-2&MaNGA','APOGEE lead']]
+        self._classifyCartridge(3,'APOGEE-2&MaNGA','APOGEE lead',expect)
+        expect = [sopActor.APOGEEMANGA,sopActor.APOGEELEAD, ['APOGEE&MaNGA','APOGEE lead']]
+        self._classifyCartridge(3,'APOGEE&MaNGA','APOGEE lead',expect)
     def test_classifyCartridge_apogeemanga_dither(self):
         sopTester.updateModel('guider',TestHelper.guiderState['apogeemangaDitherLoaded'])
-        self._classifyCartridge(3,'APOGEE-2&MaNGA','MaNGA dither',[sopActor.APOGEEMANGA,sopActor.MANGADITHER])
-        self._classifyCartridge(3,'APOGEE&MaNGA','MaNGA dither',[sopActor.APOGEEMANGA,sopActor.MANGADITHER])
+        expect = [sopActor.APOGEEMANGA,sopActor.MANGADITHER, ['APOGEE-2&MaNGA','MaNGA dither']]
+        self._classifyCartridge(3,'APOGEE-2&MaNGA','MaNGA dither',expect)
+        expect = [sopActor.APOGEEMANGA,sopActor.MANGADITHER, ['APOGEE&MaNGA','MaNGA dither']]
+        self._classifyCartridge(3,'APOGEE&MaNGA','MaNGA dither',expect)
     def test_classifyCartridge_apogeemanga_stare(self):
         sopTester.updateModel('guider',TestHelper.guiderState['apogeemangaStareLoaded'])
-        self._classifyCartridge(3,'APOGEE-2&MaNGA','MaNGA stare',[sopActor.APOGEEMANGA,sopActor.MANGASTARE])
-        self._classifyCartridge(3,'APOGEE&MaNGA','MaNGA stare',[sopActor.APOGEEMANGA,sopActor.MANGASTARE])
+        expect = [sopActor.APOGEEMANGA,sopActor.MANGASTARE, ['APOGEE-2&MaNGA','MaNGA stare']]
+        self._classifyCartridge(3,'APOGEE-2&MaNGA','MaNGA stare',expect)
+        expect = [sopActor.APOGEEMANGA,sopActor.MANGASTARE, ['APOGEE&MaNGA','MaNGA stare']]
+        self._classifyCartridge(3,'APOGEE&MaNGA','MaNGA stare',expect)
     
     def test_classifyCartridge_boss_bypass(self):
         self._prep_bypass('isBoss',clear=True)
-        self._classifyCartridge(2,'APOGEE','None',[sopActor.BOSS,None])
+        expect = [sopActor.BOSS,None, ['BOSS','None']]
+        self._classifyCartridge(2,'APOGEE','None',expect)
     def test_classifyCartridge_apogee_bypass(self):
         self._prep_bypass('isApogee',clear=True)
-        self._classifyCartridge(11,'BOSS','None',[sopActor.APOGEE,None])
+        expect = [sopActor.APOGEE,None, ['APOGEE','None']]
+        self._classifyCartridge(11,'BOSS','None',expect)
     def test_classifyCartridge_mangaStare_bypass(self):
         self._prep_bypass('isMangaStare',clear=True)
-        self._classifyCartridge(2,'APOGEE','None',[sopActor.MANGA,sopActor.MANGASTARE])
+        expect = [sopActor.MANGA,sopActor.MANGASTARE, ['MANGA','MANGASTARE']]
+        self._classifyCartridge(2,'APOGEE','None',expect)
     def test_classifyCartridge_mangaDither_bypass(self):
         self._prep_bypass('isMangaDither',clear=True)
-        self._classifyCartridge(2,'APOGEE','None',[sopActor.MANGA,sopActor.MANGADITHER])
+        expect = [sopActor.MANGA,sopActor.MANGADITHER, ['MANGA','MANGADITHER']]
+        self._classifyCartridge(2,'APOGEE','None',expect)
     def test_classifyCartridge_apogeelead_bypass(self):
         self._prep_bypass('isApogeeLead',clear=True)
-        self._classifyCartridge(11,'BOSS','None',[sopActor.APOGEEMANGA,sopActor.APOGEELEAD])
+        expect = [sopActor.APOGEEMANGA,sopActor.APOGEELEAD, ['APOGEEMANGA','APOGEELEAD']]
+        self._classifyCartridge(11,'BOSS','None',expect)
     def test_classifyCartridge_apogeemangaDither_bypass(self):
         self._prep_bypass('isApogeeMangaDither',clear=True)
-        self._classifyCartridge(11,'BOSS','None',[sopActor.APOGEEMANGA,sopActor.MANGADITHER])
+        expect = [sopActor.APOGEEMANGA,sopActor.MANGADITHER, ['APOGEEMANGA','MANGADITHER']]
+        self._classifyCartridge(11,'BOSS','None',expect)
     def test_classifyCartridge_apogeemangaStare_bypass(self):
         self._prep_bypass('isApogeeMangaStare',clear=True)
-        self._classifyCartridge(11,'BOSS','None',[sopActor.APOGEEMANGA,sopActor.MANGASTARE])
+        expect = [sopActor.APOGEEMANGA,sopActor.MANGASTARE, ['APOGEEMANGA','MANGASTARE']]
+        self._classifyCartridge(11,'BOSS','None',expect)
 
 
 class TestUpdateCartridge(SopCmdTester,unittest.TestCase):
@@ -159,6 +182,7 @@ class TestUpdateCartridge(SopCmdTester,unittest.TestCase):
         self.sopCmd.updateCartridge(nCart, survey, surveyMode)
         sop = myGlobals.actorState.models['sop']
         self.assertEqual(sop.keyVarDict['surveyCommands'].getValue(), expected['surveyCommands'])
+        self.assertEqual(sop.keyVarDict['survey'].getValue(), (survey,surveyMode))
 
     def test_updateCartridge_boss(self):
         sopTester.updateModel('guider',TestHelper.guiderState['bossLoaded'])
@@ -170,7 +194,6 @@ class TestUpdateCartridge(SopCmdTester,unittest.TestCase):
         expected = {}
         expected['surveyCommands'] = TestHelper.sopBossCommands['surveyCommands']
         self._updateCartridge(11,'eBOSS','None',expected)
-
 
     def test_updateCartridge_mangaDither(self):
         sopTester.updateModel('guider',TestHelper.guiderState['mangaDitherLoaded'])
@@ -654,7 +677,7 @@ if __name__ == '__main__':
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestHartmann)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoField)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestBossCalibs)
-    #suite = unittest.TestLoader().loadTestsFromTestCase(TestUpdateCartridge)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestUpdateCartridge)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestStatus)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestIsSlewingDisabled)
     if suite:
