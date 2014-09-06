@@ -41,6 +41,18 @@ surveyMode_dict = {'None':None, None:None,
                    'MaNGA dither':sopActor.MANGADITHER,
                    'MaNGA stare':sopActor.MANGASTARE}
 
+# And the inverses of the above.
+# Can't directly make an inverse, since it's not one-to-one.
+survey_inv_dict = {sopActor.UNKNOWN:'UNKNOWN',
+                   sopActor.BOSS:'eBOSS', sopActor.APOGEE:'APOGEE-2',
+                   sopActor.MANGA:'MaNGA',
+                   sopActor.APOGEEMANGA:'APOGEE-2&MaNGA'}
+surveyMode_inv_dict = {None:'None',
+                       sopActor.MANGADITHER:'MaNGA dither',
+                       sopActor.MANGASTARE:'MaNGA stare',
+                       sopActor.APOGEELEAD:'APOGEE lead'}
+
+
 class SopCmd(object):
     """ Wrap commands to the sop actor"""
 
@@ -1173,8 +1185,8 @@ class SopCmd(object):
     def classifyCartridge(self, cmd, cartridge, plateType, surveyMode):
         """Set the survey and surveyMode for this cartridge in actorState."""
         def surveyText_bypass():
-            sopState.surveyText = [str(sopState.survey).split('.')[-1],
-                                   str(sopState.surveyMode).split('.')[-1]]
+            sopState.surveyText = [survey_inv_dict[sopState.survey],
+                                   surveyMode_inv_dict[sopState.surveyMode]]
 
         sopState = myGlobals.actorState
         sopState.surveyText = ['','']

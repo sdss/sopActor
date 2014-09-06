@@ -148,31 +148,31 @@ class TestClassifyCartridge(SopCmdTester,unittest.TestCase):
     
     def test_classifyCartridge_boss_bypass(self):
         self._prep_bypass('isBoss',clear=True)
-        expect = [sopActor.BOSS,None, ['BOSS','None']]
+        expect = [sopActor.BOSS,None, ['eBOSS','None']]
         self._classifyCartridge(2,'APOGEE','None',expect)
     def test_classifyCartridge_apogee_bypass(self):
         self._prep_bypass('isApogee',clear=True)
-        expect = [sopActor.APOGEE,None, ['APOGEE','None']]
+        expect = [sopActor.APOGEE,None, ['APOGEE-2','None']]
         self._classifyCartridge(11,'BOSS','None',expect)
     def test_classifyCartridge_mangaStare_bypass(self):
         self._prep_bypass('isMangaStare',clear=True)
-        expect = [sopActor.MANGA,sopActor.MANGASTARE, ['MANGA','MANGASTARE']]
+        expect = [sopActor.MANGA,sopActor.MANGASTARE, ['MaNGA','MaNGA stare']]
         self._classifyCartridge(2,'APOGEE','None',expect)
     def test_classifyCartridge_mangaDither_bypass(self):
         self._prep_bypass('isMangaDither',clear=True)
-        expect = [sopActor.MANGA,sopActor.MANGADITHER, ['MANGA','MANGADITHER']]
+        expect = [sopActor.MANGA,sopActor.MANGADITHER, ['MaNGA','MaNGA dither']]
         self._classifyCartridge(2,'APOGEE','None',expect)
     def test_classifyCartridge_apogeelead_bypass(self):
         self._prep_bypass('isApogeeLead',clear=True)
-        expect = [sopActor.APOGEEMANGA,sopActor.APOGEELEAD, ['APOGEEMANGA','APOGEELEAD']]
+        expect = [sopActor.APOGEEMANGA,sopActor.APOGEELEAD, ['APOGEE-2&MaNGA','APOGEE lead']]
         self._classifyCartridge(11,'BOSS','None',expect)
     def test_classifyCartridge_apogeemangaDither_bypass(self):
         self._prep_bypass('isApogeeMangaDither',clear=True)
-        expect = [sopActor.APOGEEMANGA,sopActor.MANGADITHER, ['APOGEEMANGA','MANGADITHER']]
+        expect = [sopActor.APOGEEMANGA,sopActor.MANGADITHER, ['APOGEE-2&MaNGA','MaNGA dither']]
         self._classifyCartridge(11,'BOSS','None',expect)
     def test_classifyCartridge_apogeemangaStare_bypass(self):
         self._prep_bypass('isApogeeMangaStare',clear=True)
-        expect = [sopActor.APOGEEMANGA,sopActor.MANGASTARE, ['APOGEEMANGA','MANGASTARE']]
+        expect = [sopActor.APOGEEMANGA,sopActor.MANGASTARE, ['APOGEE-2&MaNGA','MaNGA stare']]
         self._classifyCartridge(11,'BOSS','None',expect)
 
 
@@ -673,7 +673,7 @@ if __name__ == '__main__':
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestDoMangaDither)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoMangaSequence)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoApogeeMangaSequence)
-    #suite = unittest.TestLoader().loadTestsFromTestCase(TestClassifyCartridge)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestClassifyCartridge)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestHartmann)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoField)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestBossCalibs)
