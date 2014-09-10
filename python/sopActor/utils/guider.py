@@ -13,7 +13,7 @@ class GuiderState(object):
         self.cartridgeChangeCallback = None
         guiderModel.keyVarDict["cartridgeLoaded"].addCallback(self.listenToCartridgeLoaded, callNow=True)
 
-        self.plateType = 'NONE'
+        self.plateType = 'None'
         self.surveyMode = 'None'
         self.surveyCallback = None
         guiderModel.keyVarDict["survey"].addCallback(self.listenToSurvey, callNow=True)

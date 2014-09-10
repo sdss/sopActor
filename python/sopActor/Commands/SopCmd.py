@@ -31,7 +31,8 @@ if not 'debugging':
 
 # SDSS-IV plates should all be "APOGEE-2;MaNGA", but we need both,
 # for test plates drilled as part of SDSS-III.
-survey_dict = {'None':None,'BOSS':sopActor.BOSS, 'eBOSS':sopActor.BOSS,
+survey_dict = {'None':None, None:None,
+               'BOSS':sopActor.BOSS, 'eBOSS':sopActor.BOSS,
                'APOGEE':sopActor.APOGEE,'APOGEE-2':sopActor.APOGEE,
                'MaNGA':sopActor.MANGA,
                'APOGEE-2&MaNGA':sopActor.APOGEEMANGA,
@@ -595,7 +596,7 @@ class SopCmd(object):
                 cmd.fail('text="%s is not a recognised and bypassable subSystem"' % subSystem)
                 return
             if bypass.is_cart_bypass(subSystem):
-                self.updateCartridge(sopState.cartridge, sopState.survey, sopState.surveyMode)
+                self.updateCartridge(sopState.cartridge, sopState.plateType, sopState.surveyModeName)
             if bypass.is_gang_bypass(subSystem):
                 cmd.warn('text="gang bypassed: %s"' % (sopState.apogeeGang.getPos()))
 
@@ -1107,11 +1108,14 @@ class SopCmd(object):
         cmd = sopState.actor.bcast
         
         sopState.cartridge = cartridge
+        # save these for when someone sets a bypass.
+        sopState.plateType = plateType
+        sopState.surveyModeName = surveyModeName
         survey = self.classifyCartridge(cmd, cartridge, plateType, surveyModeName)
         surveyMode = sopState.surveyMode
         survey = sopState.survey
 
-        cmd.warn('text="loadCartridge fired cart=%s survey=%s surveyMode=%s"' % (cartridge, plateType, surveyMode))
+        cmd.warn('text="loadCartridge fired cart=%s survey=%s surveyMode=%s"' % (cartridge, survey, surveyMode))
         cmd.inform('survey=%s,%s'%(qstr(sopState.surveyText[0]),qstr(sopState.surveyText[1])))
 
         if survey is sopActor.BOSS:
