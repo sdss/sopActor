@@ -38,7 +38,7 @@ class SopCmdTester(sopTester.SopTester):
         self.cmd.verbose = False
         if clear:
             self._clear_bypasses()
-        Bypass.set(bypass,True)
+        myGlobals.bypass.set(bypass,True)
         self.cmd.clear_msgs()
         self.cmd.verbose = self.verbose
     
@@ -55,15 +55,16 @@ class SopCmdTester(sopTester.SopTester):
 class TestBypass(SopCmdTester,unittest.TestCase):
     """Test setting and clearing bypasses with the sop bypass command."""
     def _bypass_set(self, system):
+        bypass = myGlobals.bypass
         self._clear_bypasses()
         self.cmd.rawCmd = 'bypass subSystem=%s'%system
         self.actor.runActorCmd(self.cmd)
-        for item in Bypass._bypassed:
+        for item in bypass._bypassed:
             # all others should be cleared.
             if item != system:
-                self.assertFalse(Bypass.get(name=item))
+                self.assertFalse(bypass.get(name=item))
             else:
-                self.assertTrue(Bypass.get(name=item))
+                self.assertTrue(bypass.get(name=item))
     def test_bypass_isBoss(self):
         self._bypass_set('isBoss')
     def test_bypass_isApogee(self):
@@ -413,19 +414,31 @@ class TestDoApogeeMangaSequence(SopCmdTester,unittest.TestCase):
         self.assertEqual(msg.cmdState.mangaExpTime,expect['mangaExpTime'])
         self.assertEqual(msg.cmdState.apogeeExpTime,expect['apogeeExpTime'])
         self.assertEqual(msg.cmdState.mangaDithers,expect['mangaDithers'])
+        self.assertEqual(msg.cmdState.count,expect['count'])
+
 
     def test_doApogeeMangaSequence_default(self):
         expect = {'mangaExpTime':900,
                   'apogeeExpTime':450,
-                  'mangaDithers':'NSE'
+                  'mangaDithers':'NSE',
+                  'count':2
                   }
         self._doApogeeMangaSequence(expect)
     def test_doApogeeMangaSequence_apogeeLead(self):
         expect = {'mangaExpTime':900,
                   'apogeeExpTime':500,
-                  'mangaDithers':'CCC'
+                  'mangaDithers':'CCC',
+                  'count':2
                   }
         args = 'apogeeExpTime=500 mangaDithers=CCC'
+        self._doApogeeMangaSequence(expect,args)
+    def test_doApogeeMangaSequence_apogeeLead_count1(self):
+        expect = {'mangaExpTime':900,
+                  'apogeeExpTime':500,
+                  'mangaDithers':'CCC',
+                  'count':1
+                  }
+        args = 'apogeeExpTime=500 mangaDithers=CCC count=1'
         self._doApogeeMangaSequence(expect,args)
 
     def test_doApogeeMangaSequence_abort(self):
