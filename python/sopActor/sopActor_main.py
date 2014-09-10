@@ -62,7 +62,7 @@ class Sop(actorcore.Actor.Actor):
         self.logger.setLevel(debugLevel)
         #self.logger.propagate = True
 
-        sopActor.myGlobals.bypass = Bypass.bypass()
+        sopActor.myGlobals.bypass = Bypass()
         
         sopActor.myGlobals.actorState = State(self)
         actorState = sopActor.myGlobals.actorState
