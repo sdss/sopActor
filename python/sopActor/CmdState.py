@@ -63,7 +63,7 @@ class CmdState(object):
     
     def set(self, name, value):
         """Sets self.name == value. if Value is None, use the default value."""
-        assert name in self.keywords
+        assert name in self.keywords, qstr("%s is not in keyword list: %s"%(name,str(self.keywords)))
         if value is not None:
             setattr(self,name,value)
         else:

@@ -401,7 +401,7 @@ class TestDoApogeeMangaDither(SopCmdTester,unittest.TestCase):
                   'apogeeExpTime':500,
                   'mangaDither':'C'
                   }
-        args = 'apogeeExpTime=500'
+        args = ' mangaDither=\"C\" apogeeExpTime=500.0 mangaExpTime=900.0'
         self._doApogeeMangaDither(expect,args)
 
     def test_doApogeeMangaDither_abort(self):
