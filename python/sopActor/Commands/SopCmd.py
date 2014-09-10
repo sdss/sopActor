@@ -31,7 +31,7 @@ if not 'debugging':
 
 # SDSS-IV plates should all be "APOGEE-2;MaNGA", but we need both,
 # for test plates drilled as part of SDSS-III.
-survey_dict = {'BOSS':sopActor.BOSS, 'eBOSS':sopActor.BOSS,
+survey_dict = {'None':None,'BOSS':sopActor.BOSS, 'eBOSS':sopActor.BOSS,
                'APOGEE':sopActor.APOGEE,'APOGEE-2':sopActor.APOGEE,
                'MaNGA':sopActor.MANGA,
                'APOGEE-2&MaNGA':sopActor.APOGEEMANGA,
@@ -144,20 +144,8 @@ class SopCmd(object):
             ("runScript", "<scriptName>", self.runScript),
             ("listScripts", "", self.listScripts),
             ]
-    #
-    # Declare systems that can be bypassed
-    #
-    if not Bypass.get():
-        for ss in ("ffs", "lamp_ff", "lamp_hgcd", "lamp_ne", "axes",
-                   "isBoss", "isApogee",
-                   "isMangaDither", "isMangaStare",
-                   "isApogeeLead", "isApogeeMangaDither", "isApogeeMangaStare",
-                   "gangCart", "gangPodium", "slewToField",
-                   "guiderDark"):
-            Bypass.set(ss, False, define=True)
-    #
+
     # Define commands' callbacks
-    #
     def doBossCalibs(self, cmd):
         """ Take a set of calibration frames.
 
@@ -564,6 +552,10 @@ class SopCmd(object):
                     if "mangaExpTime" in cmd.cmd.keywords else None
         cmdState.set('mangaExpTime',mangaExpTime)
 
+        count = cmd.cmd.keywords["count"].values[0] \
+                    if "count" in cmd.cmd.keywords else None
+        cmdState.set('count',count)
+
         cmdState.reset_ditherSeq()
         
         sopState.queues[sopActor.MASTER].put(Msg.DO_APOGEEMANGA_SEQUENCE, cmd, replyQueue=self.replyQueue,
@@ -591,33 +583,21 @@ class SopCmd(object):
                 cmd.fail('text="Some lamps failed to turn off"')
 
     def bypass(self, cmd):
-        """Tell MultiCmd to ignore errors in a subsystem"""
+        """Ignore errors in a subsystem, or force a system to be in a given state."""
         subSystems = cmd.cmd.keywords["subSystem"].values
         doBypass = False if "clear" in cmd.cmd.keywords else True
 
         sopState = myGlobals.actorState
+        bypass = myGlobals.bypass
 
         for subSystem in subSystems:
-            if Bypass.set(subSystem, doBypass) is None:
+            if bypass.set(subSystem, doBypass) is None:
                 cmd.fail('text="%s is not a recognised and bypassable subSystem"' % subSystem)
                 return
-
-            # NOTE: TBD: SDSS4: See #2007 for how this needs to be restructured.
-            cartBypasses = ["isBoss", "isApogee",
-                            "isMangaDither", "isMangaStare",
-                            "isApogeeLead", "isApogeeMangaDither", "isApogeeMangaStare"]
-            if subSystem in cartBypasses:
-                # Clear the others
-                if doBypass:
-                    cartBypasses.remove(subSystem)
-                    for item in cartBypasses:
-                        Bypass.set(item,False)
+            if bypass.is_cart_bypass(subSystem):
                 self.updateCartridge(sopState.cartridge, sopState.survey, sopState.surveyMode)
-            elif subSystem in ('gangPodium', 'gangCart'):
-                # Clear the other one
-                if doBypass:
-                    Bypass.set("gangCart" if subSystem == "gangPodium" else "gangPodium", False)
-                cmd.warn('text="gang bypass: %s"' % (sopState.apogeeGang.getPos()))
+            if bypass.is_gang_bypass(subSystem):
+                cmd.warn('text="gang bypassed: %s"' % (sopState.apogeeGang.getPos()))
 
         self.status(cmd, threads=False)
 
@@ -820,7 +800,7 @@ class SopCmd(object):
             cmdState.dec = pointingInfo[4]
             cmdState.rotang = 0.0  # Rotator angle; should always be 0.0
 
-        if Bypass.get(name='slewToField'):
+        if myGlobals.bypass.get(name='slewToField'):
             fakeSkyPos = sopState.tccState.obs2Sky(cmd,
                                                      cmdState.fakeAz,
                                                      cmdState.fakeAlt,
@@ -1036,6 +1016,7 @@ class SopCmd(object):
         """
 
         sopState = myGlobals.actorState
+        bypass = myGlobals.bypass
 
         self.actor.sendVersionKey(cmd)
 
@@ -1044,18 +1025,11 @@ class SopCmd(object):
             for t in threading.enumerate():
                 cmd.inform('text="%s"' % t)
 
-        bypassStates = []
-        bypassNames = []
-        bypassedNames = []
-        for name, state in Bypass.get():
-            bypassNames.append(qstr(name))
-            bypassStates.append("1" if state else "0")
-            if state:
-                bypassedNames.append(qstr(name))
+        bypassNames, bypassStates = bypass.get_bypass_list()
 
         cmd.inform("bypassNames=" + ", ".join(bypassNames))
-        cmd.inform("bypassed=" + ", ".join(bypassStates))
-        cmd.inform("bypassedNames=" + ", ".join(bypassedNames))
+        cmd.inform("bypassed=" + ", ".join([str(x) for x in bypassStates]))
+        cmd.inform("bypassedNames=" + ", ".join(bypass.get_bypassedNames()))
         cmd.inform('text="apogeeGang: %s"' % (sopState.apogeeGang.getPos()))
 
         cmd.inform("surveyCommands=" + ", ".join(sopState.validCommands))
@@ -1188,46 +1162,47 @@ class SopCmd(object):
             sopState.surveyText = [survey_inv_dict[sopState.survey],
                                    surveyMode_inv_dict[sopState.surveyMode]]
 
+        bypass = myGlobals.bypass
         sopState = myGlobals.actorState
         sopState.surveyText = ['','']
 
-        if Bypass.get(name='isBoss'):
+        if bypass.get('isBoss'):
             cmd.warn('text="We are lying about this being a BOSS cartridge"')
             sopState.survey = sopActor.BOSS
             sopState.surveyMode = None
             surveyText_bypass()
             return
-        elif Bypass.get(name='isApogee'):
+        elif bypass.get('isApogee'):
             cmd.warn('text="We are lying about this being an APOGEE cartridge"')
             sopState.survey = sopActor.APOGEE
             sopState.surveyMode = None
             surveyText_bypass()
             return
-        elif Bypass.get(name='isMangaStare'):
+        elif bypass.get('isMangaStare'):
             cmd.warn('text="We are lying about this being a MaNGA Stare cartridge"')
             sopState.survey = sopActor.MANGA
             sopState.surveyMode = sopActor.MANGASTARE
             surveyText_bypass()
             return
-        elif Bypass.get(name='isMangaDither'):
+        elif bypass.get('isMangaDither'):
             cmd.warn('text="We are lying about this being a MaNGA Dither cartridge"')
             sopState.survey = sopActor.MANGA
             sopState.surveyMode = sopActor.MANGADITHER
             surveyText_bypass()
             return
-        elif Bypass.get(name='isApogeeMangaStare'):
+        elif bypass.get('isApogeeMangaStare'):
             cmd.warn('text="We are lying about this being an APOGEE&MaNGA Stare cartridge"')
             sopState.survey = sopActor.APOGEEMANGA
             sopState.surveyMode = sopActor.MANGASTARE
             surveyText_bypass()
             return
-        elif Bypass.get(name='isApogeeMangaDither'):
+        elif bypass.get('isApogeeMangaDither'):
             cmd.warn('text="We are lying about this being a APOGEE&MaNGA Dither cartridge"')
             sopState.survey = sopActor.APOGEEMANGA
             sopState.surveyMode = sopActor.MANGADITHER
             surveyText_bypass()
             return
-        elif Bypass.get(name='isApogeeLead'):
+        elif bypass.get('isApogeeLead'):
             cmd.warn('text="We are lying about this being an APOGEE&MaNGA, APOGEE Lead cartridge"')
             sopState.survey = sopActor.APOGEEMANGA
             sopState.surveyMode = sopActor.APOGEELEAD

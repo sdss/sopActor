@@ -1,11 +1,10 @@
 """Threads to control all of the mcp-related lamps."""
 import Queue, threading, time
-import math, numpy
 
+import sopActor
 from sopActor import *
-import sopActor.myGlobals
+import sopActor.myGlobals as myGlobals
 from opscore.utility.qstr import qstr
-from opscore.utility.tback import tback
 
 # don't bother doing anything with these lamps, as they aren't used for anything.
 ignore_lamps = ['uv', 'wht']
@@ -43,8 +42,8 @@ class LampHandler(object):
             replyQueue.put(Msg.LAMP_COMPLETE, cmd=cmd, success=True)
         elif cmdVar.didFail:
             bypassName = "lamp_%s" % (self.name)
-            bypassed = Bypass.get(name=bypassName)
-            cmd.error('text="Failed to turn %s lamps %s (bypass(%s) = %s)"' % (self.lampName, action, bypassName, bypassed))
+            bypassed = myGlobals.bypass.get(name=bypassName)
+            cmd.error('text=%s'%qstr("Failed to turn %s lamps %s (bypass(%s) = %s)"%(self.lampName, action, bypassName, bypassed)))
             if bypassed:
                 cmd.warn('text="Ignoring failure on %s lamps"' % (self.lampName))
                 replyQueue.put(Msg.LAMP_COMPLETE, cmd=cmd, success=True)
@@ -81,7 +80,7 @@ class LampHandler(object):
 def lamp_main(actor, queue, lampName):
     """Main loop for lamps thread"""
 
-    actorState = sopActor.myGlobals.actorState
+    actorState = myGlobals.actorState
     timeout = actorState.timeout
     threadName = lampName
     lampHandler = LampHandler(actorState, queue, lampName)

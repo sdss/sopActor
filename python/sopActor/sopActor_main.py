@@ -24,6 +24,7 @@ import tccThread
 import scriptThread
 
 from sopActor import *
+from bypass import Bypass
 import sopActor.myGlobals
 #
 # Import sdss3logging before logging if you want to use it
@@ -61,6 +62,8 @@ class Sop(actorcore.Actor.Actor):
         self.logger.setLevel(debugLevel)
         #self.logger.propagate = True
 
+        sopActor.myGlobals.bypass = Bypass.bypass()
+        
         sopActor.myGlobals.actorState = State(self)
         actorState = sopActor.myGlobals.actorState
         #

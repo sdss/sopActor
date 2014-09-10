@@ -9,7 +9,6 @@ correctly when called via a SopCmd (assuming test_masterThread clears).
 """
 import unittest
 
-from sopActor import *
 import sopActor
 import sopActor.myGlobals as myGlobals
 from sopActor import Queue
@@ -54,7 +53,7 @@ class SopCmdTester(sopTester.SopTester):
 
 class TestBypass(SopCmdTester,unittest.TestCase):
     """Test setting and clearing bypasses with the sop bypass command."""
-    def _bypass_set(self, system):
+    def _bypass_set(self, system, nInfo, nWarn):
         bypass = myGlobals.bypass
         self._clear_bypasses()
         self.cmd.rawCmd = 'bypass subSystem=%s'%system
@@ -65,25 +64,35 @@ class TestBypass(SopCmdTester,unittest.TestCase):
                 self.assertFalse(bypass.get(name=item))
             else:
                 self.assertTrue(bypass.get(name=item))
+        self._check_cmd(0,nInfo,nWarn,0,True)
     def test_bypass_isBoss(self):
-        self._bypass_set('isBoss')
+        self._bypass_set('isBoss', 103, 2)
     def test_bypass_isApogee(self):
-        self._bypass_set('isApogee')
+        self._bypass_set('isApogee', 103, 2)
     def test_bypass_isMangaStare(self):
-        self._bypass_set('isMangaStare')
+        self._bypass_set('isMangaStare', 103, 2)
     def test_bypass_isMangaDither(self):
-        self._bypass_set('isMangaDither')
+        self._bypass_set('isMangaDither', 103, 2)
     def test_bypass_isApogeeLead(self):
-        self._bypass_set('isApogeeLead')
+        self._bypass_set('isApogeeLead', 103, 2)
     def test_bypass_isApogeeMangaDither(self):
-        self._bypass_set('isApogeeMangaDither')
+        self._bypass_set('isApogeeMangaDither', 103, 2)
     def test_bypass_isApogeeMangaStare(self):
-        self._bypass_set('isApogeeMangaStare')
+        self._bypass_set('isApogeeMangaStare', 103, 2)
 
     def test_bypass_gangCart(self):
-        self._bypass_set('gangCart')
+        self._bypass_set('gangCart', 51, 3)
     def test_bypass_gangPodium(self):
-        self._bypass_set('gangPodium')
+        self._bypass_set('gangPodium', 51, 3)
+
+    def test_bypass_axes(self):
+        self._bypass_set('axes', 51, 0)
+
+    def test_not_bypassable(self):
+        self._clear_bypasses()
+        self.cmd.rawCmd = 'bypass subSystem=notBypassable'
+        self.actor.runActorCmd(self.cmd)
+        self._check_cmd(0,0,0,0,True,didFail=True)
 
 
 class TestClassifyCartridge(SopCmdTester,unittest.TestCase):
@@ -427,10 +436,10 @@ class TestDoApogeeMangaSequence(SopCmdTester,unittest.TestCase):
     def test_doApogeeMangaSequence_apogeeLead(self):
         expect = {'mangaExpTime':900,
                   'apogeeExpTime':500,
-                  'mangaDithers':'CCC',
+                  'mangaDithers':'CC',
                   'count':2
                   }
-        args = 'apogeeExpTime=500 mangaDithers=CCC'
+        args = 'apogeeExpTime=500 mangaDithers=CC'
         self._doApogeeMangaSequence(expect,args)
     def test_doApogeeMangaSequence_apogeeLead_count1(self):
         expect = {'mangaExpTime':900,

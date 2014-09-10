@@ -1,5 +1,4 @@
 import sopActor.myGlobals as myGlobals
-from sopActor import Bypass
 
 class ApogeeGang(object):
     """ Encapsulate the APOGEE gang connector. """
@@ -48,10 +47,10 @@ class ApogeeGang(object):
         """
         bcast = myGlobals.actorState.actor.bcast
 
-        if Bypass.get(name='gangCart'):
+        if myGlobals.bypass.get(name='gangCart'):
             bcast.warn('text="Lying about the APOGEE gang connector being on the podium"')
             return self.GANG_ON_PODIUM
-        elif Bypass.get(name='gangPodium'):
+        elif myGlobals.bypass.get(name='gangPodium'):
             bcast.warn('text="Lying about the APOGEE gang connector being on the cartridge"')
             return self.GANG_ON_CARTRIDGE
         else:

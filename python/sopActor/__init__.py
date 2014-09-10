@@ -5,6 +5,8 @@ from opscore.utility.qstr import qstr
 from opscore.utility.tback import tback
 
 import CmdState
+import bypass
+import myGlobals
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
@@ -176,40 +178,6 @@ def handle_bad_exception(actor, e, threadName, msg):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-class Bypass(object):
-    """
-    Provide bypasses for subsystems
-
-    A failure code from a bypassed subsystem will not cause a MultiCommand to fail
-    """
-    _bypassed = {}
-
-    @staticmethod
-    def set(name, bypassed=True, define=False):
-        if define:
-            Bypass._bypassed[name] = None
-
-        if Bypass._bypassed.has_key(name):
-            Bypass._bypassed[name] = bypassed
-        else:
-            return None
-
-        return bypassed
-
-    @staticmethod
-    def get(cmd=None, name=None):
-        if name:
-            bypassed = Bypass._bypassed.get(name, False)
-            if bypassed:
-                if cmd:
-                    cmd.warn('text="System %s failed but is bypassed"' % name)
-
-            return bypassed
-
-        return  sorted(Bypass._bypassed.items())
-
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
 class Precondition(object):
     """
     A class to capture a precondition for a MultiCommand; we require
@@ -329,7 +297,7 @@ class MultiCommand(object):
                 msg = self._replyQueue.get(timeout=self.timeout)
                 seen[msg.senderName] = True
 
-                if not msg.success and not Bypass.get(self.cmd, msg.senderName0):
+                if not msg.success and not myGlobals.bypass.get(msg.senderName0, cmd=self.cmd):
                     failed = True
             except Queue.Empty:
                 responsive = [re.sub(r"(-\d+)?$", "", k) for k in seen.keys() if seen[k]]
@@ -349,4 +317,4 @@ class MultiCommand(object):
             self.cmd.inform('stageState="%s","%s",0.0,0.0' % (self.label, state))
         return not failed and self.status
 
-__all__ = ["MASTER", "Msg", "Precondition", "Bypass", "CmdState"]
+__all__ = ["MASTER", "Msg", "Precondition", "bypass", "CmdState"]

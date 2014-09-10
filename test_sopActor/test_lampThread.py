@@ -8,13 +8,10 @@ import time
 import sopTester
 
 import sopActor
-from sopActor import Bypass
 from sopActor import Queue
 import sopActor.myGlobals as myGlobals
 
 from sopActor import lampThreads
-from sopActor import masterThread
-
 
 class TestLampThread(sopTester.SopThreadTester,unittest.TestCase):
     """Test calls to boss thread."""
@@ -61,7 +58,9 @@ class TestLampThread(sopTester.SopThreadTester,unittest.TestCase):
         reply = sopActor.Msg.WAIT_UNTIL
         lampHandler = lampThreads.LampHandler(myGlobals.actorState, self.lampQueue, name)
         lampHandler.do_lamp(self.cmd, action, self.replyQueue, delay=delay)
+        endTime = time.time() + 20
         msg = self.lamp_helper(1, 1, 0, 0, self.lampQueue, reply, False)
+        self.assertAlmostEqual(msg.endTime, endTime, places=3, msg="endTime not within 1ms of expected end time.")
 
     def test_ff_on_noWait_succeeded(self):
         self._do_lamp(1,0,1,0,'ff','on',noWait=True)
@@ -74,9 +73,9 @@ class TestLampThread(sopTester.SopThreadTester,unittest.TestCase):
         self._do_lamp(1,0,0,1,'ff','on',didFail=True)
     def test_ff_on_fail_bypassed(self):
         self.cmd.failOn = "mcp ff.on"
-        Bypass.set('lamp_ff')
+        myGlobals.bypass.set('lamp_ff')
         self._do_lamp(1,0,1,1,'ff','on',didFail=False)
-        Bypass.set('lamp_ff',bypassed=False)
+        myGlobals.bypass.set('lamp_ff',bypassed=False)
 
     def test_uv_on_ignored(self):
         reply = sopActor.Msg.REPLY

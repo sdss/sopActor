@@ -1,5 +1,4 @@
 import sopActor.myGlobals as myGlobals
-from sopActor import Bypass
 
 import logging
 import re

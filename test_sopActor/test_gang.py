@@ -7,9 +7,6 @@ import sopTester
 
 from sopActor.utils import gang
 import sopActor.myGlobals as myGlobals
-from sopActor import Bypass
-from opscore.actor.model import Model
-from actorcore import Actor
 
 def setGang(state):
     myGlobals.actorState.models['mcp'].keyVarDict['apogeeGang'].set([str(state),])
@@ -71,7 +68,7 @@ class Test_gang(sopTester.SopTester,unittest.TestCase):
     def test_at_podium_bypassed(self):
         """gang at podium, but that location is bypassed."""
         setGang(4)
-        Bypass.set('gangPodium',True)
+        myGlobals.bypass.set('gangPodium',True)
         self.assertFalse(self.apogeeGang.atPodium())
         self.assertFalse(self.apogeeGang.atPodium(sparseOK=True))
         self.assertFalse(self.apogeeGang.atPodium(one_mOK=True))
@@ -80,7 +77,7 @@ class Test_gang(sopTester.SopTester,unittest.TestCase):
     def test_at_gang_bypassed(self):
         """gang at gang, but that location is bypassed."""
         setGang(2)
-        Bypass.set('gangCart',True)
+        myGlobals.bypass.set('gangCart',True)
         self.assertTrue(self.apogeeGang.atPodium())
         self.assertTrue(self.apogeeGang.atPodium(sparseOK=True))
         self.assertTrue(self.apogeeGang.atPodium(one_mOK=True))

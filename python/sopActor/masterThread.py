@@ -902,7 +902,7 @@ def _run_slew(cmd, cmdState, actorState, multiCmd):
     if not multiCmd.run():
         failMsg = "Failed to close screens, warm up lamps, and slew to field"
         cmdState.setStageState('slew', 'failed')
-        if actorState.tccState.badStat and not Bypass.get(name='axes'):
+        if actorState.tccState.badStat and not myGlobals.bypass.get(name='axes'):
             cmd.warn('text="Some axis status is bad!!! Cannot slew!"')
         return fail_command(cmd, cmdState, 'slew', failMsg)
     else:

@@ -11,7 +11,8 @@ import os
 from actorcore import TestHelper
 
 import sopActor
-from sopActor import Bypass
+
+from sopActor.bypass import Bypass
 from sopActor.Commands import SopCmd
 from sopActor.utils.tcc import TCCState
 from sopActor.utils.gang import ApogeeGang
@@ -67,6 +68,8 @@ class SopTester(TestHelper.ActorTester):
         actorState.timeout = 10
         actorState.aborting = False
         self._load_lamptimes()
+        # so we can set bypasses!
+        myGlobals.bypass = Bypass()
         self._clear_bypasses()
 
         # so we can call sopCmds, but init things silently.
@@ -102,8 +105,8 @@ class SopTester(TestHelper.ActorTester):
     def _clear_bypasses(self):
         """Clear all bypasses, so they don't screw up other tests."""
         self.cmd.verbose = False
-        for name in Bypass._bypassed:
-            Bypass._bypassed[name] = False
+        for name in myGlobals.bypass._bypassed:
+            myGlobals.bypass._bypassed[name] = False
         self.cmd.clear_msgs()
         self.cmd.verbose = self.verbose
 

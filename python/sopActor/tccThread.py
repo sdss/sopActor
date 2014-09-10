@@ -1,9 +1,9 @@
 import Queue, threading
-import math, time,  numpy
+import time
 
 from sopActor import *
 import sopActor
-import sopActor.myGlobals
+import sopActor.myGlobals as myGlobals
 from opscore.utility.qstr import qstr
 from opscore.utility.tback import tback
 
@@ -84,7 +84,7 @@ def main(actor, queues):
     """Main loop for TCC thread"""
 
     threadName = "tcc"
-    actorState = sopActor.myGlobals.actorState
+    actorState = myGlobals.actorState
     tccState = actorState.tccState
     timeout = actorState.timeout
 
@@ -111,7 +111,7 @@ def main(actor, queues):
                     startSlew = True
                     
                 # Do not _start_ slew if an axis is wedged.
-                if tccState.badStat and not Bypass.get(name='axes'):
+                if tccState.badStat and not myGlobals.bypass.get(name='axes'):
                     cmd.warn('text="in slew with badStat=%s halted=%s slewing=%s"' % \
                                  (tccState.badStat, tccState.halted, tccState.slewing))
                     msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)

@@ -6,6 +6,7 @@ python/sopActor/Commands/__init__.py -text
 python/sopActor/__init__.py -text
 python/sopActor/apogeeThread.py -text
 python/sopActor/bossThread.py -text
+python/sopActor/bypass.py -text
 python/sopActor/ffsThread.py -text
 python/sopActor/gcameraThread.py -text
 python/sopActor/guiderThread.py -text
@@ -46,6 +47,7 @@ test_sopActor/sopTester.py -text
 test_sopActor/test_SopCmd.py -text
 test_sopActor/test_apogeeThread.py -text
 test_sopActor/test_bossThread.py -text
+test_sopActor/test_bypass.py -text
 test_sopActor/test_cmdState.py -text
 test_sopActor/test_gang.py -text
 test_sopActor/test_guiderThread.py -text
