@@ -17,7 +17,7 @@ boss exposure science itime=900
 apogee dither namedpos=B
 apogee expose time=450.0 object=object
 
-[test_do_one_apogeemanga_dither_apogee_led]
+[test_do_one_apogeemanga_dither_apogee_lead]
 guider decenter on
 
 apogee expose time=450.0 object=object
@@ -137,4 +137,20 @@ boss exposure   readout
 guider decenter off
 
 [test_do_apogeemanga_sequence_gang_podium]
+
+[test_do_apogeemanga_sequence_apogee_lead_count1]
+guider decenter on
+
+apogee expose time=500.0 object=object
+boss exposure science itime=900
+apogee dither namedpos=A
+apogee expose time=500.0 object=object
+
+apogee expose time=500.0 object=object
+boss exposure science itime=900
+apogee dither namedpos=B
+apogee expose time=500.0 object=object
+
+guider decenter off
+
 

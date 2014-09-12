@@ -449,6 +449,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
                            mangaDithers='CC',
                            count=2,
                            comment='')
+        self.readout = True
         if not (self.cmd and self.cmd.isAlive()):
             self.reset_ditherSeq()
 
@@ -459,6 +460,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
                            mangaDithers='NSE',
                            count=2,
                            comment='')
+        self.readout = False
         if not (self.cmd and self.cmd.isAlive()):
             self.reset_ditherSeq()
 
@@ -469,6 +471,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
                            mangaDithers='CCC',
                            count=2,
                            comment='')
+        self.readout = False
         if not (self.cmd and self.cmd.isAlive()):
             self.reset_ditherSeq()
 

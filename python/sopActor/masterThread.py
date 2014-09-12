@@ -721,8 +721,8 @@ def do_apogeemanga_sequence(cmd, cmdState, actorState):
         ditherState.mangaExpTime = cmdState.mangaExpTime
         ditherState.apogeeExpTime = cmdState.apogeeExpTime
         ditherState.mangaDither = mangaDither
-        ditherState.readout = False
-        pendingReadout = True
+        ditherState.readout = cmdState.readout
+        pendingReadout = not cmdState.readout
         stageName = 'expose'
         cmdState.setStageState(stageName, 'running')
         if not do_one_apogeemanga_dither(cmd, ditherState, actorState):
@@ -732,20 +732,24 @@ def do_apogeemanga_sequence(cmd, cmdState, actorState):
         
         cmdState.index += 1
         
-        multiCmd = SopMultiCommand(cmd, readoutDuration + actorState.timeout,
-                                   cmdState.name+".readout")
-        multiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
-        try:
-            mangaDither = cmdState.mangaDitherSeq[cmdState.index]
-            prep_manga_dither(multiCmd, dither=mangaDither, precondition=False)
-        except IndexError:
-            # We're at the end, so don't need to move to new dither position.
-            pass
-        pendingReadout = False
-        if not multiCmd.run():
-            failMsg = "failed to readout exposure/change dither position"
-            break
-        
+        # Don't command a move to a new position early if we aren't reading out.
+        # this usually only happens for APOGEE lead plates, where there is no
+        # dithering, and thus also no separate readout.
+        if pendingReadout:
+            duration = actorState.timeout + readoutDuration
+            multiCmd = SopMultiCommand(cmd, duration, cmdState.name+".readout")
+            multiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
+            try:
+                mangaDither = cmdState.mangaDitherSeq[cmdState.index]
+                prep_manga_dither(multiCmd, dither=mangaDither, precondition=False)
+            except IndexError:
+                # We're at the end, so don't need to move to new dither position.
+                pass
+            pendingReadout = False
+            if not multiCmd.run():
+                failMsg = "failed to readout exposure/change dither position"
+                break
+
     show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
     deactivate_guider_decenter(cmd, cmdState, actorState, 'dither')
     
@@ -1126,17 +1130,14 @@ def goto_gang_change(cmd, cmdState, actorState):
     
     finishMsg = "at gang change position"
     # Behavior varies depending on where the gang connector is.
-    # doCals == True if we are on the cartridge.
-    doCals = actorState.apogeeGang.atCartridge()
+    gangCart = actorState.apogeeGang.atCartridge()
     multiCmd = MultiCommand(cmd, actorState.timeout + 100,
                             cmdState.name+".slew")
     cmdState.setStageState('slew', 'running')
     
-    # TBD: SDSSIV: this should be a test based on 'APOGEE' in survey
-    # or maybe based off of survey_mode? Will have to discuss with
-    # APOGEE/MaNGA folks...
-    if doCals and actorState.survey != sopActor.BOSS:
-        cmd.inform('text="scheduling flat: %s %s"' % (doCals, actorState.survey))
+    # if the gang connector is at the cartridge, we know we should do cals.
+    if gangCart and actorState.survey != sopActor.BOSS:
+        cmd.inform('text="scheduling dome flat: %s"' % (actorState.survey))
         if not apogee_dome_flat(cmd, cmdState, actorState, multiCmd, failMsg="failed to take flat before gang change"):
             return
     else:
@@ -1147,7 +1148,7 @@ def goto_gang_change(cmd, cmdState, actorState):
 
     tccDict = actorState.models["tcc"].keyVarDict
 
-    if doCals:              # Heading towards the instrument change pos.
+    if gangCart:              # Heading towards the instrument change pos.
         az = 121
         alt = cmdState.alt
         rot = 0

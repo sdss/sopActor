@@ -264,6 +264,19 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
         self.cmdState.count = 1
         self.cmdState.reset_ditherSeq()
 
+    def test_mangaDither(self):
+        self.cmdState = sopActor.CmdState.DoApogeeMangaSequenceCmd()
+        self.cmdState.set_mangaDither()
+        self.assertFalse(self.cmdState.readout)
+    def test_mangaStare(self):
+        self.cmdState = sopActor.CmdState.DoApogeeMangaSequenceCmd()
+        self.cmdState.set_mangaStare()
+        self.assertFalse(self.cmdState.readout)
+    def test_apogeeLead(self):
+        self.cmdState = sopActor.CmdState.DoApogeeMangaSequenceCmd()
+        self.cmdState.set_apogeeLead()
+        self.assertTrue(self.cmdState.readout)
+
 class TestDoApogeeMangaDither(CmdStateTester,unittest.TestCase):
     def setUp(self):
         super(TestDoApogeeMangaDither,self).setUp()
