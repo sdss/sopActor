@@ -19,6 +19,7 @@ class TCCState(object):
     def __init__(self, tccModel):
         """Register keywords that we need to pay attention to"""
 
+        #NEWTCC: tccStatus is deprecated in the new TCC.
         tccModel.keyVarDict["axisBadStatusMask"].addCallback(self.listenToBadStatusMask, callNow=True)
 
         tccModel.keyVarDict["moveItems"].addCallback(self.listenToMoveItems, callNow=False)

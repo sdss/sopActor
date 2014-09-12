@@ -53,9 +53,14 @@ class SopCmdTester(sopTester.SopTester):
 
 class TestBypass(SopCmdTester,unittest.TestCase):
     """Test setting and clearing bypasses with the sop bypass command."""
-    def _bypass_set(self, system, nInfo, nWarn):
-        bypass = myGlobals.bypass
+    def setUp(self):
+        # Cart bypasses can send a guider command, so we should test that.
+        self._load_cmd_calls(self.id().split('.')[-2])
+        super(TestBypass,self).setUp()
         self._clear_bypasses()
+
+    def _bypass_set(self, system, nInfo, nWarn, nCalls=0, survey=None):
+        bypass = myGlobals.bypass
         self.cmd.rawCmd = 'bypass subSystem=%s'%system
         self.actor.runActorCmd(self.cmd)
         for item in bypass._bypassed:
@@ -64,21 +69,25 @@ class TestBypass(SopCmdTester,unittest.TestCase):
                 self.assertFalse(bypass.get(name=item))
             else:
                 self.assertTrue(bypass.get(name=item))
-        self._check_cmd(0,nInfo,nWarn,0,True)
+        # check that the survey values were updated.
+        if bypass.is_cart_bypass(system):
+            self.actorState.plateType == survey[0]
+            self.actorState.surveyMode == survey[1]
+        self._check_cmd(nCalls,nInfo,nWarn,0,True)
     def test_bypass_isBoss(self):
-        self._bypass_set('isBoss', 103, 2)
+        self._bypass_set('isBoss', 52, 2, 1, ['eBOSS',None])
     def test_bypass_isApogee(self):
-        self._bypass_set('isApogee', 103, 2)
+        self._bypass_set('isApogee', 52, 2, 1, ['APOGEE',None])
     def test_bypass_isMangaStare(self):
-        self._bypass_set('isMangaStare', 103, 2)
+        self._bypass_set('isMangaStare', 52, 2, 1, ['MaNGA','MaNGA stare'])
     def test_bypass_isMangaDither(self):
-        self._bypass_set('isMangaDither', 103, 2)
+        self._bypass_set('isMangaDither', 52, 2, 1, ['MaNGA','MaNGA dither'])
     def test_bypass_isApogeeLead(self):
-        self._bypass_set('isApogeeLead', 103, 2)
+        self._bypass_set('isApogeeLead', 52, 2, 1, ['APGOEE-2&MaNGA','APOGEE lead'])
     def test_bypass_isApogeeMangaDither(self):
-        self._bypass_set('isApogeeMangaDither', 103, 2)
+        self._bypass_set('isApogeeMangaDither', 52, 2, 1, ['APGOEE-2&MaNGA','MaNGA dither'])
     def test_bypass_isApogeeMangaStare(self):
-        self._bypass_set('isApogeeMangaStare', 103, 2)
+        self._bypass_set('isApogeeMangaStare', 52, 2, 1, ['APGOEE-2&MaNGA','MaNGA stare'])
 
     def test_bypass_gangCart(self):
         self._bypass_set('gangCart', 51, 3)
@@ -702,6 +711,7 @@ if __name__ == '__main__':
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestUpdateCartridge)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestStatus)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestIsSlewingDisabled)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestBypass)
     if suite:
         unittest.TextTestRunner(verbosity=verbosity).run(suite)
     else:

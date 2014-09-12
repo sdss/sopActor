@@ -57,6 +57,12 @@ class SopTester(TestHelper.ActorTester):
         self.name = 'sop'
         # so we can call SopCmds.
         self.actor = TestHelper.FakeActor('sop','sopActor')
+
+        # If we've read in a list of cmd_calls for this class, prep them for use!
+        if hasattr(self, 'class_calls'):
+            test_name = self.id().split('.')[-1]
+            self.test_calls = self.class_calls.get(test_name,None)
+
         super(SopTester,self).setUp()
         myGlobals.actorState = self.actorState
         actorState = myGlobals.actorState
@@ -117,21 +123,6 @@ class SopTester(TestHelper.ActorTester):
         self.cmd.clear_msgs()
         self.cmd.verbose = self.verbose
 
-#...
-
-class SopThreadTester(SopTester,unittest.TestCase):
-    """
-    sopActor test suites should subclass this and unittest, in that order.
-    """
-    def __init__(self, *args, **kwargs):
-        """Load up the cmd calls for this test class."""
-        unittest.TestCase.__init__(self, *args, **kwargs)
-        # -1 is the test function, -2 is test class, -3 (or 0) should be main
-        class_name = self.id().split('.')[-2]
-        self._load_cmd_calls(class_name)
-        # lets us see really long list/list diffs
-        self.maxDiff = None
-    
     def _load_cmd_calls(self,class_name):
         """Load the cmd calls for this test class."""
         cmdFile = os.path.join('cmd_calls',class_name+'.txt')
@@ -163,6 +154,20 @@ class SopThreadTester(SopTester,unittest.TestCase):
                 self.class_calls[name] = [[]]
             else:
                 self.class_calls[name][-1].append(line)
+#...
+
+class SopThreadTester(SopTester,unittest.TestCase):
+    """
+    sopActor test suites should subclass this and unittest, in that order.
+    """
+    def __init__(self, *args, **kwargs):
+        """Load up the cmd calls for this test class."""
+        unittest.TestCase.__init__(self, *args, **kwargs)
+        # -1 is the test function, -2 is test class, -3 (or 0) should be main
+        class_name = self.id().split('.')[-2]
+        self._load_cmd_calls(class_name)
+        # lets us see really long list/list diffs
+        self.maxDiff = None
     
     def setUp(self):
         """
@@ -173,9 +178,6 @@ class SopThreadTester(SopTester,unittest.TestCase):
         super(SopThreadTester,self).setUp()
         actorState = myGlobals.actorState
         
-        test_name = self.id().split('.')[-1]
-        self.test_calls = self.class_calls.get(test_name,None)
-
         self.pre_threads = threading.activeCount()
         actorState.threads = {}
         actorState.queues = {}
