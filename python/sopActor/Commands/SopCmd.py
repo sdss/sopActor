@@ -597,10 +597,10 @@ class SopCmd(object):
                 return
             if bypass.is_cart_bypass(subSystem):
                 self.updateCartridge(sopState.cartridge, sopState.plateType, sopState.surveyModeName, status=False)
-                cmdStr = 'setRefractionBalance plateType={0} surveyMode={1}'.format(*sopState.surveyText)
+                cmdStr = 'setRefractionBalance plateType="{0}" surveyMode="{1}"'.format(*sopState.surveyText)
                 cmdVar = sopState.actor.cmdr.call(actor="guider", forUserCmd=cmd, cmdStr=cmdStr)
                 if cmdVar.didFail:
-                    cmd.fail('text="Failed to set guider refraction balance for bypass: %s'%(subSystem))
+                    cmd.fail('text="Failed to set guider refraction balance for bypass {0} {1}'.format(subSystem, doBypass))
                     return
             if bypass.is_gang_bypass(subSystem):
                 cmd.warn('text="gang bypassed: %s"' % (sopState.apogeeGang.getPos()))
