@@ -1,20 +1,20 @@
 [test_bypass_isBoss]
-guider setRefractionBalance plateType=eBOSS surveyMode=None
+guider setRefractionBalance plateType="eBOSS" surveyMode="None"
 
 [test_bypass_isApogee]
-guider setRefractionBalance plateType=APOGEE-2 surveyMode=None
+guider setRefractionBalance plateType="APOGEE-2" surveyMode="None"
 
 [test_bypass_isMangaDither]
-guider setRefractionBalance plateType=MaNGA surveyMode=MaNGA dither
+guider setRefractionBalance plateType="MaNGA" surveyMode="MaNGA dither"
 
 [test_bypass_isMangaStare]
-guider setRefractionBalance plateType=MaNGA surveyMode=MaNGA stare
+guider setRefractionBalance plateType="MaNGA" surveyMode="MaNGA stare"
 
 [test_bypass_isApogeeLead]
-guider setRefractionBalance plateType=APOGEE-2&MaNGA surveyMode=APOGEE lead
+guider setRefractionBalance plateType="APOGEE-2&MaNGA" surveyMode="APOGEE lead"
 
 [test_bypass_isApogeeMangaDither]
-guider setRefractionBalance plateType=APOGEE-2&MaNGA surveyMode=MaNGA dither
+guider setRefractionBalance plateType="APOGEE-2&MaNGA" surveyMode="MaNGA dither"
 
 [test_bypass_isApogeeMangaStare]
-guider setRefractionBalance plateType=APOGEE-2&MaNGA surveyMode=MaNGA stare
+guider setRefractionBalance plateType="APOGEE-2&MaNGA" surveyMode="MaNGA stare"

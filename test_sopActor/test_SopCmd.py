@@ -711,7 +711,7 @@ if __name__ == '__main__':
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestUpdateCartridge)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestStatus)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestIsSlewingDisabled)
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestBypass)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestBypass)
     if suite:
         unittest.TextTestRunner(verbosity=verbosity).run(suite)
     else:
