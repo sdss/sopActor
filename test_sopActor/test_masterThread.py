@@ -277,12 +277,12 @@ class TestGotoField(MasterThreadTester):
         cmdState.reinitialize(self.cmd)
         self.cmd.failOn = "mcp ne.on"
         self._goto_field_boss(6,15,1,1,cmdState,didFail=True,finish=True)
-    def test_goto_field_boss_sos_doHartmann_fails(self):
-        """Fail on sos doHartmann."""
+    def test_goto_field_boss_hartmann_fails(self):
+        """Fail on hartmann."""
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
-        self.cmd.failOn = "sos doHartmann"
+        self.cmd.failOn = "hartmann collimate"
         # TBD: NOTE: Something wrong with this test!
         # Should produce 0 errors, but the failure usually (not always!)
         # cascades through to hgcd lampThread.

@@ -94,9 +94,9 @@ def main(actor, queues):
                 
                 msg.cmd.respond("text=\"starting Hartmann sequence\"")
                 
-                timeLim = 240
-                cmdVar = actorState.actor.cmdr.call(actor="sos", forUserCmd=msg.cmd,
-                                                    cmdStr="doHartmann",
+                timeLim = 150
+                cmdVar = actorState.actor.cmdr.call(actor="hartmann", forUserCmd=msg.cmd,
+                                                    cmdStr="collimate",
                                                     keyVars=[], timeLim=timeLim)
                 
                 msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=not cmdVar.didFail)
