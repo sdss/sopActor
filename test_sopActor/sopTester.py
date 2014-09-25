@@ -5,8 +5,6 @@ import ConfigParser
 import threading,Queue
 import sys
 import unittest
-import re
-import os
 
 from actorcore import TestHelper
 
@@ -122,38 +120,6 @@ class SopTester(TestHelper.ActorTester):
         self.sopCmd.updateCartridge(nCart, survey, surveyMode)
         self.cmd.clear_msgs()
         self.cmd.verbose = self.verbose
-
-    def _load_cmd_calls(self,class_name):
-        """Load the cmd calls for this test class."""
-        cmdFile = os.path.join('cmd_calls',class_name+'.txt')
-        self.class_calls = {}
-        name = ''
-        # Don't like using re, but ConfigParser barfs on these sorts of files.
-        # Define a group on the stuff inside the brackets.
-        header = re.compile(r'\[(.*)\]')
-        with open(cmdFile) as f:
-            data = f.readlines()
-        for line in data:
-            line = line.strip()
-            if line == '':
-                # Blank lines either separate blocks, or new headers.
-                # assume a new block follows, and clean up later if necessary.
-                self.class_calls[name].append([])
-                continue
-            if line[0] == '#':
-                # Ignore comments.
-                continue
-            re_match = header.match(line)
-            if re_match:
-                # remove empty lists due to blank line separating test function headers
-                if name and self.class_calls[name] == []:
-                    self.class_calls[name].remove(-1)
-                name = re_match.groups(0)[0]
-                # NOTE: If this happens, then we've duplicated a cmd list.
-                assert name not in self.class_calls, "%s missing from cmd_calls: check for duplicates?"%name
-                self.class_calls[name] = [[]]
-            else:
-                self.class_calls[name][-1].append(line)
 #...
 
 class SopThreadTester(SopTester,unittest.TestCase):
