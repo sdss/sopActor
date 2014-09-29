@@ -107,7 +107,12 @@ class CmdStateTester(sopTester.SopTester):
         self.assertIsInstance(result,str)
         self.assertIn('slewing disallowed for %s'%survey,result)
         self.assertIn('with %d science exposures left; exposureState=%s'%(nExp,state),result)
-    
+
+    def _isSlewingDisabled_False(self):
+        self.cmdState.cmd = self.cmd
+        result = self.cmdState.isSlewingDisabled()
+        self.assertFalse(result)
+
     def _isSlewingDisabled_no_cmd(self):
         """
         Enable this by making a test_*() function that calls this.
@@ -189,9 +194,16 @@ class TestDoBossScience(CmdStateTester,unittest.TestCase):
         self._isSlewingDisabled_cmd_finished()
 
     def test_isSlewingDisabled_because_expLeft(self):
+        self.cmdState.nExpLeft = 2
+        self._isSlewingDisabled_because_exposing('BOSS',2,'IDLE')
+    def test_isSlewingDisabled_because_exposing(self):
+        sopTester.updateModel('boss',TestHelper.bossState['integrating'])
         self.cmdState.nExpLeft = 1
-        self._isSlewingDisabled_because_exposing('BOSS',1,'IDLE')
-    
+        self._isSlewingDisabled_because_exposing('BOSS',1,'INTEGRATING')
+    def test_isSlewingDisabled_False_reading_last_exposure(self):
+        self.cmdState.nExpLeft = 1
+        sopTester.updateModel('boss',TestHelper.bossState['reading'])
+        self._isSlewingDisabled_False()
 
 class TestDoMangaSequence(CmdStateTester,unittest.TestCase):
     def setUp(self):
@@ -214,12 +226,9 @@ class TestDoMangaDither(CmdStateTester,unittest.TestCase):
     def test_isSlewingDisabled_because_exposing(self):
         sopTester.updateModel('boss',TestHelper.bossState['integrating'])
         self._isSlewingDisabled_because_exposing('MaNGA',1,'INTEGRATING')
-    
-    def test_isSlewingDisabled_no(self):
+    def test_isSlewingDisabled_False(self):
         sopTester.updateModel('boss',TestHelper.bossState['reading'])
-        self.cmdState.cmd = self.cmd
-        result = self.cmdState.isSlewingDisabled()
-        self.assertFalse(result)
+        self._isSlewingDisabled_False()
 
     def test_isSlewingDisabled_no_cmd(self):
         self._isSlewingDisabled_no_cmd()
@@ -252,12 +261,10 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
         self.assertIsInstance(result,str)
         self.assertIn('slewing disallowed for %s'%survey,result)
         self.assertIn('with a sequence in progress.',result)
-        
-    def test_isSlewingDisabled_no(self):
+
+    def test_isSlewingDisabled_False(self):
         sopTester.updateModel('boss',TestHelper.bossState['reading'])
-        self.cmdState.cmd = self.cmd
-        result = self.cmdState.isSlewingDisabled()
-        self.assertFalse(result)
+        self._isSlewingDisabled_False()
 
     def test_ditherSeq_count1(self):
         self.cmdState = sopActor.CmdState.DoApogeeMangaSequenceCmd()
@@ -287,11 +294,9 @@ class TestDoApogeeMangaDither(CmdStateTester,unittest.TestCase):
         sopTester.updateModel('boss',TestHelper.bossState['integrating'])
         self._isSlewingDisabled_because_exposing('APOGEE&MaNGA',1,'INTEGRATING')
     
-    def test_isSlewingDisabled_no(self):
+    def test_isSlewingDisabled_False(self):
         sopTester.updateModel('boss',TestHelper.bossState['reading'])
-        self.cmdState.cmd = self.cmd
-        result = self.cmdState.isSlewingDisabled()
-        self.assertFalse(result)
+        self._isSlewingDisabled_False()
 
     def test_isSlewingDisabled_no_cmd(self):
         self._isSlewingDisabled_no_cmd()

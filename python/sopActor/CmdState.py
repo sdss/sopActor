@@ -329,7 +329,7 @@ class DoBossScienceCmd(CmdState):
         """If slewing is disabled, return a string describing why, else False."""
         exp_state,exp_text = self.isSlewingDisabled_BOSS()
         text = "slewing disallowed for BOSS, with %d science exposures left%s" % (self.nExpLeft,exp_text)
-        if (self.cmd and self.cmd.isAlive() and (exp_state or self.nExpLeft > 0)):
+        if (self.cmd and self.cmd.isAlive() and (exp_state or self.nExpLeft > 1)):
             return text
         else:
             return False
@@ -484,12 +484,6 @@ class DoApogeeMangaSequenceCmd(CmdState):
         """Reset dither sequence based on dithers,count parameters."""
         self.mangaDitherSeq = self.mangaDithers*self.count
         # Note: Two APOGEE exposures are taken for each MaNGA exposure.
-        # Make the dither mechanism happier by flipping the sequence for each pair.
-        # d1 = self.apogeeDithers
-        # d2 = self.apogeeDithers[::-1]
-        # self.apogeeDitherSeq = [d1,]*len(self.mangaDitherSeq)
-        # self.apogeeDitherSeq[1::2] = [d2,]*len(self.apogeeDitherSeq[1::2])
-        # self.apogeeDitherSeq = ''.join(self.apogeeDitherSeq)
         
     def getUserKeys(self):
         msg = []
