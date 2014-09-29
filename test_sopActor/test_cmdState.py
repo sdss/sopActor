@@ -175,6 +175,17 @@ class TestDoApogeeSkyFlats(CmdStateTester,unittest.TestCase):
         self.cmdState = sopActor.CmdState.DoApogeeSkyFlatsCmd()
         self.ok_stage = 'expose'
 
+    def test_isSlewingDisabled_no_cmd(self):
+        self._isSlewingDisabled_no_cmd()
+    def test_isSlewingDisabled_cmd_finished(self):
+        self._isSlewingDisabled_cmd_finished()
+    def test_isSlewingDisabled_because_alive(self):
+        self.cmdState.cmd = self.cmd
+        result = self.cmdState.isSlewingDisabled()
+        self.assertIsInstance(result,str)
+        expect = 'slewing disallowed for APOGEE, blocked by active doApogeeSkyFlat sequence'
+        self.assertEqual(result,expect)
+
 class TestDoApogeeDomeFlat(CmdStateTester,unittest.TestCase):
     def setUp(self):
         super(TestDoApogeeDomeFlat,self).setUp()

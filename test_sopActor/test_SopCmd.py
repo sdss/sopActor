@@ -627,8 +627,19 @@ class TestHartmann(SopCmdTester,unittest.TestCase):
         self._hartmann(expect,stages,'expTime=5')
 
 
-class TestDoApogeeDomeFlat(SopCmdTester,unittest.TestCase):
-    def test_doApogeeDomeFlat(self):
+class TestDoApogeeSkyFlats(SopCmdTester,unittest.TestCase):
+    def test_doApogeeSkyFlats(self):
+        stages = ['expose']
+        queue = myGlobals.actorState.queues[sopActor.MASTER]
+        msg = self._run_cmd('doApogeeSkyFlat',queue)
+        self.assertEqual(msg.type,sopActor.Msg.APOGEE_SKY_FLAT)
+        stages = dict(zip(stages,['idle']*len(stages)))
+        self.assertEqual(msg.cmdState.stages,stages)
+
+
+
+class TestDoApogeeDomeFlats(SopCmdTester,unittest.TestCase):
+    def test_doApogeeDomeFlats(self):
         stages = ['domeFlat']
         queue = myGlobals.actorState.queues[sopActor.MASTER]
         msg = self._run_cmd('doApogeeDomeFlat',queue)
@@ -645,6 +656,10 @@ class TestIsSlewingDisabled(SopCmdTester,unittest.TestCase):
     def test_slewing_disabled_apogee_science(self):
         self._update_cart(2, 'APOGEE')
         self.cmdState = self.actorState.doApogeeScience
+        self._slewing_is_disabled('slewing disallowed for APOGEE,')
+    def test_slewing_disabled_apogee_sky_flats(self):
+        self._update_cart(2, 'APOGEE')
+        self.cmdState = self.actorState.doApogeeSkyFlats
         self._slewing_is_disabled('slewing disallowed for APOGEE,')
     def test_slewing_disabled_boss_science(self):
         self._update_cart(11, 'BOSS')

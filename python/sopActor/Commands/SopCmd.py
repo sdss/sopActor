@@ -878,7 +878,9 @@ class SopCmd(object):
             return disabled1 if disabled1 else disabled2
 
         elif sopState.survey == sopActor.APOGEE:
-            return sopState.doApogeeScience.isSlewingDisabled()
+            disabled1 = sopState.doApogeeScience.isSlewingDisabled()
+            disabled2 = sopState.doApogeeSkyFlats.isSlewingDisabled()
+            return disabled1 if disabled1 else disabled2
 
         elif sopState.survey == sopActor.APOGEEMANGA:
             disabled1 = sopState.doApogeeMangaDither.isSlewingDisabled()
@@ -1008,7 +1010,7 @@ class SopCmd(object):
         try:
             self.initCommands()
         except Exception as e:
-            cmd.fail('text="failed to re-initialize command state"')
+            cmd.fail('text="failed to re-initialize command state: %s"'%e)
             return
 
         cmd.finish('')

@@ -311,6 +311,13 @@ class DoApogeeSkyFlatsCmd(CmdState):
         self.index = 0
         self.expType = "object"
 
+    def isSlewingDisabled(self):
+        """If slewing is disabled, return a string describing why, else False."""
+        if self.cmd and self.cmd.isAlive():
+            return 'slewing disallowed for APOGEE, blocked by active doApogeeSkyFlat sequence'
+        else:
+            return False
+
 class DoBossScienceCmd(CmdState):
     def __init__(self):
         CmdState.__init__(self, 'doBossScience',
