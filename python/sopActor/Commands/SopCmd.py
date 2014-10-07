@@ -435,7 +435,7 @@ class SopCmd(object):
             return
         
         # Turn off the guider, if it's on.
-        guideState = myGlobals.actorState.models["guider"].keyVarDict["guideState"]
+        guideState = myGlobals.actorState.models["guider"].keyVarDict["guideState"][0]
         if guideState == 'on' or guideState == 'starting':
             cmdVar = sopState.actor.cmdr.call(actor="guider", forUserCmd=cmd,
                                               cmdStr="off",
