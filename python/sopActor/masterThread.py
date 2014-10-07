@@ -156,7 +156,7 @@ class SopPrecondition(Precondition):
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 # how long it takes to do various things
-ffsDuration = 10                        # move the FFS
+ffsDuration = 15                        # move the FFS
 flushDuration = 25                      # flush the chips prior to an exposure
 guiderReadoutDuration = 1               # readout the guider
 hartmannDuration = 240                  # take a Hartmann sequence and move the collimators
