@@ -2,11 +2,11 @@
 import Queue, threading
 import time
 
-from sopActor import *
+from sopActor import Msg
 import sopActor
 import sopActor.myGlobals as myGlobals
 from opscore.utility.qstr import qstr
-from sopActor import MultiCommand
+from sopActor.multiCommand import Precondition, MultiCommand
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -168,8 +168,10 @@ class SopMultiCommand(MultiCommand):
 
     def __init__(self, cmd, timeout, label, *args, **kwargs):
         MultiCommand.__init__(self, cmd, timeout, label, *args, **kwargs)
-        pass
 
+    # NOTE: TBD: The durations here need to be expanded to incorporate all the
+    # various other cases, and then we need a way to output it and have an
+    # internal countdown timer to make it actually useful.
     def setMsgDuration(self, queueName, msg):
         """Set msg's expected duration in seconds"""
 
@@ -1131,8 +1133,8 @@ def goto_gang_change(cmd, cmdState, actorState):
     finishMsg = "at gang change position"
     # Behavior varies depending on where the gang connector is.
     gangCart = actorState.apogeeGang.atCartridge()
-    multiCmd = MultiCommand(cmd, actorState.timeout + 100,
-                            cmdState.name+".slew")
+    multiCmd = SopMultiCommand(cmd, actorState.timeout + 100,
+                               cmdState.name+".slew")
     cmdState.setStageState('slew', 'running')
     
     # if the gang connector is at the cartridge, we know we should do cals.
@@ -1238,7 +1240,7 @@ def main(actor, queues):
 
     while True:
         try:
-            msg = queues[MASTER].get(timeout=timeout)
+            msg = queues[sopActor.MASTER].get(timeout=timeout)
 
             if msg.type == Msg.EXIT:
                 if msg.cmd:

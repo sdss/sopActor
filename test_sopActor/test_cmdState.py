@@ -169,6 +169,12 @@ class TestDoApogeeScience(CmdStateTester,unittest.TestCase):
         expect = 'slewing disallowed for APOGEE, blocked by active doApogeeScience sequence'
         self.assertEqual(result,expect)
 
+    def test_ditherSeq_count_1(self):
+        self.cmdState = sopActor.CmdState.DoApogeeScienceCmd()
+        self.cmdState.seqCount = 1
+        self.cmdState.reset_ditherSeq()
+        self.assertEqual(self.cmdState.exposureSeq, 'ABBA')
+
 class TestDoApogeeSkyFlats(CmdStateTester,unittest.TestCase):
     def setUp(self):
         super(TestDoApogeeSkyFlats,self).setUp()
@@ -276,11 +282,6 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
     def test_isSlewingDisabled_False(self):
         sopTester.updateModel('boss',TestHelper.bossState['reading'])
         self._isSlewingDisabled_False()
-
-    def test_ditherSeq_count1(self):
-        self.cmdState = sopActor.CmdState.DoApogeeMangaSequenceCmd()
-        self.cmdState.count = 1
-        self.cmdState.reset_ditherSeq()
 
     def test_mangaDither(self):
         self.cmdState = sopActor.CmdState.DoApogeeMangaSequenceCmd()

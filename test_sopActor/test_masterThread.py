@@ -10,6 +10,7 @@ import sopTester
 import sopActor
 import sopActor.myGlobals as myGlobals
 import sopActor.CmdState as CmdState
+from sopActor.multiCommand import MultiCommand
 
 from sopActor import masterThread
 from sopActor import bossThread
@@ -139,7 +140,7 @@ class TestGotoField(MasterThreadTester):
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
         result = masterThread.start_slew(self.cmd, cmdState, myGlobals.actorState, self.timeout)
-        self.assertIsInstance(result,sopActor.MultiCommand)
+        self.assertIsInstance(result,MultiCommand)
         self.assertEqual(result.timeout, self.timeout+myGlobals.actorState.timeout)
         self._check_cmd(0,3,0,0,False)
     
@@ -358,20 +359,20 @@ class TestApogeeDomeFlat(MasterThreadTester):
         """shutter open, FFS close, exposure +(ff on, ff off)"""
         name = 'apogeeDomeFlat'
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
-        multiCmd = sopActor.MultiCommand(self.cmd, myGlobals.actorState.timeout + 50, name)
+        multiCmd = MultiCommand(self.cmd, myGlobals.actorState.timeout + 50, name)
         self._apogee_dome_flat(3,10,0,0, multiCmd)
     def test_apogee_dome_flat_enclosure(self):
         """shutter open, exposure +(ff on, ff off)"""
         name = 'apogeeDomeFlat'
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_parked'])
-        multiCmd = sopActor.MultiCommand(self.cmd, myGlobals.actorState.timeout + 50, name)
+        multiCmd = MultiCommand(self.cmd, myGlobals.actorState.timeout + 50, name)
         self._apogee_dome_flat(2,10,0,0, multiCmd)
     def test_apogee_dome_flat_enclosure_shutterOpen(self):
         """exposure +(ff on, ff off)"""
         name = 'apogeeDomeFlat'
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_parked'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
-        multiCmd = sopActor.MultiCommand(self.cmd, myGlobals.actorState.timeout + 50, name)
+        multiCmd = MultiCommand(self.cmd, myGlobals.actorState.timeout + 50, name)
         self._apogee_dome_flat(1,7,0,0, multiCmd)
         
     def test_apogee_dome_flat_ffs_fails(self):
@@ -379,13 +380,13 @@ class TestApogeeDomeFlat(MasterThreadTester):
         name = 'apogeeDomeFlat'
         self.cmd.failOn = "mcp ffs.close"
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
-        multiCmd = sopActor.MultiCommand(self.cmd, myGlobals.actorState.timeout + 50, name)
+        multiCmd = MultiCommand(self.cmd, myGlobals.actorState.timeout + 50, name)
         self._apogee_dome_flat(2,12,1,0, multiCmd, finish=True, didFail=True)
     def test_apogee_dome_flat_gang_on_podium_fails(self):
         """fail immediately"""
         name = 'apogeeDomeFlat'
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
-        multiCmd = sopActor.MultiCommand(self.cmd, myGlobals.actorState.timeout + 50, name)
+        multiCmd = MultiCommand(self.cmd, myGlobals.actorState.timeout + 50, name)
         self._apogee_dome_flat(0,5,0,0, multiCmd, finish=True, didFail=True)
 
 

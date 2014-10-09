@@ -12,6 +12,7 @@ python/sopActor/gcameraThread.py -text
 python/sopActor/guiderThread.py -text
 python/sopActor/lampThreads.py -text
 python/sopActor/masterThread.py -text
+python/sopActor/multiCommand.py -text
 python/sopActor/myGlobals.py -text
 python/sopActor/script.py -text
 python/sopActor/scriptThread.py -text

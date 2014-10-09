@@ -472,11 +472,18 @@ class TestGotoField(SopCmdTester,unittest.TestCase):
         """
         default cmd_levels: Should always output *Stages and *States.
         """
+        if survey == 'APOGEE':
+            allStages = ['slew', 'guider', 'cleanup']
+        else:
+            allStages = ['slew', 'hartmann', 'calibs', 'guider', 'cleanup']
+        _stages = dict(zip(allStages,['off']*len(allStages)))
+        for x in stages: _stages[x] = 'pending'
+        stages = _stages
+
         self._update_cart(cart,survey)
         queue = myGlobals.actorState.queues[sopActor.MASTER]
         msg = self._run_cmd('gotoField %s'%(args),queue)
         self.assertEqual(msg.type,sopActor.Msg.GOTO_FIELD)
-        stages = dict(zip(stages,['idle']*len(stages)))
         self.assertEqual(msg.cmdState.stages,stages)
         self._check_levels(*cmd_levels)
         self.assertEqual(msg.cmdState.arcTime,expect.get('arcTime',4))
@@ -569,12 +576,43 @@ class TestGotoField(SopCmdTester,unittest.TestCase):
         self._gotoField(2,'MaNGA',expect,stages,'')
 
 
+class TestDoBossScience(SopCmdTester,unittest.TestCase):
+    def _doBossScience(self, expect, args, cmd_levels=(0,2,0,0), didFail=False):
+        stages = ['expose',]
+        stages = dict(zip(stages,['idle']*len(stages)))
+
+        queue = myGlobals.actorState.queues[sopActor.MASTER]
+        msg = self._run_cmd('doBossScience %s'%(args),queue)
+        self.assertEqual(msg.type,sopActor.Msg.DO_BOSS_SCIENCE)
+        self._check_levels(*cmd_levels)
+        self.assertEqual(msg.cmdState.stages,stages)
+        self.assertEqual(msg.cmdState.nExp,expect.get('nExp',1))
+        self.assertEqual(msg.cmdState.expTime,expect.get('expTime',900))
+        self.assertEqual(msg.cmdState.nExpLeft,expect.get('nExp',1))
+        self.assertEqual(msg.cmdState.nExpDone,0)
+
+    def test_doBossScience_default(self):
+        self._doBossScience({},'')
+    def test_doBossScience_2_exp(self):
+        self._doBossScience({'nExp':2},'nExp=2')
+    def test_doBossScience_expTime_100(self):
+        self._doBossScience({'expTime':100},'expTime=100')
+
+
+    def test_doBossScience_0_exp(self):
+        self._run_cmd('doBossScience nexp=0',None)
+        self._check_cmd(0,2,0,0,True,True)
+
 class TestBossCalibs(SopCmdTester,unittest.TestCase):
     def _bossCalibs(self, expect, stages, args,):
+        allStages = ['bias', 'dark', 'flat', 'arc', 'cleanup']
+        _stages = dict(zip(allStages,['off']*len(allStages)))
+        for x in stages: _stages[x] = 'pending'
+        stages = _stages
+
         queue = myGlobals.actorState.queues[sopActor.MASTER]
         msg = self._run_cmd('doBossCalibs %s'%(args),queue)
         self.assertEqual(msg.type,sopActor.Msg.DO_BOSS_CALIBS)
-        stages = dict(zip(stages,['idle']*len(stages)))
         self.assertEqual(msg.cmdState.stages,stages)
         self.assertEqual(msg.cmdState.darkTime,expect.get('darkTime',900))
         self.assertEqual(msg.cmdState.flatTime,expect.get('FlatTime',30))
@@ -625,6 +663,28 @@ class TestHartmann(SopCmdTester,unittest.TestCase):
         stages = ['left','right','cleanup']
         expect = {'expTime':5}
         self._hartmann(expect,stages,'expTime=5')
+
+
+class TestDoApogeeScience(SopCmdTester,unittest.TestCase):
+    def _doApogeeScience(self, expect, args, cmd_levels=(0,2,0,0), didFail=False):
+        stages = ['expose',]
+        stages = dict(zip(stages,['idle']*len(stages)))
+
+        queue = myGlobals.actorState.queues[sopActor.MASTER]
+        msg = self._run_cmd('doApogeeScience %s'%(args),queue)
+        self.assertEqual(msg.type,sopActor.Msg.DO_APOGEE_EXPOSURES)
+        self._check_levels(*cmd_levels)
+        self.assertEqual(msg.cmdState.stages,stages)
+        self.assertEqual(msg.cmdState.expTime,expect.get('expTime',500))
+        self.assertEqual(msg.cmdState.seqCount,expect.get('seqCount',2))
+        self.assertEqual(msg.cmdState.ditherSeq,expect.get('ditherSeq','ABBA'))
+        self.assertEqual(msg.cmdState.index,0)
+        self.assertEqual(msg.cmdState.expType,'object')
+
+    def test_doApogeeScience_default(self):
+        self._doApogeeScience({},'')
+    def test_doApogeeScience_450_expTime(self):
+        self._doApogeeScience({'expTime':450},'expTime=450')
 
 
 @unittest.skip('This will fail until the notes in the docstring are cleared up.')
@@ -728,6 +788,8 @@ if __name__ == '__main__':
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestHartmann)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoField)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestBossCalibs)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoBossScience)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoApogeeScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestUpdateCartridge)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestStatus)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestIsSlewingDisabled)

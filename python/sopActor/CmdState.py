@@ -22,18 +22,19 @@ def getDefaultFlatTime(survey):
         return 0
 
 class CmdState(object):
-    validStageStates = ('starting', 'prepping', 'running', 'done', 'failed', 'aborted')
     """
     A class that's intended to hold command state data.
     
     Specify the various sub-stages of the command to allow stage states to be
-    output for each of those substages.
+    output for each of those sub-stages.
     
     When creating a new CmdState subclass, specify keywords with their default values
     for uncomplicated things (e.g. exposure time), and set class variables and define
     getUserKeys to output more complicated things (e.g. nExposures done vs. requested).
     Be careful that your getUserKeys names don't clobber other keywords.
     """
+
+    validStageStates = ('prepping', 'running', 'done', 'failed', 'aborted', 'pending', 'off', 'idle')
 
     def __init__(self, name, allStages, keywords={}, hiddenKeywords=()):
         """
@@ -48,7 +49,6 @@ class CmdState(object):
         self.hiddenKeywords = hiddenKeywords
         self.reset_keywords()
         self.reset_nonkeywords()
-        self.allStages = allStages
 
         self.setStages(allStages)
 
@@ -76,13 +76,11 @@ class CmdState(object):
             return self.cmd
         return myGlobals.actorState.actor.bcast
     
-    def setStages(self, activeStages):
-        """Set the list of stages that are applicable, set their state to idle."""
-        if activeStages:
-            self.activeStages = activeStages
-        else:
-            self.activeStages = self.allStages
-        self.stages = dict(zip(self.activeStages, ["idle"] * len(self.activeStages)))
+    def setStages(self, allStages):
+        """Set the list of stages that are applicable, and make them idle."""
+        self.allStages = allStages
+        self.stages = dict(zip(allStages, ["idle"] * len(allStages)))
+        self.activeStages = allStages
     
     def reinitialize(self,cmd=None,stages=None,output=True):
         """Re-initialize this cmdState, keeping the stages list as is."""
@@ -94,22 +92,21 @@ class CmdState(object):
         if stages is not None:
             self.setStages(stages)
         else:
-            self.setStages(self.activeStages)
+            self.setStages(self.allStages)
         if output:
             self.genCommandKeys()
 
     def setupCommand(self, cmd, activeStages=[], name=''):
         """
-        Setup the command for use, clearing stageStates, assigning new stages,
+        Setup the command for use, clearing stageStates, assigning new active stages,
         and outputting the currently-valid commandkeys and states.
         """
         if name:
             self.name = name
         self.cmd = cmd
         self.stateText="OK"
-        self.setStages(activeStages)
-        #for s in self.activeStages:
-        #    self.stages[s] = "pending" if s in activeStages else "off"
+        for name in self.allStages:
+            self.setStageState(name, "pending" if name in activeStages else "off", genKeys=False)
         self.genCommandKeys()
 
     def setCommandState(self, state, genKeys=True, stateText=None):
@@ -280,10 +277,12 @@ class DoApogeeScienceCmd(CmdState):
                                         expTime=500.0,
                                         comment="",
                                         seqCount=2))
-        self.seqDone = 0
-        self.exposureSeq = self.ditherSeq*self.seqCount
-        self.index = 0
+        self.reset_ditherSeq()
+
+    def reset_nonkeywords(self):
         self.expType = "object"
+        self.seqDone = 0
+        self.index = 0
 
     def getUserKeys(self):
         msg = []
@@ -298,6 +297,10 @@ class DoApogeeScienceCmd(CmdState):
             return 'slewing disallowed for APOGEE, blocked by active doApogeeScience sequence'
         else:
             return False
+
+    def reset_ditherSeq(self):
+       """Reset dither sequence based on dithers,count parameters."""
+       self.exposureSeq = self.ditherSeq*self.seqCount
 
 class DoApogeeSkyFlatsCmd(CmdState):
     def __init__(self):

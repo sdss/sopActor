@@ -15,16 +15,7 @@ from sopActor import *
 import sopActor
 from sopActor.CmdState import *
 import sopActor.myGlobals as myGlobals
-from sopActor import MultiCommand
-# The below is useful if you are reloading this file for debugging.
-# Normally, reloading SopCmd doesn't reload the rest of sopActor
-if not 'debugging':
-    oldPrecondition = sopActor.Precondition
-    oldMultiCommand = sopActor.MultiCommand
-    print "Reloading sopActor"
-    reload(sopActor)
-    sopActor.Precondition = oldPrecondition
-    sopActor.MultiCommand = oldMultiCommand
+from sopActor.multiCommand import MultiCommand
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -269,57 +260,61 @@ class SopCmd(object):
 
         sopState = myGlobals.actorState
         sopState.aborting = False
+        cmdState = sopState.doBossScience
+        keywords = cmd.cmd.keywords
 
-        if "abort" in cmd.cmd.keywords or "stop" in cmd.cmd.keywords:
-            if sopState.doBossScience.cmd and sopState.doBossScience.cmd.isAlive():
+        if "abort" in keywords or "stop" in keywords:
+            if cmdState.cmd and cmdState.cmd.isAlive():
                 sopState.aborting = True
                 cmd.warn('text="doBossScience will cancel pending exposures and stop and readout any running one."')
 
-                sopState.doBossScience.nExp = sopState.doBossScience.nExpDone
-                sopState.doBossScience.nExpLeft = 0
+                cmdState.nExp = cmdState.nExpDone
+                cmdState.nExpLeft = 0
                 cmdVar = sopState.actor.cmdr.call(actor="boss", forUserCmd=cmd, cmdStr="exposure stop")
                 if cmdVar.didFail:
                     cmd.warn('text="Failed to stop running exposure"')
 
-                sopState.doBossScience.abortStages()
+                cmdState.abortStages()
                 self.status(cmd, threads=False, finish=True, oneCommand='doBossScience')
             else:
                 cmd.fail('text="No doBossScience command is active"')
             return
 
-        if sopState.doBossScience.cmd and sopState.doBossScience.cmd.isAlive():
+        if cmdState.cmd and cmdState.cmd.isAlive():
             # Modify running doBossScience command
-            if "nexp" in cmd.cmd.keywords:
-                nExpDoneOld = sopState.doBossScience.nExpDone
-                sopState.doBossScience.nExp = int(cmd.cmd.keywords["nexp"].values[0])
-                sopState.doBossScience.nExpLeft = sopState.doBossScience.nExp - nExpDoneOld
+            if "nexp" in keywords:
+                nExpDoneOld = cmdState.nExpDone
+                cmdState.nExp = int(keywords["nexp"].values[0])
+                cmdState.nExpLeft = cmdState.nExp - nExpDoneOld
 
-            if "expTime" in cmd.cmd.keywords:
-                sopState.doBossScience.expTime = float(cmd.cmd.keywords["expTime"].values[0])
+            if "expTime" in keywords:
+                cmdState.expTime = float(keywords["expTime"].values[0])
 
             self.status(cmd, threads=False, finish=True, oneCommand='doBossScience')
             return
 
-        sopState.doBossScience.cmd = None
-        sopState.doBossScience.reinitialize(cmd)
+        cmdState.cmd = None
+        cmdState.reinitialize(cmd)
 
-        sopState.doBossScience.nExp = int(cmd.cmd.keywords["nexp"].values[0])   \
-                                 if "nexp" in cmd.cmd.keywords else 1
-        sopState.doBossScience.expTime = float(cmd.cmd.keywords["expTime"].values[0]) \
-                                 if "expTime" in cmd.cmd.keywords else 900
+        # NOTE: TBD: would have to sync with STUI to make nExp have defaults
+        # and behave like one would expect it to (see doBossScience_nExp actorkeys value)
+        cmdState.nExp = int(keywords["nexp"].values[0]) if "nexp" in keywords else 1
+        expTime = float(keywords["expTime"].values[0]) if "expTime" in keywords else None
+        cmdState.set('expTime',expTime)
 
-        if sopState.doBossScience.nExp == 0:
+        if cmdState.nExp == 0:
             cmd.fail('text="You must take at least one exposure"')
             return
+        if cmdState.expTime == 0:
+            cmd.fail('text="Exposure time must be greater than 0 seconds."')
+            return
+
         
         # How many exposures we have left/have done
-        sopState.doBossScience.nExpLeft = sopState.doBossScience.nExp; sopState.doBossScience.nExpDone = 0
+        cmdState.nExpLeft = cmdState.nExp; cmdState.nExpDone = 0
 
-        if not MultiCommand(cmd, 2, None,
-                            sopActor.MASTER, Msg.DO_BOSS_SCIENCE, actorState=sopState,
-                            cartridge=sopState.cartridge,
-                            survey=sopState.survey, cmdState=sopState.doBossScience).run():
-            cmd.fail('text="Failed to issue doBossScience"')
+        sopState.queues[sopActor.MASTER].put(Msg.DO_BOSS_SCIENCE, cmd, replyQueue=self.replyQueue,
+                                             actorState=sopState, cmdState=cmdState)
 
     def stopApogeeSequence(self,cmd,cmdState,sopState,name):
         """Stop a currently running APOGEE science/skyflat sequence."""
@@ -342,28 +337,26 @@ class SopCmd(object):
         sopState = myGlobals.actorState
         cmdState = sopState.doApogeeScience
         sopState.aborting = False
+        keywords = cmd.cmd.keywords
 
-        if "stop" in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
+        if "stop" in keywords or 'abort' in keywords:
             self.stopApogeeSequence(cmd,cmdState,sopState,"doApogeeScience")
             return
-
-        cmdState.expTime = float(cmd.cmd.keywords["expTime"].values[0]) if \
-                                               "expTime" in cmd.cmd.keywords else 10*60.0
         
         # Modify running doApogeeScience command
         if cmdState.cmd and cmdState.cmd.isAlive():
             ditherSeq = cmdState.ditherSeq
             seqCount = cmdState.seqCount
-            if "ditherSeq" in cmd.cmd.keywords:
-                newDitherSeq = cmd.cmd.keywords['ditherSeq'].values[0]
+            if "ditherSeq" in keywords:
+                newDitherSeq = keywords['ditherSeq'].values[0]
                 if (cmdState.seqCount > 1 and newDitherSeq != cmdState.ditherSeq):
                     cmd.fail('text="Cannot modify dither sequence if current sequence count is > 1."')
                     cmd.fail('text="If you are certain it makes sense to change the dither sequence, change Seq Count to 1 first."')
                     return
                 ditherSeq = newDitherSeq
             
-            if "seqCount" in cmd.cmd.keywords:
-                seqCount = int(cmd.cmd.keywords["seqCount"].values[0])
+            if "seqCount" in keywords:
+                seqCount = int(keywords["seqCount"].values[0])
 
             exposureSeq = ditherSeq * seqCount
             cmdState.ditherSeq = ditherSeq
@@ -378,32 +371,25 @@ class SopCmd(object):
             self.status(cmd, threads=False, finish=True, oneCommand='doApogeeScience')
             return
 
-        seqCount = int(cmd.cmd.keywords["seqCount"].values[0]) \
-                   if "seqCount" in cmd.cmd.keywords else 2
-        ditherSeq = cmd.cmd.keywords["ditherSeq"].values[0] \
-                    if "ditherSeq" in cmd.cmd.keywords else "ABBA"
-        comment = cmd.cmd.keywords["comment"].values[0] \
-                    if "comment" in cmd.cmd.keywords else ""
-
         cmdState.reinitialize(cmd)
-        cmdState.ditherSeq = ditherSeq
-        cmdState.seqCount = seqCount
+        seqCount = int(keywords["seqCount"].values[0]) if "seqCount" in keywords else None
+        cmdState.set('seqCount', seqCount)
+        ditherSeq = keywords["ditherSeq"].values[0] if "ditherSeq" in keywords else None
+        cmdState.set('ditherSeq', ditherSeq)
+        comment = keywords["comment"].values[0] \
+                    if "comment" in keywords else ""
         cmdState.comment = comment
+        expTime = float(keywords["expTime"].values[0]) if "expTime" in keywords else None
+        cmdState.set('expTime', expTime)
 
-        exposureSeq = ditherSeq * seqCount
-        cmdState.exposureSeq = exposureSeq
-        cmdState.index = 0
-        cmdState.expType = 'object'
+        cmdState.reset_ditherSeq()
 
         if len(cmdState.exposureSeq) == 0:
             cmd.fail('text="You must take at least one exposure"')
             return
 
-        if not MultiCommand(cmd, 2, None,
-                            sopActor.MASTER, Msg.DO_APOGEE_EXPOSURES, actorState=sopState,
-                            cartridge=sopState.cartridge,
-                            survey=sopState.survey, cmdState=cmdState).run():
-            cmd.fail('text="Failed to issue doApogeeScience"')
+        sopState.queues[sopActor.MASTER].put(Msg.DO_APOGEE_EXPOSURES, cmd, replyQueue=self.replyQueue,
+                                             actorState=sopState, cmdState=cmdState)
 
     def doApogeeSkyFlats(self, cmd):
         """ Take sky flats. """
