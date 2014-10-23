@@ -99,7 +99,6 @@ boss exposure   readout
 
 boss exposure flat itime=30 noreadout
 guider flat time=0.5
-
 # Though exposure readout is independent of the guider preconditions,
 # it could happen later because it is start()ed instead of run()ed.
 mcp ff.off
@@ -108,7 +107,6 @@ mcp ffs.open
 guider axes off
 guider scale off
 guider focus off
-
 guider on time=5
 
 [test_goto_field_boss_slew]
@@ -291,7 +289,6 @@ boss exposure   readout
 
 boss exposure flat itime=30 noreadout
 guider flat time=0.5
-
 # Though exposure readout is independent of the guider preconditions,
 # it could happen later because it is start()ed instead of run()ed.
 mcp ff.off
@@ -300,5 +297,4 @@ mcp ffs.open
 guider axes off
 guider scale off
 guider focus off
-
 guider on time=5

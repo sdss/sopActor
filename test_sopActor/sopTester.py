@@ -120,6 +120,17 @@ class SopTester(TestHelper.ActorTester):
         self.sopCmd.updateCartridge(nCart, survey, surveyMode)
         self.cmd.clear_msgs()
         self.cmd.verbose = self.verbose
+
+    def _fake_boss_exposing(self):
+        """Pretend that boss is exposing."""
+        self.cmd.bossNeedsReadout = True
+        updateModel('boss',TestHelper.bossState['integrating'])
+
+    def _fake_boss_reading(self):
+        """Pretend that boss is reading out."""
+        self.cmd.bossNeedsReadout = False
+        updateModel('boss',TestHelper.bossState['reading'])
+
 #...
 
 class SopThreadTester(SopTester,unittest.TestCase):

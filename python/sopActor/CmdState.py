@@ -44,7 +44,8 @@ class CmdState(object):
         self.name = name
         self.cmd = None
         self.cmdState = "idle"
-        self.stateText="OK"
+        self.stateText = "OK"
+        self.aborted = False
         self.keywords = dict(keywords)
         self.hiddenKeywords = hiddenKeywords
         self.reset_keywords()
@@ -59,7 +60,7 @@ class CmdState(object):
     
     def reset_nonkeywords(self):
         """Reset all non-keyword values to their defaults."""
-        pass
+        self.index = 0
     
     def set(self, name, value):
         """Sets self.name == value. if Value is None, use the default value."""
@@ -70,6 +71,7 @@ class CmdState(object):
             setattr(self,name,self.keywords[name])
     
     def _getCmd(self, cmd=None):
+        """Return the best cmd handler available."""
         if cmd:
             return cmd
         if self.cmd:
@@ -85,6 +87,7 @@ class CmdState(object):
     def reinitialize(self,cmd=None,stages=None,output=True):
         """Re-initialize this cmdState, keeping the stages list as is."""
         self.stateText="OK"
+        self.aborted = False
         self.reset_keywords()
         self.reset_nonkeywords()
         if cmd is not None:
@@ -105,6 +108,7 @@ class CmdState(object):
             self.name = name
         self.cmd = cmd
         self.stateText="OK"
+        self.activeStages = activeStages
         for name in self.allStages:
             self.setStageState(name, "pending" if name in activeStages else "off", genKeys=False)
         self.genCommandKeys()
@@ -126,19 +130,12 @@ class CmdState(object):
         if genKeys:
             self.genCmdStateKeys()
 
-    def abortStages(self):
-        """ Mark all unstarted stages as aborted. """
-        for s in self.activeStages:
-            if not self.stages[s] in ("pending", "done", "failed"):
-                self.stages[s] = "aborted"
-        self.genCmdStateKeys()
-
     def genCmdStateKeys(self, cmd=None):
         cmd = self._getCmd(cmd)
         cmd.inform("%sState=%s,%s,%s" % (self.name, qstr(self.cmdState),
                                          qstr(self.stateText),
                                          ",".join([qstr(self.stages[sname]) \
-                                                       for sname in self.activeStages])))
+                                                       for sname in self.allStages])))
 
     def genCommandKeys(self, cmd=None):
         """ Return a list of the keywords describing our command. """
@@ -146,7 +143,7 @@ class CmdState(object):
         cmd = self._getCmd(cmd)
         cmd.inform("%sStages=%s" % (self.name,
                                     ",".join([qstr(sname) \
-                                                  for sname in self.activeStages])))
+                                                  for sname in self.allStages])))
         self.genCmdStateKeys(cmd=cmd)
 
     def getUserKeys(self):
@@ -176,11 +173,16 @@ class CmdState(object):
             cmd.inform(";".join(userKeys))
         
     def genKeys(self, cmd=None, trimKeys=False):
-        """ generate all our keywords. """
+        """Output all our keywords."""
         if not trimKeys or trimKeys == self.name:
             self.genCommandKeys(cmd=cmd)
             self.genStateKeys(cmd=cmd)
-        
+
+    def took_exposure(self):
+        """Update keys after an exposure and output them."""
+        self.index += 1
+        self.genKeys()
+
     def isSlewingDisabled_BOSS(self):
         """Return True if the BOSS state is safe to start a slew."""
         safe_state = ('READING', 'IDLE', 'DONE', 'ABORTED')
@@ -190,6 +192,49 @@ class CmdState(object):
             return True, text
         else:
             return False, text
+
+    def abort(self):
+        """Abort this command by clearing relevant variables."""
+        self.aborted = True
+        myGlobals.actorState.aborting = True
+        self.abortStages()
+
+    def abortStages(self):
+        """ Mark all unstarted stages as aborted. """
+        for s in self.activeStages:
+            if not self.stages[s] in ("done", "failed", "off"):
+                self.stages[s] = "aborted"
+        self.genCmdStateKeys()
+
+    def stop_boss_exposure(self):
+        """Abort any currently running BOSS exposure, or warn if there's nothing to abort."""
+        cmd = self._getCmd()
+        # The same states we cannot slew during are the states we can't abort from.
+        if self.isSlewingDisabled_BOSS()[0]:
+            cmd.warn('text="Will cancel pending BOSS exposures and stop any running one."')
+            call = myGlobals.actorState.actor.cmdr.call
+            cmdVar = call(actor="boss", forUserCmd=cmd, cmdStr="exposure stop")
+            if cmdVar.didFail:
+                cmd.warn('text="Failed to stop running BOSS exposure"')
+        else:
+            cmd.warn('text='"No BOSS exposure to abort!"'')
+
+    def stop_apogee_exposure(self):
+        """Abort any currently running APOGEE exposure."""
+        cmd = self._getCmd()
+        cmd.warn('text="Will cancel pending APOGEE exposures and stop any running one."')
+        call = myGlobals.actorState.actor.cmdr.call
+        cmdVar = call(actor="apogee", forUserCmd=cmd, cmdStr="expose stop")
+        if cmdVar.didFail:
+            cmd.warn('text="Failed to stop running APOGEE exposure"')
+
+    def stop_tcc(self):
+        """Stop current TCC motion."""
+        cmd = self._getCmd()
+        cmdVar = myGlobals.actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd, cmdStr="axis stop")
+        if cmdVar.didFail:
+            cmd.warn('text="Failed to abort slew"')
+
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -202,6 +247,12 @@ class GotoGangChangeCmd(CmdState):
                           keywords=dict(alt=45.0))
         self.expType = "object"
 
+    def abort(self):
+        self.stop_apogee_exposure()
+        self.stop_tcc()
+        super(GotoGangChangeCmd,self).abort()
+
+
 class DoApogeeDomeFlatCmd(CmdState):
     def __init__(self):
         CmdState.__init__(self, 'doApogeeDomeFlat',
@@ -209,12 +260,17 @@ class DoApogeeDomeFlatCmd(CmdState):
                           keywords=dict(expTime=50.0))
         self.expType = "object"
 
+    def abort(self):
+        self.stop_apogee_exposure()
+        super(DoApogeeDomeFlatCmd,self).abort()
+
 
 class HartmannCmd(CmdState):
     def __init__(self):
         CmdState.__init__(self, 'hartmann',
                           ['left','right','cleanup'],
                           keywords=dict(expTime=4))
+
 
 class GotoFieldCmd(CmdState):
     def __init__(self):
@@ -240,7 +296,18 @@ class GotoFieldCmd(CmdState):
         self.didFlat = False
         self.doGuiderFlat = True
         self.doGuider = True
-    
+
+    def abort(self):
+        self.stop_boss_exposure()
+        self.stop_tcc()
+        self.doSlew = False
+        self.doHartmann = False
+        self.doCalibs = False
+        self.doGuiderFlat = False
+        self.doGuider = False
+        super(GotoFieldCmd,self).abort()
+
+
 class DoBossCalibsCmd(CmdState):
     def __init__(self):
         CmdState.__init__(self, 'doBossCalibs',
@@ -256,11 +323,14 @@ class DoBossCalibsCmd(CmdState):
         self.nFlat = 0; self.nFlatDone = 0;
         self.nArc = 0; self.nArcDone = 0;
     
-    def cals_remain(self):
-        return self.nBiasDone < self.nBias or self.nDarkDone < self.nDark or \
-                self.nFlatDone < self.nFlat or self.nArcDone < self.nArc
+    def exposures_remain(self):
+        """Return True if there are any exposures left to be taken."""
+        if self.aborted:
+            return False
+        else:
+            return self.nBiasDone < self.nBias or self.nDarkDone < self.nDark or \
+                   self.nFlatDone < self.nFlat or self.nArcDone < self.nArc
 
-    
     def getUserKeys(self):
         msg = []
         msg.append("nBias=%d,%d" % (self.nBiasDone, self.nBias))
@@ -268,6 +338,15 @@ class DoBossCalibsCmd(CmdState):
         msg.append("nFlat=%d,%d" % (self.nFlatDone, self.nFlat))
         msg.append("nArc=%d,%d" % (self.nArcDone, self.nArc))
         return ["%s_%s" % (self.name, m) for m in msg]
+
+    def abort(self):
+        self.stop_boss_exposure()
+        self.nArc = self.nArcDone
+        self.nBias = self.nBiasDone
+        self.nDark = self.nDarkDone
+        self.nFlat = self.nFlatDone
+        super(DoBossCalibsCmd,self).abort()
+
 
 class DoApogeeScienceCmd(CmdState):
     def __init__(self):
@@ -281,15 +360,19 @@ class DoApogeeScienceCmd(CmdState):
 
     def reset_nonkeywords(self):
         self.expType = "object"
-        self.seqDone = 0
-        self.index = 0
+        super(DoApogeeScienceCmd,self).reset_nonkeywords()
 
     def getUserKeys(self):
         msg = []
-        msg.append('%s_sequenceState="%s",%d' % (self.name,
-                                                 self.exposureSeq,
-                                                 self.index))
+        msg.append('%s_sequenceState="%s",%d' % (self.name,self.exposureSeq,self.index))
         return msg
+
+    def exposures_remain(self):
+        """Return True if there are any exposures left to be taken."""
+        if self.aborted:
+            return False
+        else:
+            return self.index < len(self.exposureSeq)
 
     def isSlewingDisabled(self):
         """If slewing is disabled, return a string describing why, else False."""
@@ -302,17 +385,36 @@ class DoApogeeScienceCmd(CmdState):
        """Reset dither sequence based on dithers,count parameters."""
        self.exposureSeq = self.ditherSeq*self.seqCount
 
+    def abort(self):
+        self.stop_apogee_exposure()
+        self.exposureSeq = self.exposureSeq[:self.index]
+        super(DoApogeeScienceCmd,self).abort()
+
+
 class DoApogeeSkyFlatsCmd(CmdState):
     def __init__(self):
         CmdState.__init__(self, 'doApogeeSkyFlats',
                           ['expose'],
                           keywords=dict(ditherSeq="ABBA",
                                         expTime=150.0))
-        self.seqCount = 0
-        self.seqDone = 0
         self.exposureSeq = "ABBA"
-        self.index = 0
+
+    def reset_nonkeywords(self):
         self.expType = "object"
+        self.seqCount = 1
+        super(DoApogeeSkyFlatsCmd,self).reset_nonkeywords()
+
+    def getUserKeys(self):
+        msg = []
+        msg.append('%s_sequenceState="%s",%d' % (self.name,self.exposureSeq,self.index))
+        return msg
+
+    def exposures_remain(self):
+        """Return True if there are any exposures left to be taken."""
+        if self.aborted:
+            return False
+        else:
+            return self.index < len(self.exposureSeq)
 
     def isSlewingDisabled(self):
         """If slewing is disabled, return a string describing why, else False."""
@@ -321,28 +423,47 @@ class DoApogeeSkyFlatsCmd(CmdState):
         else:
             return False
 
+    def abort(self):
+        self.stop_apogee_exposure()
+        self.exposureSeq = self.exposureSeq[:self.index]
+        super(DoApogeeSkyFlatsCmd,self).abort()
+
+
 class DoBossScienceCmd(CmdState):
     def __init__(self):
         CmdState.__init__(self, 'doBossScience',
                           ['expose'],
                           keywords=dict(expTime=900.0))
         self.nExp = 0
-        self.nExpDone = 0
-        self.nExpLeft = 0
+        self.index = 0
 
     def getUserKeys(self):
         msg = []
-        msg.append("%s_nExp=%d,%d" % (self.name, self.nExpDone, self.nExp))
+        msg.append("%s_nExp=%d,%d" % (self.name, self.index, self.nExp))
         return msg
+
+    def exposures_remain(self):
+        """Return True if there are any exposures left to be taken."""
+        if self.aborted:
+            return False
+        else:
+            return self.index < self.nExp
 
     def isSlewingDisabled(self):
         """If slewing is disabled, return a string describing why, else False."""
         exp_state,exp_text = self.isSlewingDisabled_BOSS()
-        text = "slewing disallowed for BOSS, with %d science exposures left%s" % (self.nExpLeft,exp_text)
-        if (self.cmd and self.cmd.isAlive() and (exp_state or self.nExpLeft > 1)):
+        remaining = self.nExp-self.index
+        text = "slewing disallowed for BOSS, with %d science exposures left%s" % (remaining,exp_text)
+        if self.cmd and self.cmd.isAlive() and (exp_state or remaining > 1):
             return text
         else:
             return False
+
+    def abort(self):
+        self.stop_boss_exposure()
+        self.nExp = self.index
+        super(DoBossScienceCmd,self).abort()
+
 
 class DoMangaSequenceCmd(CmdState):
     def __init__(self):
@@ -354,9 +475,7 @@ class DoMangaSequenceCmd(CmdState):
         self.reset_ditherSeq()
         
     def reset_nonkeywords(self):
-        self.dithersDone = 0
-        self.nSet = 0
-        self.index = 0
+        super(DoMangaSequenceCmd,self).reset_nonkeywords()
 
     def set_mangaDither(self):
         """Setup to use this for MaNGA dither observations."""
@@ -380,14 +499,26 @@ class DoMangaSequenceCmd(CmdState):
         
     def getUserKeys(self):
         msg = []
-        msg.append("%s_ditherSeq=%s,%s,%s" % (self.name, self.ditherSeq, self.dithersDone, self.index))
+        msg.append("%s_ditherSeq=%s,%s" % (self.name, self.ditherSeq, self.index))
         return msg
     
+    def exposures_remain(self):
+        """Return True if there are any exposures left to be taken."""
+        if self.aborted:
+            return False
+        else:
+            return self.index < len(self.ditherSeq)
+
     def isSlewingDisabled(self):
         if (self.cmd and self.cmd.isAlive()):
             return "slewing disallowed for MaNGA, with a sequence in progress."
         else:
             return False
+
+    def abort(self):
+        self.stop_boss_exposure()
+        super(DoMangaSequenceCmd,self).abort()
+
 
 class DoMangaDitherCmd(CmdState):
     def __init__(self):
@@ -406,6 +537,11 @@ class DoMangaDitherCmd(CmdState):
             return "slewing disallowed for MaNGA, with 1 science exposures left%s"%exp_text
         else:
             return False
+
+    def abort(self):
+        self.stop_boss_exposure()
+        super(DoMangaDitherCmd,self).abort()
+
 
 class DoApogeeMangaDitherCmd(CmdState):
     def __init__(self):
@@ -441,6 +577,12 @@ class DoApogeeMangaDitherCmd(CmdState):
         else:
             return False
 
+    def abort(self):
+        self.stop_boss_exposure()
+        self.stop_apogee_exposure()
+        super(DoApogeeMangaDitherCmd,self).abort()
+
+
 class DoApogeeMangaSequenceCmd(CmdState):
     def __init__(self):
         CmdState.__init__(self, 'doApogeeMangaSequence',
@@ -459,7 +601,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
                            mangaDithers='CC',
                            count=2,
                            comment='')
-        self.readout = True
+        self.readout = True 
         if not (self.cmd and self.cmd.isAlive()):
             self.reset_ditherSeq()
 
@@ -486,8 +628,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
             self.reset_ditherSeq()
 
     def reset_nonkeywords(self):
-        self.nSet = 0
-        self.index = 0
+        super(DoApogeeMangaSequenceCmd,self).reset_nonkeywords()
         self.reset_ditherSeq()
     
     def reset_ditherSeq(self):
@@ -499,10 +640,22 @@ class DoApogeeMangaSequenceCmd(CmdState):
         msg = []
         msg.append("%s_ditherSeq=%s,%s" % (self.name, self.mangaDitherSeq, self.index))
         return msg
-    
+
+    def exposures_remain(self):
+        """Return True if there are any exposures left to be taken."""
+        if self.aborted:
+            return False
+        else:
+            return self.index < len(self.mangaDitherSeq)
+
     def isSlewingDisabled(self):
         exp_state,exp_text = self.isSlewingDisabled_BOSS()
         if (self.cmd and self.cmd.isAlive() and exp_state):
             return "slewing disallowed for APOGEE&MaNGA, with a sequence in progress."
         else:
             return False
+
+    def abort(self):
+        self.stop_boss_exposure()
+        self.stop_apogee_exposure()
+        super(DoApogeeMangaSequenceCmd,self).abort()

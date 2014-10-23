@@ -11,9 +11,8 @@ from opscore.utility.qstr import qstr
 
 import glob, os
 
-from sopActor import *
+from sopActor import CmdState, Msg
 import sopActor
-from sopActor.CmdState import *
 import sopActor.myGlobals as myGlobals
 from sopActor.multiCommand import MultiCommand
 
@@ -137,7 +136,18 @@ class SopCmd(object):
             ("listScripts", "", self.listScripts),
             ]
 
-    # Define commands' callbacks
+    def stop_cmd(self, cmd, cmdState, sopState, name):
+        """Stop an active cmdState, failing if there's nothing to stop."""
+        if self.modifiable(cmd, cmdState):
+            cmdState.abort()
+            self.status(cmd, threads=False, finish=True, oneCommand=name)
+        else:
+            cmd.fail('text="No %s command is active"'%(name))
+
+
+    def modifiable(self, cmd, cmdState):
+        return cmdState.cmd and cmdState.cmd.isAlive()
+
     def doBossCalibs(self, cmd):
         """ Take a set of calibration frames.
 
@@ -163,35 +173,18 @@ class SopCmd(object):
         sopState.aborting = False
 
         if "abort" in keywords:
-            if cmdState.cmd and cmdState.cmd.isAlive():
-                sopState.aborting = True
-                cmd.warn('text="doBossCalibs will abort when it finishes its current activities; be patient"')
-
-                cmdState.nArc = cmdState.nArcDone
-                cmdState.nBias = cmdState.nBiasDone
-                cmdState.nDark = cmdState.nDarkDone
-                cmdState.nFlat = cmdState.nFlatDone
-
-                cmdState.abortStages()
-                self.status(cmd, threads=False, finish=True, oneCommand='doBossCalibs')
-            else:
-                cmd.fail('text="No doBossCalibs command is active"')
-
+            self.stop_cmd(cmd, cmdState, sopState, 'doBossCalibs')
             return
         
         # Modify running doBossCalibs command
-        if cmdState.cmd and cmdState.cmd.isAlive():
+        if self.modifiable(cmd, cmdState):
             if "nbias" in keywords:
-                nBiasDoneOld = cmdState.nBiasDone
                 cmdState.nBias = int(keywords["nbias"].values[0])
             if "ndark" in keywords:
-                nDarkDoneOld = cmdState.nDarkDone
                 cmdState.nDark = int(keywords["ndark"].values[0])
             if "nflat" in keywords:
-                nFlatDoneOld = cmdState.nFlatDone
                 cmdState.nFlat = int(keywords["nflat"].values[0])
             if "narc" in keywords:
-                nArcDoneOld = cmdState.nArcDone
                 cmdState.nArc = int(keywords["narc"].values[0])
 
             if "darkTime" in keywords:
@@ -212,7 +205,7 @@ class SopCmd(object):
             cmd.fail('text="current cartridge is not for BOSS or MaNGA; use bypass if you want to force calibrations"')
             return
         
-        cmdState.reinitialize(output=False)
+        cmdState.reinitialize(cmd)
         if 'nbias' in keywords:
             cmdState.nBias = keywords["nbias"].values[0]
         if 'ndark' in keywords:
@@ -223,11 +216,11 @@ class SopCmd(object):
             cmdState.nArc = keywords["narc"].values[0]
 
         cmdState.arcTime = keywords["arcTime"].values[0] \
-                                    if "arcTime" in keywords else getDefaultArcTime(survey)
+                                    if "arcTime" in keywords else CmdState.getDefaultArcTime(survey)
         if 'darkTime' in keywords:
             cmdState.darkTime = keywords["darkTime"].values[0]
         cmdState.flatTime = keywords["flatTime"].values[0] \
-                                     if "flatTime" in keywords else getDefaultFlatTime(survey)
+                                     if "flatTime" in keywords else CmdState.getDefaultFlatTime(survey)
         if 'guiderFlatTime' in keywords:
             cmdState.guiderFlatTime = keywords["guiderFlatTime"].values[0]
 
@@ -264,28 +257,13 @@ class SopCmd(object):
         keywords = cmd.cmd.keywords
 
         if "abort" in keywords or "stop" in keywords:
-            if cmdState.cmd and cmdState.cmd.isAlive():
-                sopState.aborting = True
-                cmd.warn('text="doBossScience will cancel pending exposures and stop and readout any running one."')
-
-                cmdState.nExp = cmdState.nExpDone
-                cmdState.nExpLeft = 0
-                cmdVar = sopState.actor.cmdr.call(actor="boss", forUserCmd=cmd, cmdStr="exposure stop")
-                if cmdVar.didFail:
-                    cmd.warn('text="Failed to stop running exposure"')
-
-                cmdState.abortStages()
-                self.status(cmd, threads=False, finish=True, oneCommand='doBossScience')
-            else:
-                cmd.fail('text="No doBossScience command is active"')
+            self.stop_cmd(cmd, cmdState, sopState, 'doBossScience')
             return
 
-        if cmdState.cmd and cmdState.cmd.isAlive():
+        if self.modifiable(cmd, cmdState):
             # Modify running doBossScience command
             if "nexp" in keywords:
-                nExpDoneOld = cmdState.nExpDone
                 cmdState.nExp = int(keywords["nexp"].values[0])
-                cmdState.nExpLeft = cmdState.nExp - nExpDoneOld
 
             if "expTime" in keywords:
                 cmdState.expTime = float(keywords["expTime"].values[0])
@@ -309,27 +287,8 @@ class SopCmd(object):
             cmd.fail('text="Exposure time must be greater than 0 seconds."')
             return
 
-        
-        # How many exposures we have left/have done
-        cmdState.nExpLeft = cmdState.nExp; cmdState.nExpDone = 0
-
         sopState.queues[sopActor.MASTER].put(Msg.DO_BOSS_SCIENCE, cmd, replyQueue=self.replyQueue,
                                              actorState=sopState, cmdState=cmdState)
-
-    def stopApogeeSequence(self,cmd,cmdState,sopState,name):
-        """Stop a currently running APOGEE science/skyflat sequence."""
-        if cmdState.cmd and cmdState.cmd.isAlive():
-            cmd.warn('text="%s will cancel pending exposures and stop any running one."'%(name))
-            cmdState.exposureSeq = cmdState.exposureSeq[:cmdState.index]
-            # Need to work out seqCount/seqDone -- CPL
-            cmdVar = sopState.actor.cmdr.call(actor="apogee", forUserCmd=cmd, cmdStr="expose stop")
-            if cmdVar.didFail:
-                cmd.warn('text="Failed to stop running exposure"')
-                
-            cmdState.abortStages()
-            self.status(cmd, threads=False, finish=True, oneCommand=name)
-        else:
-            cmd.fail('text="No %s command is active"'%(name))
 
     def doApogeeScience(self, cmd):
         """Take a sequence of dithered APOGEE science frames, or stop or modify a running sequence."""
@@ -340,11 +299,11 @@ class SopCmd(object):
         keywords = cmd.cmd.keywords
 
         if "stop" in keywords or 'abort' in keywords:
-            self.stopApogeeSequence(cmd,cmdState,sopState,"doApogeeScience")
+            self.stop_cmd(cmd, cmdState, sopState, "doApogeeScience")
             return
         
         # Modify running doApogeeScience command
-        if cmdState.cmd and cmdState.cmd.isAlive():
+        if self.modifiable(cmd, cmdState):
             ditherSeq = cmdState.ditherSeq
             seqCount = cmdState.seqCount
             if "ditherSeq" in keywords:
@@ -398,21 +357,19 @@ class SopCmd(object):
         cmdState = sopState.doApogeeSkyFlats
 
         if "stop" in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
-            self.stopApogeeSequence(cmd,cmdState,sopState,"doApogeeSkyFlats")
+            self.stop_cmd(cmd, cmdState, sopState, "doApogeeSkyFlats")
             return
         
         cmdState.expTime = float(cmd.cmd.keywords["expTime"].values[0]) if \
                            "expTime" in cmd.cmd.keywords else 150.0
-        seqCount = 1
         ditherSeq = cmd.cmd.keywords["ditherSeq"].values[0] \
                     if "ditherSeq" in cmd.cmd.keywords else "ABBA"
 
         cmdState.reinitialize(cmd)
         cmdState.ditherSeq = ditherSeq
-        cmdState.seqCount = seqCount
         cmdState.comment = "sky flat, offset 0.01 degree in RA"
 
-        exposureSeq = ditherSeq * seqCount
+        exposureSeq = ditherSeq * 1
         cmdState.exposureSeq = exposureSeq
         cmdState.index = 0
 
@@ -452,9 +409,14 @@ class SopCmd(object):
         cmdState = sopState.doMangaDither
         
         if "stop" in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
-            cmd.fail('text="Sorry, I cannot stop or abort a doMangaDither command. (yet)"')
+            self.stop_cmd(cmd, cmdState, sopState, 'doMangaDither')
             return
         
+        if self.modifiable(cmd, cmdState):
+            # Modify running doMangaDither command
+            cmd.fail('text="Cannot modify MaNGA dither. If you need to change the dither position, abort and resubmit."')
+            return
+
         cmdState.reinitialize(cmd)
         dither = cmd.cmd.keywords['dither'].values[0] \
                     if "dither" in cmd.cmd.keywords else None
@@ -473,7 +435,12 @@ class SopCmd(object):
         cmdState = sopState.doMangaSequence
         
         if "stop" in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
-            cmd.fail('text="Sorry, I cannot stop or abort a doMangaSequence command. (yet)"')
+            self.stop_cmd(cmd, cmdState, sopState, 'doMangaSequence')
+            return
+
+        if self.modifiable(cmd, cmdState):
+            # Modify running doMangaDither command
+            cmd.fail('text="Cannot modify MaNGA Sequence (yet)."')
             return
 
         cmdState.reinitialize(cmd)
@@ -497,9 +464,14 @@ class SopCmd(object):
         cmdState = sopState.doApogeeMangaDither
         
         if "stop" in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
-            cmd.fail('text="Sorry, I cannot stop or abort a doMangaDither command. (yet)"')
+            self.stop_cmd(cmd, cmdState, sopState, 'doApogeeMangaDither')
             return
         
+        if self.modifiable(cmd, cmdState):
+            # Modify running doApogeeMangaDither command
+            cmd.fail('text="Cannot modify ApogeeManga dither. If you need to change the dither position, abort and resubmit."')
+            return
+
         cmdState.reinitialize(cmd)
 
         apogeeExpTime = cmd.cmd.keywords["apogeeExpTime"].values[0] \
@@ -523,7 +495,12 @@ class SopCmd(object):
         cmdState = sopState.doApogeeMangaSequence
         
         if "stop" in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
-            cmd.fail('text="Sorry, I cannot stop or abort a doMangaSequence command. (yet)"')
+            self.stop_cmd(cmd, cmdState, sopState, 'doApogeeMangaSequence')
+            return
+
+        if self.modifiable(cmd, cmdState):
+            # Modify running doApogeeMangaDither command
+            cmd.fail('text="Cannot modify ApogeeManga Sequence (yet)."')
             return
 
         cmdState.reinitialize(cmd)
@@ -666,7 +643,7 @@ class SopCmd(object):
         cmdState = sopState.hartmann
         
         expTime = float(cmd.cmd.keywords["expTime"].values[0]) \
-                  if "expTime" in cmd.cmd.keywords else getDefaultArcTime(sopActor.BOSS)
+                  if "expTime" in cmd.cmd.keywords else CmdState.getDefaultArcTime(sopActor.BOSS)
         cmdState.expTime = expTime
         
         sopState.queues[sopActor.MASTER].put(Msg.HARTMANN, cmd, replyQueue=self.replyQueue,
@@ -685,6 +662,7 @@ class SopCmd(object):
         sopState = myGlobals.actorState
         survey = sopState.survey
         cmdState = sopState.gotoField
+        keywords = cmd.cmd.keywords
 
         if self.doing_science(sopState):
             cmd.fail("text='A science exposure sequence is running -- will not go to field!")
@@ -692,92 +670,76 @@ class SopCmd(object):
 
         sopState.aborting = False
 
-        if "abort" in cmd.cmd.keywords:
-            if cmdState.cmd and cmdState.cmd.isAlive():
-                sopState.aborting = True
-
-                cmdVar = sopState.actor.cmdr.call(actor="tcc", forUserCmd=cmd, cmdStr="axis stop")
-                if cmdVar.didFail:
-                    cmd.warn('text="Failed to abort slew"')
-
-                cmdState.doSlew = False
-                cmdState.doHartmann = False
-                cmdState.doGuider = False
-
-                cmdState.abortStages()
-
-                cmd.warn('text="gotoField will abort when it finishes its current activities; be patient"')
-                self.status(cmd, threads=False, finish=True, oneCommand='gotoField')
-            else:
-                cmd.fail('text="No gotoField command is active"')
-
+        if "abort" in keywords:
+            self.stop_cmd(cmd, cmdState, sopState, 'gotoField')
             return
         
         # Modify running gotoField command
-        if cmdState.cmd and cmdState.cmd.isAlive():
-            cmdState.doSlew = True if "noSlew" not in cmd.cmd.keywords else False
-            cmdState.doGuider = True if "noGuider" not in cmd.cmd.keywords else False
-            cmdState.doHartmann = True if "noHartmann" not in cmd.cmd.keywords else False
+        if self.modifiable(cmd, cmdState):
+            cmdState.doSlew = True if "noSlew" not in keywords else False
+            cmdState.doGuider = True if "noGuider" not in keywords else False
+            cmdState.doHartmann = True if "noHartmann" not in keywords else False
+
+            # NOTE: TBD: Need a full set of test cases for this...
 
             dropCalibs = False
-            if "noCalibs" in cmd.cmd.keywords:
+            if "noCalibs" in keywords:
                 if cmdState.didFlat or cmdState.didArc:
                     cmd.warn('text="Some cals have been taken; it\'s too late to disable them."')
                 else:
                     dropCalibs = True
-            if "arcTime" in cmd.cmd.keywords or dropCalibs:
+            if "arcTime" in keywords:
                 if cmdState.didArc:
                     cmd.warn('text="Arcs are taken; it\'s too late to modify arcTime"')
                 else:
-                    cmdState.arcTime = float(cmd.cmd.keywords["arcTime"].values[0])
-            if "flatTime" in cmd.cmd.keywords or dropCalibs:
+                    cmdState.arcTime = float(keywords["arcTime"].values[0])
+            if "flatTime" in keywords:
                 if cmdState.didFlat:
                     cmd.warn('text="Flats are taken; it\'s too late to modify flatTime"')
                 else:
-                    cmdState.flatTime = float(cmd.cmd.keywords["flatTime"].values[0])
-            if "guiderFlatTime" in cmd.cmd.keywords:
-                cmdState.guiderFlatTime = float(cmd.cmd.keywords["guiderFlatTime"].values[0])
-            if "guiderTime" in cmd.cmd.keywords:
-                cmdState.guiderTime = float(cmd.cmd.keywords["guiderTime"].values[0])
+                    cmdState.flatTime = float(keywords["flatTime"].values[0])
+            if "guiderFlatTime" in keywords:
+                cmdState.guiderFlatTime = float(keywords["guiderFlatTime"].values[0])
+            if "guiderTime" in keywords:
+                cmdState.guiderTime = float(keywords["guiderTime"].values[0])
 
-            # TBD: WARNING! this isn't going to work as written:
-            # * "pending" and "off" are not valid stage states.
-            # * also, this does not keep track of what's already been done.
-            # * would be best off if I had a unified cmdState modification system.
+            # * TBD: WARNING! This does not keep track of what's already been done,
+            # * except for the dropCalibs bit above.
+            cmdState.doCalibs = not dropCalibs
             cmdState.setStageState("slew", "pending" if cmdState.doSlew else "off")
             cmdState.setStageState("hartmann", "pending" if cmdState.doHartmann else "off")
-            cmdState.setStageState("calibs", "pending" if cmdState.doCalibs else "off")
+            cmdState.setStageState("calibs", "pending" if not dropCalibs else "off")
             cmdState.setStageState("guider", "pending" if cmdState.doGuider else "off")
 
             self.status(cmd, threads=False, finish=True, oneCommand="gotoField")
             return
         
-        cmdState.reinitialize(output=False)
+        cmdState.reinitialize(cmd, output=False)
         
-        cmdState.doSlew = "noSlew" not in cmd.cmd.keywords
-        cmdState.doGuider = "noGuider" not in cmd.cmd.keywords
-        cmdState.doCalibs = ("noCalibs" not in cmd.cmd.keywords and survey != sopActor.APOGEE)
-        cmdState.doHartmann = ("noHartmann" not in cmd.cmd.keywords and survey != sopActor.APOGEE)
+        cmdState.doSlew = "noSlew" not in keywords
+        cmdState.doGuider = "noGuider" not in keywords
+        cmdState.doCalibs = ("noCalibs" not in keywords and survey != sopActor.APOGEE)
+        cmdState.doHartmann = ("noHartmann" not in keywords and survey != sopActor.APOGEE)
         if cmdState.doCalibs:
-            if "arcTime" in cmd.cmd.keywords:
-                cmdState.arcTime = float(cmd.cmd.keywords["arcTime"].values[0])
+            if "arcTime" in keywords:
+                cmdState.arcTime = float(keywords["arcTime"].values[0])
             else:
-                cmdState.arcTime = getDefaultArcTime(survey)
-            if "flatTime" in cmd.cmd.keywords:
-                cmdState.flatTime = float(cmd.cmd.keywords["flatTime"].values[0])
+                cmdState.arcTime = CmdState.getDefaultArcTime(survey)
+            if "flatTime" in keywords:
+                cmdState.flatTime = float(keywords["flatTime"].values[0])
             else:
-                cmdState.flatTime = getDefaultFlatTime(survey)
+                cmdState.flatTime = CmdState.getDefaultFlatTime(survey)
             if cmdState.arcTime <= 0:
                 cmd.warn('text="GotoField arcTime is not a positive number: are you sure you want that?"')
             if cmdState.flatTime <= 0:
                 cmd.warn('text="GotoField flatTime is not a positive number: are you sure you want that?"')
         if cmdState.doGuider:
-            cmdState.guiderFlatTime = float(cmd.cmd.keywords["guiderFlatTime"].values[0]) \
-                                      if "guiderFlatTime" in cmd.cmd.keywords else 0.5
-            cmdState.guiderTime = float(cmd.cmd.keywords["guiderTime"].values[0]) \
-                                  if "guiderTime" in cmd.cmd.keywords else 5
+            cmdState.guiderFlatTime = float(keywords["guiderFlatTime"].values[0]) \
+                                      if "guiderFlatTime" in keywords else 0.5
+            cmdState.guiderTime = float(keywords["guiderTime"].values[0]) \
+                                  if "guiderTime" in keywords else 5
             cmdState.doGuiderFlat = cmdState.guiderFlatTime > 0
-            cmdState.keepOffsets = "keepOffsets" in cmd.cmd.keywords
+            cmdState.keepOffsets = "keepOffsets" in keywords
         else:
             cmdState.doGuiderFlat = False
         
@@ -905,23 +867,27 @@ class SopCmd(object):
         """Go to the gang connector change position"""
 
         sopState = myGlobals.actorState
+        cmdState = sopState.gotoGangChange
 
         blocked = self.isSlewingDisabled(cmd)
         if blocked:
             cmd.fail('text=%s' % (qstr('will not go to gang change: %s' % (blocked))))
             return
 
-        sopState.gotoGangChange.reinitialize(cmd)
+        if 'stop' in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
+            self.stop_cmd(cmd, cmdState, sopState, 'gotoGangChange')
+            return
+        
+        if self.modifiable(cmd, cmdState):
+            # Modify running gotoGangChange command
+            cmd.fail('text="Cannot modify gotoGangChange."')
+            return
+
+        cmdState.reinitialize(cmd)
         alt = cmd.cmd.keywords["alt"].values[0] \
               if "alt" in cmd.cmd.keywords else 45.0
 
-        cmdState = sopState.gotoGangChange
         cmdState.alt = alt
-        
-        # TBD: this needs to be implemented eventually...
-        if 'stop' in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
-            cmd.fail('text="sorry, I cannot stop or abort a gotoGangChange command. (yet)"')
-            return
         
         sopState.queues[sopActor.MASTER].put(Msg.GOTO_GANG_CHANGE, cmd, replyQueue=self.replyQueue,
                                              actorState=sopState, cmdState=cmdState)
@@ -932,9 +898,16 @@ class SopCmd(object):
         cmdState = sopState.doApogeeDomeFlat
         
         if 'stop' in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
-            cmd.fail('text"sorry, I cannot stop or abort an apogeeDomeFlat command. (yet)"')
+            self.stop_cmd(cmd, cmdState, sopState, 'doApogeeDomeFlat')
             return
-        
+
+        if self.modifiable(cmd, cmdState):
+            # Modify running doApogeeDomeFlat command
+            cmd.fail('text="Cannot modify doApogeeDomeFlat."')
+            return
+
+        cmdState.reinitialize(cmd)
+
         sopState.queues[sopActor.MASTER].put(Msg.APOGEE_DOME_FLAT, cmd, replyQueue=sopState.queues[sopActor.MASTER],
                                                actorState=sopState, cmdState=cmdState,
                                                survey=sopState.survey)
@@ -1072,22 +1045,20 @@ class SopCmd(object):
         """Recreate the objects that hold the state of the various commands."""
         sopState = myGlobals.actorState
 
-        sopState.gotoField = GotoFieldCmd()
-        sopState.doBossCalibs = DoBossCalibsCmd()
-        sopState.doBossScience = DoBossScienceCmd()
-        sopState.doMangaDither = DoMangaDitherCmd()
-        sopState.doMangaSequence = DoMangaSequenceCmd()
-        sopState.doApogeeMangaDither = DoApogeeMangaDitherCmd()
-        sopState.doApogeeMangaSequence = DoApogeeMangaSequenceCmd()
-        sopState.doApogeeScience = DoApogeeScienceCmd()
-        sopState.doApogeeSkyFlats = DoApogeeSkyFlatsCmd()
-        sopState.gotoGangChange = GotoGangChangeCmd()
-        sopState.doApogeeDomeFlat = DoApogeeDomeFlatCmd()
-        sopState.hartmann = HartmannCmd()
-        sopState.gotoInstrumentChange = CmdState('gotoInstrumentChange',
-                                                 ["slew"])
-        sopState.gotoStow = CmdState('gotoStow',
-                                     ["slew"])
+        sopState.gotoField = CmdState.GotoFieldCmd()
+        sopState.doBossCalibs = CmdState.DoBossCalibsCmd()
+        sopState.doBossScience = CmdState.DoBossScienceCmd()
+        sopState.doMangaDither = CmdState.DoMangaDitherCmd()
+        sopState.doMangaSequence = CmdState.DoMangaSequenceCmd()
+        sopState.doApogeeMangaDither = CmdState.DoApogeeMangaDitherCmd()
+        sopState.doApogeeMangaSequence = CmdState.DoApogeeMangaSequenceCmd()
+        sopState.doApogeeScience = CmdState.DoApogeeScienceCmd()
+        sopState.doApogeeSkyFlats = CmdState.DoApogeeSkyFlatsCmd()
+        sopState.gotoGangChange = CmdState.GotoGangChangeCmd()
+        sopState.doApogeeDomeFlat = CmdState.DoApogeeDomeFlatCmd()
+        sopState.hartmann = CmdState.HartmannCmd()
+        sopState.gotoInstrumentChange = CmdState.CmdState('gotoInstrumentChange',["slew"])
+        sopState.gotoStow = CmdState.CmdState('gotoStow',["slew"])
 
         self.updateCartridge(-1,'None','None')
         # guiderState is smart enough to only call the callback once both have been updated.

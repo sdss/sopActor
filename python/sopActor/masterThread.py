@@ -5,7 +5,7 @@ import time
 from sopActor import Msg
 import sopActor
 import sopActor.myGlobals as myGlobals
-from opscore.utility.qstr import qstr
+# from opscore.utility.qstr import qstr
 from sopActor.multiCommand import Precondition, MultiCommand
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -493,8 +493,8 @@ def do_boss_science(cmd, cmdState, actorState):
     finishMsg = "Your Nobel Prize is a little closer!"
     failMsg = ""            # message to use if we've failed
     stageName = 'expose'
-    while cmdState.nExpLeft > 0:
-        show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
+    cmdState.setStageState(stageName, 'running')
+    while cmdState.exposures_remain():
         expTime = cmdState.expTime
         multiCmd = SopMultiCommand(cmd,
                                    flushDuration + expTime + readoutDuration + actorState.timeout,
@@ -508,10 +508,8 @@ def do_boss_science(cmd, cmdState, actorState):
         if not multiCmd.run():
             failMsg = "Failed to take BOSS science exposure"
             break
+        cmdState.took_exposure()
 
-        cmdState.nExpDone += 1
-        cmdState.nExpLeft -= 1
-    
     # Did we break out of that loop?
     if failMsg:
         return fail_command(cmd, cmdState, failMsg)
@@ -525,9 +523,8 @@ def do_apogee_science(cmd, cmdState, actorState):
     finishMsg = "Your Nobel Prize is a little closer!"
     failMsg = ""            # message to use if we've failed
     stageName = 'expose'
-    while cmdState.index < len(cmdState.exposureSeq):
-        show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
-
+    cmdState.setStageState(stageName, 'running')
+    while cmdState.exposures_remain():
         expTime = cmdState.expTime
         newDither = cmdState.exposureSeq[cmdState.index]
         currentDither = actorState.models['apogee'].keyVarDict["ditherPosition"][1]
@@ -545,17 +542,11 @@ def do_apogee_science(cmd, cmdState, actorState):
                         expType=expType, comment=cmdState.comment)
         prep_for_science(multiCmd,precondition=True)
         prep_apogee_shutter(multiCmd,open=True)
-
-        text = 'taking %d of %d %s exposure'%(cmdState.index,len(cmdState.exposureSeq),expType)
-        cmd.diag('text="%s"'%text)
         
         if not multiCmd.run():
             failMsg = "Failed to take an %s exposure" % (expType)
             break
-
-        cmdState.index += 1
-        seqIndex = (cmdState.index + len(cmdState.ditherSeq)-1) / len(cmdState.ditherSeq)
-        cmdState.seqDone = seqIndex
+        cmdState.took_exposure()
     
     # Did we break out of that loop?
     if failMsg:
@@ -610,9 +601,7 @@ def do_manga_sequence(cmd, cmdState, actorState):
     # set at start, and then update after each exposure.
     dither = cmdState.ditherSeq[cmdState.index]
     
-    while cmdState.index < len(cmdState.ditherSeq):
-        show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
-        
+    while cmdState.exposures_remain():
         ditherState = actorState.doMangaDither
         ditherState.reinitialize(cmd)
         ditherState.expTime = cmdState.expTime
@@ -625,9 +614,9 @@ def do_manga_sequence(cmd, cmdState, actorState):
             cmdState.setStageState(stageName, 'failed')
             failMsg = "failed one dither of a MaNGA dither sequence"
             break
-        
-        cmdState.index += 1
-        
+
+        cmdState.took_exposure()
+
         multiCmd = SopMultiCommand(cmd, readoutDuration + actorState.timeout,
                                    cmdState.name+".readout")
         multiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
@@ -664,6 +653,9 @@ def do_manga_sequence(cmd, cmdState, actorState):
 def do_one_apogeemanga_dither(cmd, cmdState, actorState):
     """A single APOGEE/MaNGA co-observing dither."""
 
+    stageName = 'expose'
+    cmdState.setStageState(stageName, 'prepping')
+
     mangaDither = cmdState.mangaDither
     mangaExpTime = cmdState.mangaExpTime
     apogeeExpTime = cmdState.apogeeExpTime
@@ -672,7 +664,6 @@ def do_one_apogeemanga_dither(cmd, cmdState, actorState):
     apogeeDithers = get_next_apogee_dither_pair(actorState)
 
     readout = cmdState.readout
-    show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
     duration = flushDuration + expTime + actorState.timeout + guiderDecenterDuration
     if readout:
         duration += readoutDuration
@@ -686,6 +677,7 @@ def do_one_apogeemanga_dither(cmd, cmdState, actorState):
     prep_apogee_shutter(multiCmd,open=True)
     prep_manga_dither(multiCmd, dither=mangaDither, precondition=True)
     
+    cmdState.setStageState(stageName, 'running')
     return multiCmd.run()
 #...
 
@@ -693,7 +685,6 @@ def do_apogeemanga_dither(cmd, cmdState, actorState):
     """Complete an APOGEE/MaNGA co-observing single dither."""
     finishMsg = "Your Nobel Prize is a little closer!"
     stageName = 'expose'
-    cmdState.setStageState(stageName, 'running')
     if not is_gang_at_cart(cmd, cmdState, actorState):
         return False
     if not do_one_apogeemanga_dither(cmd, cmdState, actorState):
@@ -702,6 +693,7 @@ def do_apogeemanga_dither(cmd, cmdState, actorState):
         deactivate_guider_decenter(cmd, cmdState, actorState, stageName)
         return fail_command(cmd, cmdState, failMsg)
     deactivate_guider_decenter(cmd, cmdState, actorState, stageName)
+    show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
     finish_command(cmd,cmdState,actorState,finishMsg)
 
 def do_apogeemanga_sequence(cmd, cmdState, actorState):
@@ -715,10 +707,10 @@ def do_apogeemanga_sequence(cmd, cmdState, actorState):
 
     # set at start, and then update after each exposure.
     mangaDither = cmdState.mangaDitherSeq[cmdState.index]
-    while cmdState.index < len(cmdState.mangaDitherSeq):
-        show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
-        
+    while cmdState.exposures_remain():
         ditherState = actorState.doApogeeMangaDither
+        # ditherState = CmdState.DoApogeeMangaDitherCmd()
+        # ditherState.name = 'doApogeeMangaDitherSubCmd'
         ditherState.reinitialize(cmd)
         ditherState.mangaExpTime = cmdState.mangaExpTime
         ditherState.apogeeExpTime = cmdState.apogeeExpTime
@@ -731,9 +723,11 @@ def do_apogeemanga_sequence(cmd, cmdState, actorState):
             cmdState.setStageState(stageName, 'failed')
             failMsg = "failed one dither of a MaNGA dither sequence"
             break
-        
-        cmdState.index += 1
-        
+
+        ditherState.setStageState(stageName, 'done')
+        cmdState.setStageState(stageName, 'done')
+        cmdState.took_exposure()
+
         # Don't command a move to a new position early if we aren't reading out.
         # this usually only happens for APOGEE lead plates, where there is no
         # dithering, and thus also no separate readout.
@@ -782,7 +776,7 @@ def do_boss_calibs(cmd, cmdState, actorState):
     if not close_apogee_shutter_if_gang_on_cart(cmd, cmdState, actorState, 'cleanup'):
         return False
 
-    while cmdState.cals_remain():
+    while cmdState.exposures_remain():
         show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
 
         if cmdState.nBiasDone < cmdState.nBias:
