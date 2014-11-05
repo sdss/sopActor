@@ -786,12 +786,9 @@ class SopCmd(object):
         cmdState.setStageState("slew", "running")
 
         sopState.aborting = False
-        #
-        # Try to guess how long the slew will take
-        #
-        slewDuration = 210
 
-        multiCmd = MultiCommand(cmd, slewDuration + sopState.timeout, None)
+        # TBD: Try to guess how long the slew will take. Will the TCC offer a suggestion?
+        slewDuration = 230
 
         tccDict = sopState.models["tcc"].keyVarDict
         if az == None:
@@ -801,7 +798,9 @@ class SopCmd(object):
         if rot == None:
             rot = tccDict['axePos'][2]
 
+        multiCmd = MultiCommand(cmd, slewDuration + sopState.timeout, None)
         multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=sopState, az=az, alt=alt, rot=rot)
+        multiCmd.append(sopActor.TCC, Msg.AXIS_STOP, actorState=sopState)
 
         if not multiCmd.run():
             cmdState.setStageState("slew", "failed")
@@ -812,30 +811,6 @@ class SopCmd(object):
         cmdState.setStageState("slew", "done")
         cmdState.setCommandState('done', stateText='OK')
         cmd.finish('text="at %s position"' % (name))
-
-    def isSlewingDisabled(self, cmd):
-        """Return False if we can slew, otherwise return a string describing why we cannot."""
-        sopState = myGlobals.actorState
-
-        if sopState.survey == sopActor.BOSS:
-            return sopState.doBossScience.isSlewingDisabled()
-
-        elif sopState.survey == sopActor.MANGA:
-            disabled1 = sopState.doMangaDither.isSlewingDisabled()
-            disabled2 = sopState.doMangaSequence.isSlewingDisabled()
-            return disabled1 if disabled1 else disabled2
-
-        elif sopState.survey == sopActor.APOGEE:
-            disabled1 = sopState.doApogeeScience.isSlewingDisabled()
-            disabled2 = sopState.doApogeeSkyFlats.isSlewingDisabled()
-            return disabled1 if disabled1 else disabled2
-
-        elif sopState.survey == sopActor.APOGEEMANGA:
-            disabled1 = sopState.doApogeeMangaDither.isSlewingDisabled()
-            disabled2 = sopState.doApogeeMangaSequence.isSlewingDisabled()
-            return disabled1 if disabled1 else disabled2
-
-        return False
 
     def gotoInstrumentChange(self, cmd):
         """Go to the instrument change position"""
@@ -851,7 +826,7 @@ class SopCmd(object):
         self.gotoPosition(cmd, "instrument change", sopState.gotoInstrumentChange, 121, 90)
 
     def gotoStow(self, cmd):
-        """Go to the gang connector change/stow position"""
+        """Go to the stow position"""
 
         sopState = myGlobals.actorState
 
@@ -973,6 +948,30 @@ class SopCmd(object):
             return
 
         cmd.finish('')
+
+    def isSlewingDisabled(self, cmd):
+        """Return False if we can slew, otherwise return a string describing why we cannot."""
+        sopState = myGlobals.actorState
+
+        if sopState.survey == sopActor.BOSS:
+            return sopState.doBossScience.isSlewingDisabled()
+
+        elif sopState.survey == sopActor.MANGA:
+            disabled1 = sopState.doMangaDither.isSlewingDisabled()
+            disabled2 = sopState.doMangaSequence.isSlewingDisabled()
+            return disabled1 if disabled1 else disabled2
+
+        elif sopState.survey == sopActor.APOGEE:
+            disabled1 = sopState.doApogeeScience.isSlewingDisabled()
+            disabled2 = sopState.doApogeeSkyFlats.isSlewingDisabled()
+            return disabled1 if disabled1 else disabled2
+
+        elif sopState.survey == sopActor.APOGEEMANGA:
+            disabled1 = sopState.doApogeeMangaDither.isSlewingDisabled()
+            disabled2 = sopState.doApogeeMangaSequence.isSlewingDisabled()
+            return disabled1 if disabled1 else disabled2
+
+        return False
 
     def status(self, cmd, threads=False, finish=True, oneCommand=None):
         """Return sop status.

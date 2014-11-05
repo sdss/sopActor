@@ -1,0 +1,5 @@
+[test_axis_stop]
+tcc axis stop
+
+[test_axis_stop_fails]
+tcc axis stop

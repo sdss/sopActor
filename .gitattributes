@@ -32,6 +32,8 @@ test_sopActor/cmd_calls/TestApogeeDomeFlat.txt -text
 test_sopActor/cmd_calls/TestApogeeMangaScience.txt -text
 test_sopActor/cmd_calls/TestApogeeScience.txt -text
 test_sopActor/cmd_calls/TestApogeeThread.txt -text
+test_sopActor/cmd_calls/TestAxisInit.txt -text
+test_sopActor/cmd_calls/TestAxisStop.txt -text
 test_sopActor/cmd_calls/TestBossCalibs.txt -text
 test_sopActor/cmd_calls/TestBossScience.txt -text
 test_sopActor/cmd_calls/TestBossThread.txt -text
@@ -45,6 +47,7 @@ test_sopActor/cmd_calls/TestGuiderStart.txt -text
 test_sopActor/cmd_calls/TestHartmann.txt -text
 test_sopActor/cmd_calls/TestLampThread.txt -text
 test_sopActor/cmd_calls/TestMangaScience.txt -text
+test_sopActor/cmd_calls/TestMcpSemaphoreOk.txt -text
 test_sopActor/sopTester.py -text
 test_sopActor/test_SopCmd.py -text
 test_sopActor/test_apogeeThread.py -text
@@ -55,4 +58,5 @@ test_sopActor/test_gang.py -text
 test_sopActor/test_guiderThread.py -text
 test_sopActor/test_lampThread.py -text
 test_sopActor/test_masterThread.py -text
+test_sopActor/test_tccThread.py -text
 ups/sopActor.table -text

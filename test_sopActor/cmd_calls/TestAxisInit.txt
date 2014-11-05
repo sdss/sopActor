@@ -1,0 +1,23 @@
+[test_axis_init_ok]
+tcc axis status
+
+tcc axis init
+
+[test_axis_init_no_init_needed]
+tcc axis status
+
+[test_axis_init_bad_semaphore]
+tcc axis status
+
+[test_axis_init_no_axis_status]
+tcc axis status
+
+[test_axis_init_stop_in]
+tcc axis status
+
+tcc axis status
+
+[test_axis_init_fails]
+tcc axis status
+
+tcc axis init

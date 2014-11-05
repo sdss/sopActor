@@ -84,6 +84,7 @@ except NameError:
         class REPLY(): pass
         class SLEW(): pass
         class AXIS_INIT(): pass
+        class AXIS_STOP(): pass
         class WAIT_UNTIL(): pass
         class DITHER(): pass
         class EXPOSE_DITHER_SET(): pass

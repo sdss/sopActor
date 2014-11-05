@@ -1,13 +1,9 @@
 import Queue, threading
 import time
 
-from sopActor import *
+from sopActor import Msg
 import sopActor
 import sopActor.myGlobals as myGlobals
-from opscore.utility.qstr import qstr
-from opscore.utility.tback import tback
-
-from sopActor.utils.tcc import TCCState
 
 print "Loading TCC thread"
 
@@ -27,9 +23,33 @@ def axes_are_clear(actorState):
             (actorState.models['tcc'].keyVarDict['altStat'][3] == 0) and 
             (actorState.models['tcc'].keyVarDict['rotStat'][3] == 0))
 
-def axis_init(msg, actorState):
+def mcp_semaphore_ok(cmd, actorState):
+    """
+    Return the semaphore if the semaphore is ok to take: owned by the TCC or nobody
+    Return False, and issue error messages if not.
+    """
+
+    # If tron+sop have been restarted and mcp hasn't issued the keyword, there
+    # will be no list to get a value from.
+    try:
+        sem = actorState.models['mcp'].keyVarDict['semaphoreOwner'][0]
+    except IndexError:
+        cmdVar = actorState.actor.cmdr.call(actor="mcp", forUserCmd=cmd, cmdStr="sem.show")
+        if cmdVar.didFail:
+            cmd.error('text="Error: Cannot get mcp semaphore. Is the mcp alive?"')
+            return False
+        sem = actorState.models['mcp'].keyVarDict['semaphoreOwner'][0]
+
+    if (sem != 'TCC:0:0') and (sem != '') and (sem != 'None') and (sem != None):
+        cmd.error('text="Cannot axis init: Semaphore is owned by '+sem+'"')
+        cmd.error('text="If you are the owner (e.g., via MCP Menu), release it and try again."')
+        cmd.error('text="If you are not the owner, confirm that you can steal it from them, then issue: mcp sem.steal"')
+        return False
+
+    return sem
+
+def axis_init(cmd, actorState, replyQueue):
     """Send 'tcc axis init', and return status."""
-    cmd = msg.cmd
 
     # need to send an axis status first, just to make sure the status bits have cleared
     cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd, cmdStr="axis status")
@@ -37,7 +57,7 @@ def axis_init(msg, actorState):
     if cmdVar.didFail:
         cmd.error('text="Cannot check axis status. Something is very wrong!"')
         cmd.error('text="Is the TCC in a responsive state?"')
-        msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
+        replyQueue.put(Msg.REPLY, cmd=cmd, success=False)
         return
 
     # TBD: Another (cleaner?) solution would be to check the mcp
@@ -52,21 +72,17 @@ def axis_init(msg, actorState):
         cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd, cmdStr="axis status")
         if check_stop_in(actorState):
             cmd.error('text="Cannot tcc axis init because of bad axis status: Check stop buttons on Interlocks panel."')
-            msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
+            replyQueue.put(Msg.REPLY, cmd=cmd, success=False)
             return
 
-    # the semaphore should be owned by the TCC or nobody
-    sem = actorState.models['mcp'].keyVarDict['semaphoreOwner'][0]
-    if (sem != 'TCC:0:0') and (sem != '') and (sem != 'None') and (sem != None):
-        cmd.error('text="Cannot axis init: Semaphore is owned by '+sem+'"')
-        cmd.error('text="If you are the owner (e.g., via MCP Menu), release it and try again."')
-        cmd.error('text="If you are not the owner, confirm that you can steal it from them, then issue: mcp sem.steal"')
-        msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
+    sem = mcp_semaphore_ok(cmd, actorState)
+    if not sem:
+        replyQueue.put(Msg.REPLY, cmd=cmd, success=False)
         return
 
     if sem == 'TCC:0:0' and axes_are_clear(actorState):
         cmd.inform('text="Axes clear and TCC has semaphore. No axis init needed, so none sent."')
-        msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
+        replyQueue.put(Msg.REPLY, cmd=cmd, success=True)
         return
     else:
         cmd.inform('text="Sending tcc axis init."')
@@ -75,10 +91,19 @@ def axis_init(msg, actorState):
     if cmdVar.didFail:
         cmd.error('text="Cannot slew telescope: failed tcc axis init."')
         cmd.error('text="Cannot slew telescope: check and clear interlocks?"')
-        msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
+        replyQueue.put(Msg.REPLY, cmd=cmd, success=False)
     else:
-        msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
+        replyQueue.put(Msg.REPLY, cmd=cmd, success=True)
 #...
+
+def axis_stop(cmd, actorState, replyQueue):
+    cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd, cmdStr="axis stop")
+    if cmdVar.didFail:
+        cmd.error('text="Error: failed to cleanly stop telescope via tcc axis stop."')
+        replyQueue.put(Msg.REPLY, cmd=cmd, success=False)
+    else:
+        replyQueue.put(Msg.REPLY, cmd=cmd, success=True)
+    return
 
 def main(actor, queues):
     """Main loop for TCC thread"""
@@ -99,7 +124,10 @@ def main(actor, queues):
                 return
 
             elif msg.type == Msg.AXIS_INIT:
-                axis_init(msg,actorState)
+                axis_init(msg.cmd, actorState, msg.replyQueue)
+
+            elif msg.type == Msg.AXIS_STOP:
+                axis_stop(msg.cmd, actorState, msg.replyQueue)
 
             elif msg.type == Msg.SLEW:
                 cmd = msg.cmd
@@ -152,9 +180,8 @@ def main(actor, queues):
                 if cmdVar.didFail:
                     cmd.warn('text="Failed to start slew"')
                     msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
-                #
+
                 # Wait for slew to end
-                #
                 queues[sopActor.TCC].put(Msg.SLEW, cmd=msg.cmd, replyQueue=msg.replyQueue, waitForSlewEnd=True)
 
             elif msg.type == Msg.STATUS:
