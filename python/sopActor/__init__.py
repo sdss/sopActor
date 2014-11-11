@@ -63,6 +63,7 @@ except NameError:
         class DITHERED_FLAT(): pass
         class SINGLE_HARTMANN(): pass
         class HARTMANN(): pass
+        class COLLIMATE_BOSS(): pass
         class DO_BOSS_SCIENCE(): pass
         class DO_APOGEE_EXPOSURES(): pass
         class DO_MANGA_DITHER(): pass

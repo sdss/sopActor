@@ -38,6 +38,7 @@ test_sopActor/cmd_calls/TestBossCalibs.txt -text
 test_sopActor/cmd_calls/TestBossScience.txt -text
 test_sopActor/cmd_calls/TestBossThread.txt -text
 test_sopActor/cmd_calls/TestBypass.txt -text
+test_sopActor/cmd_calls/TestCollimateBoss.txt -text
 test_sopActor/cmd_calls/TestDoBossCalibs.txt -text
 test_sopActor/cmd_calls/TestGotoField.txt -text
 test_sopActor/cmd_calls/TestGotoGangChange.txt -text

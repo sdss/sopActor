@@ -288,7 +288,7 @@ class TestGotoField(MasterThreadTester):
         # Should produce 0 errors, but the failure usually (not always!)
         # cascades through to hgcd lampThread.
         # I'm pretty sure that's not correct.
-        self._goto_field_boss(9,34,1,0,cmdState,didFail=True,finish=True)
+        self._goto_field_boss(9,34,1,1,cmdState,didFail=True,finish=True)
     def test_goto_field_boss_ffs_open_fails(self):
         """Fail on ffs.open, but still readout flat."""
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
@@ -341,7 +341,30 @@ class TestHartmann(MasterThreadTester):
         self.cmd.failOn="mcp ne.off"
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
         self._hartmann(7,55,0,1,didFail=True)
-        
+
+
+class TestCollimateBoss(MasterThreadTester):
+    """hartmann tests"""
+    def _collimate_boss(self,nCall,nInfo,nWarn,nErr, finish=True, didFail=False):
+        cmdState = self.actorState.collimateBoss
+        cmdState.reinitialize(self.cmd)
+        masterThread.collimate_boss(self.cmd,cmdState,myGlobals.actorState)
+        self._check_cmd(nCall,nInfo,nWarn,nErr,finish,didFail)
+    def test_collimate_boss_open(self):
+        sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
+        self._collimate_boss(7,41,0,0)
+    def test_collimate_boss_closed(self):
+        sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
+        self._collimate_boss(5,40,0,0)
+    def test_collimate_boss_fails(self):
+        self.cmd.failOn="hartmann collimate ignoreResiduals noSubFrame"
+        sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
+        self._collimate_boss(4,24,0,1,didFail=True)
+    def test_collimate_boss_ffs_close_fails(self):
+        self.cmd.failOn="mcp ffs.close"
+        sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
+        self._collimate_boss(3,23,1,0,didFail=True)
+
 
 class TestApogeeDomeFlat(MasterThreadTester):
     """apogee_dome_flat tests"""
@@ -802,6 +825,7 @@ if __name__ == '__main__':
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestApogeeScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestBossScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestHartmann)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestCollimateBoss)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestMangaScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestApogeeMangaScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestBossCalibs)

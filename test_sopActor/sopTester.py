@@ -54,12 +54,7 @@ class SopTester(TestHelper.ActorTester):
         """Set up things that all SOP tests need."""
         self.name = 'sop'
         # so we can call SopCmds.
-        self.actor = TestHelper.FakeActor('sop','sopActor')
-
-        # If we've read in a list of cmd_calls for this class, prep them for use!
-        if hasattr(self, 'class_calls'):
-            test_name = self.id().split('.')[-1]
-            self.test_calls = self.class_calls.get(test_name,None)
+        self.actor = TestHelper.FakeActor(self.name, self.name+'Actor')
 
         super(SopTester,self).setUp()
         myGlobals.actorState = self.actorState

@@ -1,12 +1,10 @@
 """Thread to send commands to the BOSS camera."""
 import Queue, threading
-import math, numpy
 
 import sopActor
-from sopActor import *
+from sopActor import Msg
 import sopActor.myGlobals
 from opscore.utility.qstr import qstr
-from opscore.utility.tback import tback
 
 def getExpTimeCmd(expTime, expType, cmd, readout=True):
     """
@@ -25,7 +23,7 @@ def getExpTimeCmd(expTime, expType, cmd, readout=True):
             cmd.warn('text="Saw readout == False but expTime == %g"' % expTime)
     return expTimeCmd, readoutCmd
 
-def hartmann(cmd, actorState, replyQueue, expTime, mask):
+def single_hartmann(cmd, actorState, replyQueue, expTime, mask):
     """Take a single hartmann frame, with one hartmann in position."""
     expType = 'arc'
     expTimeCmd, readoutCmd = getExpTimeCmd(expTime, expType, cmd)
@@ -48,6 +46,20 @@ def hartmann(cmd, actorState, replyQueue, expTime, mask):
     
     replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=not cmdVar.didFail)
 #...
+
+def hartmann(cmd, actorState, replyQueue, args):
+    """Collimate the spectrographs via 'hartmann collimate (args)'"""
+    cmd.respond("text=\"Starting BOSS Hartmann collimation sequence\"")
+    timeLim = 260 # two readouts, plus flush and expose time, and moving pistons.
+    cmdStr = 'collimate'
+    if args is not None:
+        cmdStr = ' '.join((cmdStr,args))
+    cmdVar = actorState.actor.cmdr.call(actor="hartmann", forUserCmd=cmd,cmdStr=cmdStr,
+                                        keyVars=[], timeLim=timeLim)
+
+    if cmdVar.didFail:
+        cmd.error("text='Failed to collimate BOSS spectrographs.")
+    replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=not cmdVar.didFail)
 
 
 def main(actor, queues):
@@ -88,18 +100,12 @@ def main(actor, queues):
                 msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=not cmdVar.didFail)
                 
             elif msg.type == Msg.SINGLE_HARTMANN:
-                hartmann(msg.cmd, actorState, msg.replyQueue, msg.expTime, msg.mask)
+                single_hartmann(msg.cmd, actorState, msg.replyQueue, msg.expTime, msg.mask)
                 
             elif msg.type == Msg.HARTMANN:
-                
-                msg.cmd.respond("text=\"starting Hartmann sequence\"")
-                
-                timeLim = 150
-                cmdVar = actorState.actor.cmdr.call(actor="hartmann", forUserCmd=msg.cmd,
-                                                    cmdStr="collimate",
-                                                    keyVars=[], timeLim=timeLim)
-                
-                msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=not cmdVar.didFail)
+                args = getattr(msg, 'args', None)
+                hartmann(msg.cmd, actorState, msg.replyQueue, args)
+
             elif msg.type == Msg.STATUS:
                 msg.cmd.inform('text="%s thread"' % threadName)
                 msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)

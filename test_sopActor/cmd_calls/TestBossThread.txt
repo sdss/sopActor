@@ -1,10 +1,19 @@
-[test_hartmann_left]
+[test_single_hartmann_left]
 boss exposure arc itime=4 hartmann=left
 
-[test_hartmann_right]
+[test_single_hartmann_right]
 boss exposure arc itime=2 hartmann=right
 
-[test_hartmann_out]
+[test_single_hartmann_out]
 boss exposure arc itime=3 hartmann=out
 
-[test_hartmann_bad]
+[test_single_hartmann_bad]
+
+[test_hartmann_default]
+hartmann collimate
+
+[test_hartmann_afternoon]
+hartmann collimate ignoreResiduals noSubFrame
+
+[test_hartmann_fails]
+hartmann collimate

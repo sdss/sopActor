@@ -120,6 +120,7 @@ class SopCmd(object):
             ("doApogeeMangaSequence", "[<apogeeExpTime>] [<mangaExpTime>] [<apogeeDithers>] [<mangaDithers>] [<comment>] [<count>] [stop] [abort]", self.doApogeeMangaSequence),
             ("ditheredFlat", "[sp1] [sp2] [<expTime>] [<nStep>] [<nTick>]", self.ditheredFlat),
             ("hartmann", "[<expTime>]", self.hartmann),
+            ("collimateBoss", "", self.collimateBoss),
             ("lampsOff", "", self.lampsOff),
             ("ping", "", self.ping),
             ("restart", "[<threads>] [keepQueues]", self.restart),
@@ -649,6 +650,22 @@ class SopCmd(object):
         sopState.queues[sopActor.MASTER].put(Msg.HARTMANN, cmd, replyQueue=self.replyQueue,
                                              actorState=sopState, cmdState=cmdState)
 
+    def collimateBoss(self, cmd):
+        """
+        Warm up Ne/HgCd lamps, and take left/right full hartmanns to collimate
+        the BOSS spectrographs, ignoring any remaining blue residuals.
+        """
+        sopState = myGlobals.actorState
+        if self.doing_science(sopState):
+            cmd.fail("text='A science exposure sequence is running -- will not start a hartmann sequence!")
+            return
+
+        sopState.aborting = False
+        cmdState = sopState.collimateBoss
+                
+        sopState.queues[sopActor.MASTER].put(Msg.COLLIMATE_BOSS, cmd, replyQueue=self.replyQueue,
+                                             actorState=sopState, cmdState=cmdState)
+
     def gotoField(self, cmd):
         """Slew to the current cartridge/pointing
 
@@ -1013,6 +1030,8 @@ class SopCmd(object):
         sopState.gotoGangChange.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.doApogeeDomeFlat.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.hartmann.genKeys(cmd=cmd, trimKeys=oneCommand)
+        sopState.collimateBoss.genKeys(cmd=cmd, trimKeys=oneCommand)
+
 
         # commands with no state
         sopState.gotoStow.genKeys(cmd=cmd, trimKeys=oneCommand)
@@ -1056,6 +1075,8 @@ class SopCmd(object):
         sopState.gotoGangChange = CmdState.GotoGangChangeCmd()
         sopState.doApogeeDomeFlat = CmdState.DoApogeeDomeFlatCmd()
         sopState.hartmann = CmdState.HartmannCmd()
+        sopState.collimateBoss = CmdState.CollimateBossCmd()
+
         sopState.gotoInstrumentChange = CmdState.CmdState('gotoInstrumentChange',["slew"])
         sopState.gotoStow = CmdState.CmdState('gotoStow',["slew"])
 

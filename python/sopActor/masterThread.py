@@ -1219,6 +1219,39 @@ def hartmann(cmd, cmdState, actorState):
     finish_command(cmd, cmdState, actorState, finishMsg)
 #...
 
+def collimate_boss(cmd,cmdState,actorState):
+    """Warm up arc lamps, take hartmanns and collimate using hartmannActor."""
+    ffsInitiallyOpen = SopPrecondition(None).ffsAreOpen()
+    finishMsg = "Finished collimating BOSS for afternoon checkout."
+    
+    show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
+    stageName = 'collimate'
+    cmdState.setStageState(stageName, "running")
+    # two full readouts here, since these are not subframe Hartmanns.
+    multiCmd = SopMultiCommand(cmd, actorState.timeout + hartmannDuration + 2*readoutDuration, cmdState.name+'.collimate')
+    prep_for_arc(multiCmd, precondition=True)
+    multiCmd.append(sopActor.BOSS, Msg.HARTMANN, args="ignoreResiduals noSubFrame")
+    if not handle_multiCmd(multiCmd,cmd,cmdState,stageName,"Failed to collimate BOSS for afternoon checkout"):
+        return
+        
+    show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
+
+    # cleanup
+    stageName = 'cleanup'
+    cmdState.setStageState(stageName, 'running')
+    multiCmd = SopMultiCommand(cmd, actorState.timeout, '.'.join((cmdState.name,'cleanup')))
+    if ffsInitiallyOpen:
+        cmd.inform('text="Restoring FFS to previous open state."')
+        prep_for_science(multiCmd,precondition=True)
+        failMsg = "Failed to open FFS/turn off lamps after Hartmanns"
+    else:
+        prep_lamps_off(multiCmd,precondition=True)
+        failMsg = "Failed to turn off lamps after BOSS collimation"
+    if not handle_multiCmd(multiCmd,cmd,cmdState,stageName,failMsg):
+        return
+
+    finish_command(cmd, cmdState, actorState, finishMsg)
+
 def show_status(cmd, cmdState, actor, oneCommand=""):
     """Output status of a new state or just one command."""
     if cmd:
@@ -1294,6 +1327,10 @@ def main(actor, queues):
             elif msg.type == Msg.HARTMANN:
                 cmd,cmdState,actorState = preprocess_msg(msg)
                 hartmann(cmd, cmdState, actorState)
+
+            elif msg.type == Msg.COLLIMATE_BOSS:
+                cmd,cmdState,actorState = preprocess_msg(msg)
+                collimate_boss(cmd, cmdState, actorState)
             
             elif msg.type == Msg.DITHERED_FLAT:
                 """Take a set of nStep dithered flats, moving the collimator by nTick between exposures"""

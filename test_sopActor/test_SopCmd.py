@@ -75,27 +75,27 @@ class TestBypass(SopCmdTester,unittest.TestCase):
             self.actorState.surveyMode == survey[1]
         self._check_cmd(nCalls,nInfo,nWarn,0,True)
     def test_bypass_isBoss(self):
-        self._bypass_set('isBoss', 53, 2, 1, ['eBOSS',None])
+        self._bypass_set('isBoss', 55, 2, 1, ['eBOSS',None])
     def test_bypass_isApogee(self):
-        self._bypass_set('isApogee', 53, 2, 1, ['APOGEE',None])
+        self._bypass_set('isApogee', 55, 2, 1, ['APOGEE',None])
     def test_bypass_isMangaStare(self):
-        self._bypass_set('isMangaStare', 53, 2, 1, ['MaNGA','MaNGA stare'])
+        self._bypass_set('isMangaStare', 55, 2, 1, ['MaNGA','MaNGA stare'])
     def test_bypass_isMangaDither(self):
-        self._bypass_set('isMangaDither', 53, 2, 1, ['MaNGA','MaNGA dither'])
+        self._bypass_set('isMangaDither', 55, 2, 1, ['MaNGA','MaNGA dither'])
     def test_bypass_isApogeeLead(self):
-        self._bypass_set('isApogeeLead', 53, 2, 1, ['APGOEE-2&MaNGA','APOGEE lead'])
+        self._bypass_set('isApogeeLead', 55, 2, 1, ['APGOEE-2&MaNGA','APOGEE lead'])
     def test_bypass_isApogeeMangaDither(self):
-        self._bypass_set('isApogeeMangaDither', 53, 2, 1, ['APGOEE-2&MaNGA','MaNGA dither'])
+        self._bypass_set('isApogeeMangaDither', 55, 2, 1, ['APGOEE-2&MaNGA','MaNGA dither'])
     def test_bypass_isApogeeMangaStare(self):
-        self._bypass_set('isApogeeMangaStare', 53, 2, 1, ['APGOEE-2&MaNGA','MaNGA stare'])
+        self._bypass_set('isApogeeMangaStare', 55, 2, 1, ['APGOEE-2&MaNGA','MaNGA stare'])
 
     def test_bypass_gangCart(self):
-        self._bypass_set('gangCart', 52, 3)
+        self._bypass_set('gangCart', 54, 3)
     def test_bypass_gangPodium(self):
-        self._bypass_set('gangPodium', 52, 3)
+        self._bypass_set('gangPodium', 54, 3)
 
     def test_bypass_axes(self):
-        self._bypass_set('axes', 52, 0)
+        self._bypass_set('axes', 54, 0)
 
     def test_not_bypassable(self):
         self._clear_bypasses()
@@ -259,12 +259,12 @@ class TestStatus(SopCmdTester,unittest.TestCase):
         self._run_cmd('status %s'%args, None)
         self._check_cmd(0,nInfo,0,0,True)
     def test_status(self):
-        self._status(52)
+        self._status(54)
     def test_status_geek(self):
-        self._status(54,args='geek')
+        self._status(56,args='geek')
     def test_status_noFinish(self):
         self.sopCmd.status(self.cmd,finish=False)
-        self._check_cmd(0,52,0,0,False)
+        self._check_cmd(0,54,0,0,False)
 
     def _oneCommand(self, nInfo, oneCommand):
         """
@@ -806,6 +806,18 @@ class TestHartmann(SopCmdTester,unittest.TestCase):
         stages = ['left','right','cleanup']
         expect = {'expTime':5}
         self._hartmann(expect,stages,'expTime=5')
+
+
+class TestCollimateBoss(SopCmdTester,unittest.TestCase):
+    def _collimateBoss(self):
+        stages = {'collimate', 'cleanup'}
+        queue = myGlobals.actorState.queues[sopActor.MASTER]
+        msg = self._run_cmd('collimateBoss',queue)
+        self.assertEqual(msg.type,sopActor.Msg.COLLIMATE_BOSS)
+        stages = dict(zip(stages,['idle']*len(stages)))
+        self.assertEqual(msg.cmdState.stages,stages)
+    def test_collimateBoss(self):
+        self._collimateBoss()
 
 
 class TestDoApogeeScience(SopCmdTester,unittest.TestCase):

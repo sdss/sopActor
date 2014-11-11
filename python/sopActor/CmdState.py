@@ -272,6 +272,11 @@ class HartmannCmd(CmdState):
                           keywords=dict(expTime=4))
 
 
+class CollimateBossCmd(CmdState):
+    def __init__(self):
+        CmdState.__init__(self, 'collimateBoss',
+                          ['collimate', 'cleanup'])
+
 class GotoFieldCmd(CmdState):
     def __init__(self):
         CmdState.__init__(self, 'gotoField',
