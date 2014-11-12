@@ -352,18 +352,18 @@ class TestCollimateBoss(MasterThreadTester):
         self._check_cmd(nCall,nInfo,nWarn,nErr,finish,didFail)
     def test_collimate_boss_open(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
-        self._collimate_boss(7,41,0,0)
+        self._collimate_boss(10,43,0,0)
     def test_collimate_boss_closed(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
-        self._collimate_boss(5,40,0,0)
+        self._collimate_boss(8,42,0,0)
     def test_collimate_boss_fails(self):
         self.cmd.failOn="hartmann collimate ignoreResiduals noSubFrame"
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
-        self._collimate_boss(4,24,0,1,didFail=True)
+        self._collimate_boss(7,26,0,1,didFail=True)
     def test_collimate_boss_ffs_close_fails(self):
         self.cmd.failOn="mcp ffs.close"
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
-        self._collimate_boss(3,23,1,0,didFail=True)
+        self._collimate_boss(4,17,1,0,didFail=True)
 
 
 class TestApogeeDomeFlat(MasterThreadTester):

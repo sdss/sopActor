@@ -1227,9 +1227,16 @@ def collimate_boss(cmd,cmdState,actorState):
     show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
     stageName = 'collimate'
     cmdState.setStageState(stageName, "running")
+
+    # First prep all the lamps, we'll wait the appropriate warmup time as a precondition.
+    multiCmd = SopMultiCommand(cmd, actorState.timeout, cmdState.name+'.lamps')
+    prep_for_arc(multiCmd)
+    if not handle_multiCmd(multiCmd,cmd,cmdState,stageName,"Failed to warmup lamps/close FFS in preparation for Hartamnns."):
+        return
+
     # two full readouts here, since these are not subframe Hartmanns.
     multiCmd = SopMultiCommand(cmd, actorState.timeout + hartmannDuration + 2*readoutDuration, cmdState.name+'.collimate')
-    prep_for_arc(multiCmd, precondition=True)
+    prep_quick_hartmann(multiCmd)
     multiCmd.append(sopActor.BOSS, Msg.HARTMANN, args="ignoreResiduals noSubFrame")
     if not handle_multiCmd(multiCmd,cmd,cmdState,stageName,"Failed to collimate BOSS for afternoon checkout"):
         return

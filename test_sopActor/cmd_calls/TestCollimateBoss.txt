@@ -1,8 +1,11 @@
 [test_collimate_boss_open]
+mcp ff.off
 mcp ne.on
 mcp hgcd.on
 mcp ffs.close
 
+mcp ne.on
+mcp hgcd.on
 hartmann collimate ignoreResiduals noSubFrame
 
 mcp ffs.open
@@ -10,22 +13,29 @@ mcp ne.off
 mcp hgcd.off
 
 [test_collimate_boss_closed]
+mcp ff.off
 mcp ne.on
 mcp hgcd.on
 
+mcp ne.on
+mcp hgcd.on
 hartmann collimate ignoreResiduals noSubFrame
 
 mcp ne.off
 mcp hgcd.off
 
 [test_collimate_boss_fails]
+mcp ff.off
 mcp ne.on
 mcp hgcd.on
 mcp ffs.close
 
+mcp ne.on
+mcp hgcd.on
 hartmann collimate ignoreResiduals noSubFrame
 
 [test_collimate_boss_ffs_close_fails]
+mcp ff.off
 mcp ne.on
 mcp hgcd.on
 mcp ffs.close
