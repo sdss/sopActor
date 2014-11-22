@@ -722,6 +722,12 @@ class TestBossCalibs(MasterThreadTester):
         cmdState = CmdState.DoBossCalibsCmd()
         cmdState.nBias = 2
         self._do_boss_calibs(5,40,0,0,cmdState)
+    def test_do_boss_calibs_one_bias_ffs_open(self):
+        """For #371, not closing FFS for bias/dark."""
+        sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
+        cmdState = CmdState.DoBossCalibsCmd()
+        cmdState.nBias = 1
+        self._do_boss_calibs(4,25,0,0,cmdState)
 
     def test_do_boss_calibs_one_dark(self):
         cmdState = CmdState.DoBossCalibsCmd()
@@ -731,6 +737,12 @@ class TestBossCalibs(MasterThreadTester):
         cmdState = CmdState.DoBossCalibsCmd()
         cmdState.nDark = 2
         self._do_boss_calibs(5,40,0,0,cmdState)
+    def test_do_boss_calibs_one_dark_ffs_open(self):
+        """For #371, not closing FFS for bias/dark."""
+        sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
+        cmdState = CmdState.DoBossCalibsCmd()
+        cmdState.nDark = 1
+        self._do_boss_calibs(4,25,0,0,cmdState)
 
     def test_do_boss_calibs_one_flat(self):
         cmdState = CmdState.DoBossCalibsCmd()
@@ -759,6 +771,11 @@ class TestBossCalibs(MasterThreadTester):
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         self._do_boss_calibs(7,31,0,0,cmdState)
+    def test_do_boss_calibs_one_flat_ffs_open(self):
+        sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
+        cmdState = CmdState.DoBossCalibsCmd()
+        cmdState.nFlat = 1
+        self._do_boss_calibs(9,31,0,0,cmdState)
 
     def test_do_boss_calibs_one_arc(self):
         cmdState = CmdState.DoBossCalibsCmd()
@@ -776,6 +793,11 @@ class TestBossCalibs(MasterThreadTester):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_parked'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         self._do_boss_calibs(8,39,0,0,cmdState)
+    def test_do_boss_calibs_one_arc_ffs_open(self):
+        sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
+        cmdState = CmdState.DoBossCalibsCmd()
+        cmdState.nArc = 1
+        self._do_boss_calibs(9,32,0,0,cmdState)
 
     def test_do_boss_calibs_one_of_each(self):
         cmdState = CmdState.DoBossCalibsCmd()
@@ -830,7 +852,7 @@ if __name__ == '__main__':
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestApogeeMangaScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestBossCalibs)
     # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestGotoField.test_goto_field_apogeemanga_all_shutter_open')
-    # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestBossCalibs.test_do_boss_calibs_two_arc_fail_on_second_exposure')
+    # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestBossCalibs.test_do_boss_calibs_one_arc_ffs_open')
     # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestApogeeMangaScience.test_do_apogeemanga_sequence_apogee_lead_count1')
     # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestMangaScience.test_do_manga_dither_after_sequence')
     if suite:
