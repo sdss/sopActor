@@ -779,7 +779,7 @@ class SopCmd(object):
             cmdState.ra = fakeSkyPos[0]
             cmdState.dec = fakeSkyPos[1]
             cmdState.rotang = fakeSkyPos[2]
-            cmd.warn('text="FAKING RA DEC:  %g, %g /rotang=%g"' % (cmdState.ra,
+            cmd.warn('text="Bypass slewToField is FAKING RA DEC:  %g, %g /rotang=%g"' % (cmdState.ra,
                                                                    cmdState.dec,
                                                                    cmdState.rotang))
 
@@ -1012,7 +1012,13 @@ class SopCmd(object):
 
         cmd.inform("bypassNames=" + ", ".join(bypassNames))
         cmd.inform("bypassed=" + ", ".join([str(x) for x in bypassStates]))
-        cmd.inform("bypassedNames=" + ", ".join(bypass.get_bypassedNames()))
+        bypassed = bypass.get_bypassedNames()
+        txt = "bypassedNames=" + ", ".join(bypassed)
+        # output non-empty bypassedNames as a warning, per #2187.
+        if bypassed == []:
+            cmd.inform(txt)
+        else:
+            cmd.warn(txt)
         cmd.inform('text="apogeeGang: %s"' % (sopState.apogeeGang.getPos()))
 
         cmd.inform("surveyCommands=" + ", ".join(sopState.validCommands))

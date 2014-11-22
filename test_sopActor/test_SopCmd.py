@@ -75,27 +75,30 @@ class TestBypass(SopCmdTester,unittest.TestCase):
             self.actorState.surveyMode == survey[1]
         self._check_cmd(nCalls,nInfo,nWarn,0,True)
     def test_bypass_isBoss(self):
-        self._bypass_set('isBoss', 55, 2, 1, ['eBOSS',None])
+        self._bypass_set('isBoss', 54, 3, 1, ['eBOSS',None])
     def test_bypass_isApogee(self):
-        self._bypass_set('isApogee', 55, 2, 1, ['APOGEE',None])
+        self._bypass_set('isApogee', 54, 3, 1, ['APOGEE',None])
     def test_bypass_isMangaStare(self):
-        self._bypass_set('isMangaStare', 55, 2, 1, ['MaNGA','MaNGA stare'])
+        self._bypass_set('isMangaStare', 54, 3, 1, ['MaNGA','MaNGA stare'])
     def test_bypass_isMangaDither(self):
-        self._bypass_set('isMangaDither', 55, 2, 1, ['MaNGA','MaNGA dither'])
+        self._bypass_set('isMangaDither', 54, 3, 1, ['MaNGA','MaNGA dither'])
     def test_bypass_isApogeeLead(self):
-        self._bypass_set('isApogeeLead', 55, 2, 1, ['APGOEE-2&MaNGA','APOGEE lead'])
+        self._bypass_set('isApogeeLead', 54, 3, 1, ['APGOEE-2&MaNGA','APOGEE lead'])
     def test_bypass_isApogeeMangaDither(self):
-        self._bypass_set('isApogeeMangaDither', 55, 2, 1, ['APGOEE-2&MaNGA','MaNGA dither'])
+        self._bypass_set('isApogeeMangaDither', 54, 3, 1, ['APGOEE-2&MaNGA','MaNGA dither'])
     def test_bypass_isApogeeMangaStare(self):
-        self._bypass_set('isApogeeMangaStare', 55, 2, 1, ['APGOEE-2&MaNGA','MaNGA stare'])
+        self._bypass_set('isApogeeMangaStare', 54, 3, 1, ['APGOEE-2&MaNGA','MaNGA stare'])
 
     def test_bypass_gangCart(self):
-        self._bypass_set('gangCart', 54, 3)
+        self._bypass_set('gangCart', 53, 4)
     def test_bypass_gangPodium(self):
-        self._bypass_set('gangPodium', 54, 3)
+        self._bypass_set('gangPodium', 53, 4)
 
     def test_bypass_axes(self):
-        self._bypass_set('axes', 54, 0)
+        self._bypass_set('axes', 53, 1)
+
+    def test_bypass_slewToField(self):
+        self._bypass_set('slewToField', 53, 1)
 
     def test_not_bypassable(self):
         self._clear_bypasses()
