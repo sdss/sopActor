@@ -167,13 +167,13 @@ def main(actor, queues):
                     if keepArgs:
                         cmd.warn('text="keeping all offsets"')
                     
-                    cmdVar = msg.actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd,
+                    cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd,
                                                             cmdStr="track %f, %f icrs /rottype=object/rotang=%g/rotwrap=mid %s" % \
                                                             (msg.ra, msg.dec, msg.rot, keepArgs))
                 except AttributeError:
                     cmd.inform('text="slewing to (az, alt, rot) == (%.04f, %.04f, %0.4f)"' % (msg.az, msg.alt, msg.rot))
                     
-                    cmdVar = msg.actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd,
+                    cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd,
                                                             cmdStr="track %f, %f mount/rottype=mount/rotangle=%f" % \
                                                             (msg.az, msg.alt, msg.rot))
                     
