@@ -795,7 +795,7 @@ class SopCmd(object):
         sopState.queues[sopActor.MASTER].put(Msg.GOTO_FIELD, cmd, replyQueue=self.replyQueue,
                                              actorState=sopState, cmdState=cmdState)
         
-    def gotoPosition(self, cmd, name, cmdState, az, alt, rot=0):
+    def gotoPosition(self, cmd, name, cmdState, az, alt, rot):
         """Goto a specified alt/az/[rot] position, named 'name'."""
         sopState = myGlobals.actorState
 
@@ -808,16 +808,17 @@ class SopCmd(object):
         slewDuration = 230
 
         tccDict = sopState.models["tcc"].keyVarDict
-        if az == None:
+        if az is None:
             az = tccDict['axePos'][0]
-        if alt == None:
+        if alt is None:
             alt = tccDict['axePos'][1]
-        if rot == None:
+        if rot is None:
             rot = tccDict['axePos'][2]
 
         multiCmd = MultiCommand(cmd, slewDuration + sopState.timeout, None)
-        multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=sopState, az=az, alt=alt, rot=rot)
-        multiCmd.append(sopActor.TCC, Msg.AXIS_STOP, actorState=sopState)
+        multiCmd.append(sopActor.TCC, Msg.AXIS_INIT)
+        multiCmd.append(sopActor.TCC, Msg.SLEW, az=az, alt=alt, rot=rot)
+        multiCmd.append(sopActor.TCC, Msg.AXIS_STOP)
 
         if not multiCmd.run():
             cmdState.setStageState("slew", "failed")
@@ -830,7 +831,7 @@ class SopCmd(object):
         cmd.finish('text="at %s position"' % (name))
 
     def gotoInstrumentChange(self, cmd):
-        """Go to the instrument change position"""
+        """Go to the instrument change position: alt=90 az=121 rot=0"""
 
         sopState = myGlobals.actorState
 
@@ -840,10 +841,10 @@ class SopCmd(object):
             return
 
         sopState.gotoInstrumentChange.reinitialize(cmd)
-        self.gotoPosition(cmd, "instrument change", sopState.gotoInstrumentChange, 121, 90)
+        self.gotoPosition(cmd, "instrument change", sopState.gotoInstrumentChange, 121, 90, 0)
 
     def gotoStow(self, cmd):
-        """Go to the stow position"""
+        """Go to the stow position: alt=30, az=121, rot=0"""
 
         sopState = myGlobals.actorState
 
@@ -853,7 +854,7 @@ class SopCmd(object):
             return
 
         sopState.gotoStow.reinitialize(cmd)
-        self.gotoPosition(cmd, "stow", sopState.gotoStow, None, 30, rot=None)
+        self.gotoPosition(cmd, "stow", sopState.gotoStow, 121, 30, 0)
 
     def gotoGangChange(self, cmd):
         """Go to the gang connector change position"""

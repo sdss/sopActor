@@ -8,6 +8,7 @@ If these tests work correctly, each masterThread function should work
 correctly when called via a SopCmd (assuming test_masterThread clears).
 """
 import unittest
+import threading
 
 import sopActor
 import sopActor.myGlobals as myGlobals
@@ -24,6 +25,7 @@ class SopCmdTester(sopTester.SopTester):
         # Do this after super setUp, as that's what creates actorState.
         myGlobals.actorState.queues = {}
         myGlobals.actorState.queues[sopActor.MASTER] = Queue('master')
+        myGlobals.actorState.queues[sopActor.TCC] = Queue('tcc')
         self.cmd.verbose = False # don't spam initial loadCart messages
         self.cmd.clear_msgs()
         self.cmd.verbose = self.verbose
@@ -49,6 +51,19 @@ class SopCmdTester(sopTester.SopTester):
         self.cmd.verbose = self.verbose
         # in case the above command "finishes"
         self.cmd = TestHelper.Cmd(verbose=self.verbose)
+
+    def _start_thread(self, queue, tid, tname):
+        """Start a fakeThread for queue, returning the threading instance."""
+        actorState = self.actorState
+        actorState.threads = {}
+        actorState.threads[tid] = threading.Thread(target=sopTester.FakeThread, name=tname, args=[actorState.actor,actorState.queues])
+        actorState.threads[tid].daemon = True
+        actorState.threads[tid].start()
+    
+    def _stop_thread(self, queue, tid):
+        """Stop thread tid associated with queue, and cleanup."""
+        queue.put(sopActor.Msg(sopActor.Msg.EXIT, self.cmd))
+        self.actorState.threads[tid].join()
 
 
 class TestBypass(SopCmdTester,unittest.TestCase):
@@ -664,6 +679,32 @@ class TestGotoField(SopCmdTester,unittest.TestCase):
         self.assertEqual(msg.cmdState.doCalibs, False)
 
 
+class TestGotoPosition(SopCmdTester,unittest.TestCase):
+    """
+    goto stow and instrumentChange are funny, because they all happen inside SopCmd.
+    To deal with this, we have to fake the tcc thread, and check the issued commands.
+    """
+    def _gotoPosition(self, cmdStr, az, alt, rot):
+        queue = myGlobals.actorState.queues[sopActor.TCC]
+        self._start_thread(queue, sopActor.TCC, 'tcc')
+        self.cmd.rawCmd = cmdStr
+        self.actor.runActorCmd(self.cmd)
+        cmds = ['tcc sopActor.AXIS_INIT',
+                'tcc sopActor.SLEW alt={0} az={1} rot={2}',
+                'tcc sopActor.AXIS_STOP']
+        cmds[1] = cmds[1].format(alt,az,rot)
+        self.test_calls = [cmds,] # remember: test_calls is a nested list.
+        self._check_cmd(3,9,0,0,True)
+        self._stop_thread(queue, sopActor.TCC)
+
+    def test_gotoInstrumentChange(self):
+        sopTester.updateModel('tcc', TestHelper.tccState['moving'])
+        self._gotoPosition('gotoInstrumentChange', 121, 90, 0)
+    def test_gotoStow(self):
+        sopTester.updateModel('tcc', TestHelper.tccState['moving'])
+        self._gotoPosition('gotoStow', 121, 30, 0)
+
+
 class TestDoBossScience(SopCmdTester,unittest.TestCase):
     def _doBossScience(self, expect, args, cmd_levels=(0,2,0,0), didFail=False):
         stages = ['expose',]
@@ -993,6 +1034,7 @@ if __name__ == '__main__':
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestClassifyCartridge)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestHartmann)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoField)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoPosition)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestBossCalibs)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoBossScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoApogeeScience)
