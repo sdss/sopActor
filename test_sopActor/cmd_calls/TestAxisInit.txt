@@ -6,6 +6,11 @@ tcc axis init
 [test_axis_init_no_init_needed]
 tcc axis status
 
+[test_axis_init_alt_low]
+tcc axis status
+
+tcc axis init rot,alt
+
 [test_axis_init_bad_semaphore]
 tcc axis status
 

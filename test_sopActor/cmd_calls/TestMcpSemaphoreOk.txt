@@ -3,3 +3,5 @@ mcp sem.show
 
 [test_mcp_semaphore_fails_no_semaphore]
 mcp sem.show
+
+[test_mcp_semaphore_ok_False]

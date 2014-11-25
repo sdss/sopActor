@@ -44,6 +44,13 @@ class TestAxisChecks(sopTester.SopTester, unittest.TestCase):
         sopTester.updateModel('tcc',TestHelper.tccState['moving'])
         self.assertFalse(tccThread.check_stop_in(self.actorState))
 
+    def test_below_alt_limit_no(self):
+        sopTester.updateModel('tcc',TestHelper.tccState['halted'])
+        self.assertFalse(tccThread.below_alt_limit(self.actorState))
+    def test_below_alt_limit_yes(self):
+        sopTester.updateModel('tcc',TestHelper.tccState['halted_low'])
+        self.assertTrue(tccThread.below_alt_limit(self.actorState))
+
 
 class TestMcpSemaphoreOk(TccThreadTester, unittest.TestCase):
     def test_mcp_semaphore_ok(self):
@@ -88,6 +95,12 @@ class TestAxisInit(TccThreadTester, unittest.TestCase):
         msg = self._test_axis_init()
         self.assertTrue(msg.success)
         self._check_cmd(1,1,0,0,False)
+    def test_axis_init_alt_low(self):
+        sopTester.updateModel('tcc',TestHelper.tccState['halted_low'])
+        msg = self._test_axis_init()
+        self.assertTrue(msg.success)
+        self._check_cmd(2,1,1,0,False)
+
 
     def test_axis_init_no_axis_status(self):
         self.cmd.failOn = 'tcc axis status'

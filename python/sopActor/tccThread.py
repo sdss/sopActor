@@ -23,6 +23,10 @@ def axes_are_clear(actorState):
             (actorState.models['tcc'].keyVarDict['altStat'][3] == 0) and 
             (actorState.models['tcc'].keyVarDict['rotStat'][3] == 0))
 
+def below_alt_limit(actorState):
+    """Check if we are below the alt=18 limit that prevents init/motion in az."""
+    return actorState.models['tcc'].keyVarDict['axePos'][1] < 18
+
 def mcp_semaphore_ok(cmd, actorState):
     """
     Return the semaphore if the semaphore is ok to take: owned by the TCC or nobody
@@ -86,7 +90,11 @@ def axis_init(cmd, actorState, replyQueue):
         return
     else:
         cmd.inform('text="Sending tcc axis init."')
-        cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd, cmdStr="axis init")
+        cmdStr = "axis init"
+        if below_alt_limit(actorState):
+            cmd.warn('text="Altitude below interlock limit! Only initializing altitude and rotator: cannot move in az."')
+            cmdStr = ' '.join((cmdStr,"rot,alt"))
+        cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd, cmdStr=cmdStr)
     
     if cmdVar.didFail:
         cmd.error('text="Cannot slew telescope: failed tcc axis init."')
