@@ -109,6 +109,18 @@ class SopTester(TestHelper.ActorTester):
         self.cmd.clear_msgs()
         self.cmd.verbose = self.verbose
 
+    def _prep_bypass(self,bypass,clear=False):
+        """
+        Help setting up a bypass, so we don't spam with status messages.
+        Set clear to unset all bypasses before setting the specified one.
+        """
+        self.cmd.verbose = False
+        if clear:
+            self._clear_bypasses()
+        myGlobals.bypass.set(bypass,True)
+        self.cmd.clear_msgs()
+        self.cmd.verbose = self.verbose
+
     def _update_cart(self, nCart, survey, surveyMode=None):
         """Update cartridge without being verbose, and clear those messages."""
         self.cmd.verbose = False

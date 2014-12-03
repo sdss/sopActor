@@ -57,6 +57,24 @@ guider focus off
 
 guider on time=5
 
+[test_goto_field_apogee_bypass_gangCart]
+mcp ff.on
+tcc axis status
+tcc axis init
+
+mcp ff.on
+tcc track 0.000000, 0.000000 icrs /rottype=object/rotang=0/rotwrap=mid
+guider flat time=0.5
+
+mcp ff.off
+mcp ffs.open
+
+guider axes off
+guider scale off
+guider focus off
+
+guider on time=5
+
 [test_goto_field_apogee_no_slew_shutter_open]
 apogee shutter close
 mcp ff.on

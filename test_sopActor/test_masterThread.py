@@ -186,6 +186,14 @@ class TestGotoField(MasterThreadTester):
         cmdState.reinitialize(self.cmd)
         cmdState.doSlew = False
         self._goto_feld_apogee(9,37,0,0,cmdState)
+    def test_goto_field_apogee_bypass_gangCart(self):
+        """Testing for a potential problem on SJD 56993,
+        with gotoField not slewing when gang bypass had been set."""
+        self._prep_bypass('gangCart',clear=True)
+        cmdState = self.actorState.gotoField
+        cmdState.reinitialize(self.cmd)
+        self._goto_feld_apogee(12,43,5,0,cmdState)
+
 
     def test_goto_field_apogee_no_slew_shutter_open(self):
         """
@@ -454,7 +462,22 @@ class TestGotoGangChange(MasterThreadTester):
         """
         myGlobals.actorState.survey = sopActor.BOSS
         self._goto_gang_change(3, 12, 1, 0)
-        
+
+    def test_goto_gang_change_apogee_bypass_gangPodium(self):
+        """Testing for complaints from the observers about gang bypass and gang changes."""
+        self._prep_bypass('gangPodium',clear=True)
+        myGlobals.actorState.survey = sopActor.APOGEE
+        sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
+        sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
+        self._goto_gang_change(6, 20, 4, 0)
+    def test_goto_gang_change_apogee_bypass_gangCart(self):
+        """Testing for complaints from the observers about gang bypass and gang changes."""
+        self._prep_bypass('gangCart',clear=True)
+        myGlobals.actorState.survey = sopActor.APOGEE
+        sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
+        sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
+        self._goto_gang_change(3, 12, 4, 0)
+
     def test_goto_gang_change_apogee_fails_domeflat(self):
         """shutter open, FFS close, expose->fail"""
         myGlobals.actorState.survey = sopActor.APOGEE
@@ -851,7 +874,7 @@ if __name__ == '__main__':
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestMangaScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestApogeeMangaScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestBossCalibs)
-    # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestGotoField.test_goto_field_apogeemanga_all_shutter_open')
+    # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestGotoGangChange.test_goto_gang_change_apogee_bypass_gangCart')
     # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestBossCalibs.test_do_boss_calibs_one_arc_ffs_open')
     # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestApogeeMangaScience.test_do_apogeemanga_sequence_apogee_lead_count1')
     # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestMangaScience.test_do_manga_dither_after_sequence')

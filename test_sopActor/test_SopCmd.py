@@ -30,18 +30,6 @@ class SopCmdTester(sopTester.SopTester):
         self.cmd.clear_msgs()
         self.cmd.verbose = self.verbose
         self._clear_bypasses()
-
-    def _prep_bypass(self,bypass,clear=False):
-        """
-        Help setting up a bypass, so we don't spam with status messages.
-        Set clear to unset all bypasses before setting the specified one.
-        """
-        self.cmd.verbose = False
-        if clear:
-            self._clear_bypasses()
-        myGlobals.bypass.set(bypass,True)
-        self.cmd.clear_msgs()
-        self.cmd.verbose = self.verbose
     
     def _pre_command(self, command, queue):
         """Run a text command in advance, without being verbose and clearing any messages."""

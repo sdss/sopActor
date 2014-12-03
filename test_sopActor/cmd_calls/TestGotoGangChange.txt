@@ -33,6 +33,23 @@ tcc axis init
 
 tcc track 121.000000, 45.000000 mount/rottype=mount/rotangle=0.000000
 
+[test_goto_gang_change_apogee_bypass_gangPodium]
+mcp ffs.close
+
+apogee expose time=50.0 object=DomeFlat
+
+apogee shutter close
+tcc axis status
+tcc axis init
+
+tcc track 121.000000, 45.000000 mount/rottype=mount/rotangle=0.000000
+
+[test_goto_gang_change_apogee_bypass_gangCart]
+tcc axis status
+tcc axis init
+
+tcc track 121.000000, 45.000000 mount/rottype=mount/rotangle=0.000000
+
 [test_goto_gang_change_apogee_fails_domeflat]
 mcp ffs.close
 
