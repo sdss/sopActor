@@ -113,6 +113,102 @@ def axis_stop(cmd, actorState, replyQueue):
         replyQueue.put(Msg.REPLY, cmd=cmd, success=True)
     return
 
+
+class SlewHandler(object):
+    """
+    Handle slew commands, which can include a variety of separate arguments.
+    Example:
+        slewHandler.parse_args(msg)
+        slewHandler.do_slew(msg.cmd, msg.replyQueue)
+    """
+    def __init__(self, actorState, tccState, queue):
+        self.actorState = actorState
+        self.tccState = tccState
+        self.queue = queue
+        self.reset()
+
+    def reset(self):
+        """Reset everything so we know what type of slew ."""
+        self.alt, self.az = None, None
+        self.ra, self.dec = None, None
+        self.rot = None
+        self.keepOffsets = False
+        self.waitforSlewEnd = None
+
+    def parse_args(self, msg):
+        """Extract the various potential arguments of a slew msg."""
+        self.waitForSlewEnd = getattr(msg, 'waitForSlewEnd', None)
+        self.alt = getattr(msg, 'alt', None)
+        self.az = getattr(msg, 'az', None)
+        self.rot = getattr(msg, 'rot', None)
+        self.ra = getattr(msg, 'ra', None)
+        self.dec = getattr(msg, 'dec', None)
+        self.keepOffsets = getattr(msg, 'keepOffsets', False)
+
+    def slew(self, cmd, replyQueue):
+        """Issue the commanded tcc track."""
+        tccState = self.tccState
+
+        # Just fail if there's something wrong with an axis.
+        if self.not_ok_to_slew():
+            cmd.warn('text="in slew with badStat=%s halted=%s slewing=%s"' % \
+                         (tccState.badStat, tccState.halted, tccState.slewing))
+            replyQueue.put(Msg.REPLY, cmd=cmd, success=False)
+            return
+
+        # NOTE: pardon the odd logic here of reusing this function for waiting messages:
+        # I'm just copying the Robert and Craig logic, strange though it may be.
+        if self.waitForSlewEnd:
+            self.check_running_slew(cmd, replyQueue)
+        else:
+            self.do_slew(cmd, replyQueue)
+
+    def not_ok_to_slew(self):
+        """Return True if we should not command a slew."""
+        return (self.tccState.badStat != 0) and not myGlobals.bypass.get(name='axes')
+
+    def check_running_slew(self, cmd, replyQueue):
+        """Check and report on the status of a currently running slew."""
+        tccState = self.tccState
+        # TBD: Why is this always a warning? Shouldn't it be warning for halted True, or
+        # some combination of values that are nonsensical?
+        cmd.warn('text="in slew with halted=%s slewing=%s"' % (tccState.halted, tccState.slewing))
+        if not tccState.slewing:
+            replyQueue.put(Msg.REPLY, cmd=cmd, success=not tccState.halted)
+            return
+        
+        time.sleep(1)
+        self.queue.put(Msg.SLEW, cmd=cmd, replyQueue=replyQueue, waitForSlewEnd=True)
+
+    def do_slew(self, cmd, replyQueue):
+        """Correctly handle a slew command, given what parse_args had received."""
+        call = self.actorState.actor.cmdr.call
+
+        # NOTE: TBD: We should limit which offsets are kept.
+        keepArgs = "/keep=(obj,arc,gcorr,calib,bore)" if self.keepOffsets else ""
+
+        if self.ra is not None and self.dec is not None:
+            cmd.inform('text="slewing to (%.04f, %.04f, %g)"' % (self.ra, self.dec, self.rot))
+            if keepArgs:
+                cmd.warn('text="keeping all offsets"')
+            cmdVar = call(actor="tcc", forUserCmd=cmd,
+                          cmdStr="track %f, %f icrs /rottype=object/rotang=%g/rotwrap=mid %s" % \
+                          (self.ra, self.dec, self.rot, keepArgs))
+        else:
+            cmd.inform('text="slewing to (az, alt, rot) == (%.04f, %.04f, %0.4f)"' % (self.az, self.alt, self.rot))
+            cmdVar = call(actor="tcc", forUserCmd=cmd,
+                          cmdStr="track %f, %f mount/rottype=mount/rotangle=%f" % \
+                          (self.az, self.alt, self.rot))
+            
+        if cmdVar.didFail:
+            cmd.warn('text="Failed to start slew"')
+            replyQueue.put(Msg.REPLY, cmd=cmd, success=False)
+            return
+
+        # Wait for slew to end
+        self.queue.put(Msg.SLEW, cmd=cmd, replyQueue=replyQueue, waitForSlewEnd=True)
+
+
 def main(actor, queues):
     """Main loop for TCC thread"""
 
@@ -120,6 +216,7 @@ def main(actor, queues):
     actorState = myGlobals.actorState
     tccState = actorState.tccState
     timeout = actorState.timeout
+    slewHandler = SlewHandler(actorState, tccState, queues[sopActor.TCC])
 
     while True:
         try:
@@ -138,59 +235,8 @@ def main(actor, queues):
                 axis_stop(msg.cmd, actorState, msg.replyQueue)
 
             elif msg.type == Msg.SLEW:
-                cmd = msg.cmd
-
-                startSlew = False
-                try:
-                    msg.waitForSlewEnd
-                except AttributeError, e:
-                    startSlew = True
-                    
-                # Do not _start_ slew if an axis is wedged.
-                if tccState.badStat and not myGlobals.bypass.get(name='axes'):
-                    cmd.warn('text="in slew with badStat=%s halted=%s slewing=%s"' % \
-                                 (tccState.badStat, tccState.halted, tccState.slewing))
-                    msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
-                    continue
-
-                if not startSlew:
-                    cmd.warn('text="in slew with halted=%s slewing=%s"' % (tccState.halted, tccState.slewing))
-                    if not tccState.slewing:
-                        msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=not tccState.halted)
-                        continue
-                    
-                    time.sleep(1)
-                    queues[sopActor.TCC].put(Msg.SLEW, cmd=msg.cmd,
-                                             replyQueue=msg.replyQueue, waitForSlewEnd=True)
-                    continue
-
-                # Yuck, yuck, yuck. At the very least we should limit which offsets are kept.
-                try:
-                    keepArgs = "/keep=(obj,arc,gcorr,calib,bore)" if msg.keepOffsets else ""
-                except:
-                    keepArgs = ""
-
-                try:
-                    cmd.inform('text="slewing to (%.04f, %.04f, %g)"' % (msg.ra, msg.dec, msg.rot))
-                    if keepArgs:
-                        cmd.warn('text="keeping all offsets"')
-                    
-                    cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd,
-                                                            cmdStr="track %f, %f icrs /rottype=object/rotang=%g/rotwrap=mid %s" % \
-                                                            (msg.ra, msg.dec, msg.rot, keepArgs))
-                except AttributeError:
-                    cmd.inform('text="slewing to (az, alt, rot) == (%.04f, %.04f, %0.4f)"' % (msg.az, msg.alt, msg.rot))
-                    
-                    cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd,
-                                                            cmdStr="track %f, %f mount/rottype=mount/rotangle=%f" % \
-                                                            (msg.az, msg.alt, msg.rot))
-                    
-                if cmdVar.didFail:
-                    cmd.warn('text="Failed to start slew"')
-                    msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
-
-                # Wait for slew to end
-                queues[sopActor.TCC].put(Msg.SLEW, cmd=msg.cmd, replyQueue=msg.replyQueue, waitForSlewEnd=True)
+                slewHandler.parse_args(msg)
+                slewHandler.do_slew(msg.cmd, msg.replyQueue)
 
             elif msg.type == Msg.STATUS:
                 msg.cmd.inform('text="%s thread"' % threadName)

@@ -146,23 +146,116 @@ class TestAxisStop(TccThreadTester, unittest.TestCase):
         self._check_cmd(1,0,0,1, False, True)
 
 class TestSlew(TccThreadTester, unittest.TestCase):
-    def _slew(self):
-        tccThread.slew(self.cmd, self.actorState, self.queues['tcc'])
-        msg = self.queues['tcc'].get()
-        self.assertEqual(msg.type, sopActor.Msg.REPLY)
+    def setUp(self):
+        super(TestSlew,self).setUp()
+        self.slewHandler = tccThread.SlewHandler(self.actorState, self.actorState.tccState, self.queues['tcc'])
+        self.update_tccState()
+
+    def update_tccState(self):
+        """
+        Have to call the appropriate functions after we updateModel:
+            no callbacks in a fakeModel."""
+        tccState = self.actorState.tccState
+        model = self.actorState.models['tcc']
+        tccState.listenToBadStatusMask(model.keyVarDict["axisBadStatusMask"])
+        tccState.listenToAxisStat(model.keyVarDict["altStat"])
+        tccState.listenToAxisStat(model.keyVarDict["azStat"])
+        tccState.listenToAxisStat(model.keyVarDict["rotStat"])
+        tccState.listenToTccStatus(model.keyVarDict["tccStatus"])
+
+    def test_parse_args_radecrot(self):
+        ra, dec, rot = 10, 20, 30
+        msg = sopActor.Msg(sopActor.Msg.SLEW, self.cmd, ra=ra, dec=dec, rot=rot, keepOffsets=True)
+        self.slewHandler.parse_args(msg)
+        self.assertEqual(self.slewHandler.ra, ra)
+        self.assertEqual(self.slewHandler.dec, dec)
+        self.assertEqual(self.slewHandler.rot, rot)
+        self.assertTrue(self.slewHandler.keepOffsets)
+    def test_parse_args_altazrot(self):
+        alt, az, rot = 100, 200, 300
+        msg = sopActor.Msg(sopActor.Msg.SLEW, self.cmd, alt=alt, az=az, rot=rot)
+        self.slewHandler.parse_args(msg)
+        self.assertEqual(self.slewHandler.alt, alt)
+        self.assertEqual(self.slewHandler.az, az)
+        self.assertEqual(self.slewHandler.rot, rot)
+    def test_parse_args_waitForSlewEnd(self):
+        alt, az, rot = 100, 200, 300
+        msg = sopActor.Msg(sopActor.Msg.SLEW, self.cmd, alt=alt, az=az, rot=rot)
+        self.slewHandler.parse_args(msg)
+        self.assertEqual(self.slewHandler.alt, alt)
+
+    def test_not_ok_to_slew(self):
+        sopTester.updateModel('tcc',TestHelper.tccState['halted'])
+        self.update_tccState()
+        result = self.slewHandler.not_ok_to_slew()
+        self.assertFalse(result)
+    def test_not_ok_to_slew_no_stopped(self):
+        sopTester.updateModel('tcc',TestHelper.tccState['stopped'])
+        self.update_tccState()
+        result = self.slewHandler.not_ok_to_slew()
+        self.assertTrue(result)
+    def test_not_ok_to_slew_no_bad(self):
+        sopTester.updateModel('tcc',TestHelper.tccState['bad'])
+        self.update_tccState()
+        result = self.slewHandler.not_ok_to_slew()
+        self.assertTrue(result)
+
+    def _slew_radec(self, ra, dec, rot):
+        self.slewHandler.ra = ra
+        self.slewHandler.dec = dec
+        self.slewHandler.rot = rot
+        self.slewHandler.waitForSlewEnd = False
+        self.slewHandler.do_slew(self.cmd, self.queues['tcc'])
+        msg = self.queues['tcc'].get(timeout=0.1)
         return msg
-
     def test_slew(self):
-        msg = self._slew()
-        self.assertFail('Write a test!')
-
+        msg = self._slew_radec(10,20,30)
+        self.assertEqual(msg.type, sopActor.Msg.SLEW)
+        self._check_cmd(1,1,0,0,False)
     def test_in_slew(self):
         # prep that we're in a slew.
-        msg = self._slew()
-        self.assertFail('Write a test!')
+        self._slew_radec(10,20,30)
+        self.slewHandler.do_slew(self.cmd, self.queues['tcc'])
+        self.fail('Write a test!')
+
+    def test_slew_altaz(self):
+        alt, az, rot = 100, 200, 300
+        self.slewHandler.alt = alt
+        self.slewHandler.az = az
+        self.slewHandler.rot = rot
+        self.slewHandler.waitForSlewEnd = False
+        self.slewHandler.do_slew(self.cmd, self.queues['tcc'])
+        msg = self.queues['tcc'].get(timeout=0.1)
+        self.assertEqual(msg.type, sopActor.Msg.SLEW)
+        self._check_cmd(1,1,0,0,False)
+
+
+    def test_slew_fails(self):
+        self.cmd.failOn = "tcc track 10.000000, 20.000000 icrs /rottype=object/rotang=30/rotwrap=mid"
+        msg = self._slew_radec(10,20,30)
+        self.assertEqual(msg.type, sopActor.Msg.REPLY)
+        self.assertFalse(msg.success)
+        self._check_cmd(1,1,1,0,False,False)
+
+    def test_slew_axis_stopped(self):
+        sopTester.updateModel('tcc',TestHelper.tccState['stopped'])
+        self.update_tccState()
+        self.slewHandler.waitForSlewEnd = False
+        self.slewHandler.slew(self.cmd, self.queues['tcc'])
+        msg = self.queues['tcc'].get(timeout=0.1)
+        self.assertEqual(msg.type, sopActor.Msg.REPLY)
+        self.assertFalse(msg.success)
+        self._check_cmd(0,0,1,0,False,False)
 
 
 if __name__ == '__main__':
     verbosity = 2
     
-    unittest.main(verbosity=verbosity)
+    suite = None
+    # to test just one piece
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestSlew)
+
+    if suite:
+        unittest.TextTestRunner(verbosity=verbosity).run(suite)
+    else:
+        unittest.main(verbosity=verbosity)
