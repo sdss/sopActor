@@ -133,7 +133,7 @@ class SlewHandler(object):
         self.ra, self.dec = None, None
         self.rot = None
         self.keepOffsets = False
-        self.waitforSlewEnd = None
+        self.waitForSlewEnd = None
 
     def parse_args(self, msg):
         """Extract the various potential arguments of a slew msg."""
@@ -148,7 +148,6 @@ class SlewHandler(object):
     def slew(self, cmd, replyQueue):
         """Issue the commanded tcc track."""
         tccState = self.tccState
-
         # Just fail if there's something wrong with an axis.
         if self.not_ok_to_slew():
             cmd.warn('text="in slew with badStat=%s halted=%s slewing=%s"' % \
@@ -183,7 +182,7 @@ class SlewHandler(object):
     def do_slew(self, cmd, replyQueue):
         """Correctly handle a slew command, given what parse_args had received."""
         call = self.actorState.actor.cmdr.call
-
+        
         # NOTE: TBD: We should limit which offsets are kept.
         keepArgs = "/keep=(obj,arc,gcorr,calib,bore)" if self.keepOffsets else ""
 
@@ -236,7 +235,7 @@ def main(actor, queues):
 
             elif msg.type == Msg.SLEW:
                 slewHandler.parse_args(msg)
-                slewHandler.do_slew(msg.cmd, msg.replyQueue)
+                slewHandler.slew(msg.cmd, msg.replyQueue)
 
             elif msg.type == Msg.STATUS:
                 msg.cmd.inform('text="%s thread"' % threadName)
