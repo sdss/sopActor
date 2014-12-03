@@ -144,12 +144,13 @@ class SlewHandler(object):
         self.ra = getattr(msg, 'ra', None)
         self.dec = getattr(msg, 'dec', None)
         self.keepOffsets = getattr(msg, 'keepOffsets', False)
+        self.ignoreBadAz = getattr(msg, 'ignoreBadAz', False)
 
     def slew(self, cmd, replyQueue):
         """Issue the commanded tcc track."""
         tccState = self.tccState
         # Just fail if there's something wrong with an axis.
-        if self.not_ok_to_slew():
+        if self.not_ok_to_slew(cmd):
             cmd.warn('text="in slew with badStat=%s halted=%s slewing=%s"' % \
                          (tccState.badStat, tccState.halted, tccState.slewing))
             replyQueue.put(Msg.REPLY, cmd=cmd, success=False)
@@ -162,9 +163,15 @@ class SlewHandler(object):
         else:
             self.do_slew(cmd, replyQueue)
 
-    def not_ok_to_slew(self):
+    def not_ok_to_slew(self, cmd):
         """Return True if we should not command a slew."""
-        return (self.tccState.badStat != 0) and not myGlobals.bypass.get(name='axes')
+        if below_alt_limit(self.actorState):
+            cmd.warn("text='Below alt=18 limit! Ignoring errors in Az, since we cannot move it.'")
+            alt = (self.tccState.badStat & self.tccState.axisMask('ALT') != 0)
+            rot = (self.tccState.badStat & self.tccState.axisMask('ROT') != 0)
+            return alt and rot and not myGlobals.bypass.get(name='axes')
+        else:
+            return (self.tccState.badStat != 0) and not myGlobals.bypass.get(name='axes')
 
     def check_running_slew(self, cmd, replyQueue):
         """Check and report on the status of a currently running slew."""
@@ -175,7 +182,7 @@ class SlewHandler(object):
         if not tccState.slewing:
             replyQueue.put(Msg.REPLY, cmd=cmd, success=not tccState.halted)
             return
-        
+
         time.sleep(1)
         self.queue.put(Msg.SLEW, cmd=cmd, replyQueue=replyQueue, waitForSlewEnd=True)
 
