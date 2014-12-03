@@ -57,7 +57,7 @@ guider focus off
 
 guider on time=5
 
-[test_goto_field_apogee_bypass_gangCart]
+[test_goto_field_apogee_bypass_gangToCart]
 mcp ff.on
 tcc axis status
 tcc axis init

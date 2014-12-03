@@ -145,7 +145,6 @@ class TestAxisStop(TccThreadTester, unittest.TestCase):
         self.assertFalse(msg.success)
         self._check_cmd(1,0,0,1, False, True)
 
-
 class TestSlew(TccThreadTester, unittest.TestCase):
     def _slew(self):
         tccThread.slew(self.cmd, self.actorState, self.queues['tcc'])

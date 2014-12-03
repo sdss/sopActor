@@ -92,10 +92,10 @@ class TestBypass(SopCmdTester,unittest.TestCase):
     def test_bypass_isApogeeMangaStare(self):
         self._bypass_set('isApogeeMangaStare', 54, 3, 1, ['APGOEE-2&MaNGA','MaNGA stare'])
 
-    def test_bypass_gangCart(self):
-        self._bypass_set('gangCart', 53, 4)
-    def test_bypass_gangPodium(self):
-        self._bypass_set('gangPodium', 53, 4)
+    def test_bypass_gangToCart(self):
+        self._bypass_set('gangToCart', 53, 4)
+    def test_bypass_gangToPodium(self):
+        self._bypass_set('gangToPodium', 53, 4)
 
     def test_bypass_axes(self):
         self._bypass_set('axes', 53, 1)

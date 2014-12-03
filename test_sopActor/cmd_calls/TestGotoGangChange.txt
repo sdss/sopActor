@@ -33,7 +33,7 @@ tcc axis init
 
 tcc track 121.000000, 45.000000 mount/rottype=mount/rotangle=0.000000
 
-[test_goto_gang_change_apogee_bypass_gangPodium]
+[test_goto_gang_change_apogee_bypass_gangToCart]
 mcp ffs.close
 
 apogee expose time=50.0 object=DomeFlat
@@ -44,7 +44,7 @@ tcc axis init
 
 tcc track 121.000000, 45.000000 mount/rottype=mount/rotangle=0.000000
 
-[test_goto_gang_change_apogee_bypass_gangCart]
+[test_goto_gang_change_apogee_bypass_gangToPodium]
 tcc axis status
 tcc axis init
 

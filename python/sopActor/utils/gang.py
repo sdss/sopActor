@@ -47,10 +47,10 @@ class ApogeeGang(object):
         """
         bcast = myGlobals.actorState.actor.bcast
 
-        if myGlobals.bypass.get(name='gangCart'):
+        if myGlobals.bypass.get(name='gangToPodium'):
             bcast.warn('text="Lying about the APOGEE gang connector being on the podium"')
             return self.GANG_ON_PODIUM
-        elif myGlobals.bypass.get(name='gangPodium'):
+        elif myGlobals.bypass.get(name='gangToCart'):
             bcast.warn('text="Lying about the APOGEE gang connector being on the cartridge"')
             return self.GANG_ON_CARTRIDGE
         else:

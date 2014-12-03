@@ -49,6 +49,7 @@ test_sopActor/cmd_calls/TestHartmann.txt -text
 test_sopActor/cmd_calls/TestLampThread.txt -text
 test_sopActor/cmd_calls/TestMangaScience.txt -text
 test_sopActor/cmd_calls/TestMcpSemaphoreOk.txt -text
+test_sopActor/cmd_calls/TestSlew.txt -text
 test_sopActor/sopTester.py -text
 test_sopActor/test_SopCmd.py -text
 test_sopActor/test_apogeeThread.py -text

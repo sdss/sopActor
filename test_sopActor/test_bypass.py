@@ -28,16 +28,16 @@ class TestBypass(unittest.TestCase):
         self.assertEqual(result, expect)
     def test_is_cart_bypass_isBoss(self):
         self._is_cart_bypass('isBoss', True)
-    def test_is_cart_bypass_gangPodium(self):
-        self._is_cart_bypass('gangPodium', False)
+    def test_is_cart_bypass_gangToPodium(self):
+        self._is_cart_bypass('gangToPodium', False)
 
     def _is_gang_bypass(self, name, expect):
         result = self.bypass.is_gang_bypass(name)
         self.assertEqual(result, expect)
-    def test_is_gang_bypass_gangCart(self):
-        self._is_gang_bypass('gangCart', True)
-    def test_is_gang_bypass_gangPodium(self):
-        self._is_gang_bypass('gangPodium', True)
+    def test_is_gang_bypass_gangToCart(self):
+        self._is_gang_bypass('gangToCart', True)
+    def test_is_gang_bypass_gangToPodium(self):
+        self._is_gang_bypass('gangToPodium', True)
     def test_is_gang_bypass_isBoss(self):
         self._is_gang_bypass('isBoss', False)
 
@@ -52,7 +52,7 @@ class TestBypass(unittest.TestCase):
             self.assertFalse(self.bypass.get(x))
 
     def test_clear_gang_bypasses(self):
-        gangs = ['gangPodium', 'gangCart']
+        gangs = ['gangToPodium', 'gangToCart']
         for x in self.bypass._bypassed:
             self.bypass._bypassed[x] = True
         self.bypass.clear_gang_bypasses()
@@ -89,17 +89,17 @@ class TestBypass(unittest.TestCase):
         """Bypassing to one gang position should clear the other."""
         result = self.bypass.set(name)
         self.assertTrue(result)
-        for x in ('gangPodium', 'gangCart'):
+        for x in ('gangToPodium', 'gangToCart'):
             if name != x:
                 self.assertFalse(self.bypass.get(x), '%s should not be set'%x)
             else:
                 self.assertTrue(self.bypass.get(name), '%s should be set'%name)
     def test_set_gang_podium(self):
-        self.bypass.set('gangCart')
-        self._set_gang_bypass('gangPodium')
+        self.bypass.set('gangToCart')
+        self._set_gang_bypass('gangToPodium')
     def test_set_gang_cart(self):
-        self.bypass.set('gangPodium')
-        self._set_gang_bypass('gangCart')
+        self.bypass.set('gangToPodium')
+        self._set_gang_bypass('gangToCart')
 
     def test_get_one(self):
         result = self.bypass.get('axes')
@@ -114,7 +114,7 @@ class TestBypass(unittest.TestCase):
         self.assertEqual(result[1], TestHelper.sopState['ok']['bypassed'])
 
     def test_get_bypass_list_two_set(self):
-        isSet = ('axes','gangPodium', 'lamp_ff')
+        isSet = ('axes','gangToPodium', 'lamp_ff')
         for x in isSet:
             self.bypass.set(x)
         result = self.bypass.get_bypass_list()
@@ -131,10 +131,10 @@ class TestBypass(unittest.TestCase):
         self.assertEqual(result, [])
 
     def test_get_bypassedNames_two_set(self):
-        self.bypass.set('gangCart')
+        self.bypass.set('gangToCart')
         self.bypass.set('axes')
         result = self.bypass.get_bypassedNames()
-        self.assertEqual(result, ['axes', 'gangCart'])
+        self.assertEqual(result, ['axes', 'gangToCart'])
 
 if __name__ == '__main__':
     verbosity = 2

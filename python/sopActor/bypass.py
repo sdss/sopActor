@@ -16,14 +16,14 @@ class Bypass(object):
                    "isBoss", "isApogee",
                    "isMangaDither", "isMangaStare",
                    "isApogeeLead", "isApogeeMangaDither", "isApogeeMangaStare",
-                   "gangCart", "gangPodium"):
+                   "gangToCart", "gangToPodium"):
             self._bypassed[ss] = False
 
         # The bypasses in these groups are mutually-contradictory.
         self.cartBypasses = ("isBoss", "isApogee",
                              "isMangaDither", "isMangaStare",
                              "isApogeeLead", "isApogeeMangaDither", "isApogeeMangaStare")
-        self.gangBypasses = ('gangPodium', 'gangCart')
+        self.gangBypasses = ('gangToPodium', 'gangToCart')
 
     def set(self, name, bypassed=True):
         """

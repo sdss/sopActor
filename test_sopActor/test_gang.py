@@ -68,16 +68,16 @@ class Test_gang(sopTester.SopTester,unittest.TestCase):
     def test_at_podium_bypassed(self):
         """gang at podium, but that location is bypassed."""
         setGang(4)
-        myGlobals.bypass.set('gangPodium',True)
+        myGlobals.bypass.set('gangToCart',True)
         self.assertFalse(self.apogeeGang.atPodium())
         self.assertFalse(self.apogeeGang.atPodium(sparseOK=True))
         self.assertFalse(self.apogeeGang.atPodium(one_mOK=True))
         self.assertTrue(self.apogeeGang.atCartridge())
 
-    def test_at_gang_bypassed(self):
-        """gang at gang, but that location is bypassed."""
+    def test_at_cart_bypassed(self):
+        """gang at cart, but that location is bypassed."""
         setGang(2)
-        myGlobals.bypass.set('gangCart',True)
+        myGlobals.bypass.set('gangToPodium',True)
         self.assertTrue(self.apogeeGang.atPodium())
         self.assertTrue(self.apogeeGang.atPodium(sparseOK=True))
         self.assertTrue(self.apogeeGang.atPodium(one_mOK=True))
