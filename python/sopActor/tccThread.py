@@ -128,23 +128,21 @@ class SlewHandler(object):
         self.reset()
 
     def reset(self):
-        """Reset everything so we know what type of slew ."""
+        """Reset everything so we know the type of slew that is commanded."""
         self.alt, self.az = None, None
         self.ra, self.dec = None, None
         self.rot = None
         self.keepOffsets = False
-        self.waitForSlewEnd = None
+        self.ignoreBadAz = False # for when we start below the alt limit.
 
     def parse_args(self, msg):
         """Extract the various potential arguments of a slew msg."""
-        self.waitForSlewEnd = getattr(msg, 'waitForSlewEnd', None)
         self.alt = getattr(msg, 'alt', None)
         self.az = getattr(msg, 'az', None)
         self.rot = getattr(msg, 'rot', None)
         self.ra = getattr(msg, 'ra', None)
         self.dec = getattr(msg, 'dec', None)
         self.keepOffsets = getattr(msg, 'keepOffsets', False)
-        self.ignoreBadAz = getattr(msg, 'ignoreBadAz', False)
 
     def slew(self, cmd, replyQueue):
         """Issue the commanded tcc track."""
@@ -156,35 +154,54 @@ class SlewHandler(object):
             replyQueue.put(Msg.REPLY, cmd=cmd, success=False)
             return
 
-        # NOTE: pardon the odd logic here of reusing this function for waiting messages:
-        # I'm just copying the Robert and Craig logic, strange though it may be.
-        if self.waitForSlewEnd:
-            self.check_running_slew(cmd, replyQueue)
-        else:
-            self.do_slew(cmd, replyQueue)
+        self.do_slew(cmd, replyQueue)
+
+    def axis_status_ignore_az(self):
+        """Ignore the state of az when determing axis status."""
+        alt = (self.tccState.badStat & self.tccState.axisMask('ALT') != 0)
+        rot = (self.tccState.badStat & self.tccState.axisMask('ROT') != 0)
+        return alt and rot and not myGlobals.bypass.get(name='axes')
 
     def not_ok_to_slew(self, cmd):
         """Return True if we should not command a slew."""
+
+        if self.ignoreBadAz:
+            return self.axis_status_ignore_az()
         if below_alt_limit(self.actorState):
-            cmd.warn("text='Below alt=18 limit! Ignoring errors in Az, since we cannot move it.'")
-            alt = (self.tccState.badStat & self.tccState.axisMask('ALT') != 0)
-            rot = (self.tccState.badStat & self.tccState.axisMask('ROT') != 0)
-            return alt and rot and not myGlobals.bypass.get(name='axes')
+            cmd.warn("text='Below alt=18 limit! Ignoring errors in Az, since we cannot move it anyway.'")
+            self.ignoreBadAz = True
+            return self.axis_status_ignore_az()
         else:
             return (self.tccState.badStat != 0) and not myGlobals.bypass.get(name='axes')
 
-    def check_running_slew(self, cmd, replyQueue):
-        """Check and report on the status of a currently running slew."""
+    def wait_for_slew_end(self, cmd, replyQueue):
+        """
+        Check and report on the status of a currently running slew.
+        Need to do this because the tcc may report a slew as complete before
+        the axes settle or there may be a delay before a bad slew is fully reported.
+        """
         tccState = self.tccState
-        # TBD: Why is this always a warning? Shouldn't it be warning for halted True, or
-        # some combination of values that are nonsensical?
-        cmd.warn('text="in slew with halted=%s slewing=%s"' % (tccState.halted, tccState.slewing))
+        # fail with an extra message if some axis status went bad.
+        if self.not_ok_to_slew(cmd):
+            cmd.warn('text="in slew with badStat=%s halted=%s slewing=%s"' % \
+                         (tccState.badStat, tccState.halted, tccState.slewing))
+            replyQueue.put(Msg.REPLY, cmd=cmd, success=False)
+            return
+
+        # Only output warn level if the state is nonsensical.
+        lvl = cmd.warn if tccState.halted == tccState.slewing else cmd.inform
+        lvl('text="in slew with halted=%s slewing=%s"' % (tccState.halted, tccState.slewing))
+
         if not tccState.slewing:
-            replyQueue.put(Msg.REPLY, cmd=cmd, success=not tccState.halted)
+            if self.ignoreBadAz:
+                success = not self.axis_status_ignore_az()
+            else:
+                success = not tccState.halted
+            replyQueue.put(Msg.REPLY, cmd=cmd, success=success)
             return
 
         time.sleep(1)
-        self.queue.put(Msg.SLEW, cmd=cmd, replyQueue=replyQueue, waitForSlewEnd=True)
+        self.queue.put(Msg.WAIT_FOR_SLEW_END, cmd=cmd, replyQueue=replyQueue)
 
     def do_slew(self, cmd, replyQueue):
         """Correctly handle a slew command, given what parse_args had received."""
@@ -212,7 +229,7 @@ class SlewHandler(object):
             return
 
         # Wait for slew to end
-        self.queue.put(Msg.SLEW, cmd=cmd, replyQueue=replyQueue, waitForSlewEnd=True)
+        self.queue.put(Msg.WAIT_FOR_SLEW_END, cmd=cmd, replyQueue=replyQueue)
 
 
 def main(actor, queues):
@@ -241,8 +258,11 @@ def main(actor, queues):
                 axis_stop(msg.cmd, actorState, msg.replyQueue)
 
             elif msg.type == Msg.SLEW:
+                slewHandler.reset()
                 slewHandler.parse_args(msg)
                 slewHandler.slew(msg.cmd, msg.replyQueue)
+            elif msg.type == Msg.WAIT_FOR_SLEW_END:
+                slewHandler.wait_for_slew_end(msg.cmd, msg.replyQueue)
 
             elif msg.type == Msg.STATUS:
                 msg.cmd.inform('text="%s thread"' % threadName)

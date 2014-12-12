@@ -67,6 +67,8 @@ class TCCState(object):
           - SlewEnd, indicating the end of a real slew or a computed offset
         """
 
+        # TBD: NOTE: This method seems excessive. Can't we just check SlewBeg itself?
+
         #
         # Ughh.  Look for those keys somewhere else on the same reply; Craig swears that this is safe...
         #

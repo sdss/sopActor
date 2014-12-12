@@ -84,6 +84,7 @@ except NameError:
         class EXPOSURE_FINISHED(): pass
         class REPLY(): pass
         class SLEW(): pass
+        class WAIT_FOR_SLEW_END(): pass
         class AXIS_INIT(): pass
         class AXIS_STOP(): pass
         class WAIT_UNTIL(): pass
@@ -94,9 +95,9 @@ except NameError:
         class GOTO_GANG_CHANGE(): pass
         class APOGEE_DOME_FLAT(): pass
         class POST_FLAT(): pass
-        class APOGEE_SHUTTER(): pass            # control the internal APOGEE shutter 
-        class APOGEE_PARK_DARKS(): pass 
-        class APOGEE_SKY_FLATS(): pass 
+        class APOGEE_SHUTTER(): pass            # control the internal APOGEE shutter
+        class APOGEE_PARK_DARKS(): pass
+        class APOGEE_SKY_FLATS(): pass
         class NEW_SCRIPT(): pass
         class STOP_SCRIPT(): pass
         class SCRIPT_STEP(): pass

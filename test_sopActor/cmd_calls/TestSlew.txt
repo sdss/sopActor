@@ -11,3 +11,8 @@ tcc track 200.000000, 100.000000 mount/rottype=mount/rotangle=300.000000
 tcc track 10.000000, 20.000000 icrs /rottype=object/rotang=30/rotwrap=mid
 
 [test_slew_axis_halted]
+
+[test_slew_twice]
+tcc track 10.000000, 20.000000 icrs /rottype=object/rotang=30/rotwrap=mid
+
+tcc track 40.000000, 50.000000 icrs /rottype=object/rotang=60/rotwrap=mid
