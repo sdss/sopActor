@@ -124,10 +124,11 @@ class SopCmd(object):
             ("lampsOff", "", self.lampsOff),
             ("ping", "", self.ping),
             ("restart", "[<threads>] [keepQueues]", self.restart),
-            ("gotoField", "[<arcTime>] [<flatTime>] [<guiderFlatTime>] [<guiderTime>] [noSlew] [noHartmann] [noCalibs] [noGuider] [abort] [keepOffsets]",
-             self.gotoField),
+            ("gotoField", "[<arcTime>] [<flatTime>] [<guiderFlatTime>] [<guiderTime>] [noSlew] [noHartmann] [noCalibs] [noGuider] [abort] [keepOffsets]", self.gotoField),
             ("gotoInstrumentChange", "", self.gotoInstrumentChange),
             ("gotoStow", "", self.gotoStow),
+            ("goto606060", "", self.goto606060),
+            ("goto12160", "", self.goto12160),
             ("gotoGangChange", "[<alt>] [abort] [stop]", self.gotoGangChange),
             ("doApogeeDomeFlat", "[stop] [abort]", self.doApogeeDomeFlat),
             ("setFakeField", "[<az>] [<alt>] [<rotOffset>]", self.setFakeField),
@@ -837,7 +838,7 @@ class SopCmd(object):
 
         blocked = self.isSlewingDisabled(cmd)
         if blocked:
-            cmd.fail('text=%s' % (qstr('will not go to instrument change: %s' % (blocked))))
+            cmd.fail('text=%s' % (qstr('will not go to instrument change (121,90): %s' % (blocked))))
             return
 
         sopState.gotoInstrumentChange.reinitialize(cmd)
@@ -850,11 +851,37 @@ class SopCmd(object):
 
         blocked = self.isSlewingDisabled(cmd)
         if blocked:
-            cmd.fail('text=%s' % (qstr('will not go to stow position: %s' % (blocked))))
+            cmd.fail('text=%s' % (qstr('will not go to stow (121,30) position: %s' % (blocked))))
             return
 
         sopState.gotoStow.reinitialize(cmd)
         self.gotoPosition(cmd, "stow", sopState.gotoStow, 121, 30, 0)
+
+    def goto606060(self, cmd):
+        """Go to the startup check position: alt=60, az=60, rot=60"""
+
+        sopState = myGlobals.actorState
+
+        blocked = self.isSlewingDisabled(cmd)
+        if blocked:
+            cmd.fail('text=%s' % (qstr('will not go to startup (60,60,60) position: %s' % (blocked))))
+            return
+
+        sopState.goto606060.reinitialize(cmd)
+        self.gotoPosition(cmd, "stow", sopState.goto606060, 60, 60, 60)
+
+    def goto12160(self, cmd):
+        """Go to the resting position: alt=60, az=121, rot=0"""
+
+        sopState = myGlobals.actorState
+
+        blocked = self.isSlewingDisabled(cmd)
+        if blocked:
+            cmd.fail('text=%s' % (qstr('will not go to rest (121,60) position: %s' % (blocked))))
+            return
+
+        sopState.goto12160.reinitialize(cmd)
+        self.gotoPosition(cmd, "stow", sopState.goto12160, 121, 60, 0)
 
     def gotoGangChange(self, cmd):
         """Go to the gang connector change position"""
@@ -1039,10 +1066,11 @@ class SopCmd(object):
         sopState.hartmann.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.collimateBoss.genKeys(cmd=cmd, trimKeys=oneCommand)
 
-
         # commands with no state
         sopState.gotoStow.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.gotoInstrumentChange.genKeys(cmd=cmd, trimKeys=oneCommand)
+        sopState.goto606060.genKeys(cmd=cmd, trimKeys=oneCommand)
+        sopState.goto12160.genKeys(cmd=cmd, trimKeys=oneCommand)
 
         # TBD: threads arg is only used with "geek" option, apparently?
         # TBD: I guess its useful for live debugging of the threads.
@@ -1086,6 +1114,9 @@ class SopCmd(object):
 
         sopState.gotoInstrumentChange = CmdState.CmdState('gotoInstrumentChange',["slew"])
         sopState.gotoStow = CmdState.CmdState('gotoStow',["slew"])
+        sopState.goto606060 = CmdState.CmdState('goto606060',["slew"])
+        sopState.goto12160 = CmdState.CmdState('goto12160',["slew"])
+
 
         self.updateCartridge(-1,'None','None')
         # guiderState is smart enough to only call the callback once both have been updated.
@@ -1147,7 +1178,8 @@ class SopCmd(object):
                 sopState.doApogeeMangaSequence.set_mangaStare()
         else:
             sopState.gotoField.setStages(['slew', 'guider', 'cleanup'])
-            sopState.validCommands = ['gotoStow', 'gotoInstrumentChange']
+            sopState.validCommands = ['gotoStow', 'gotoInstrumentChange',
+                                      'goto606060', 'goto12160']
 
         if status:
             self.status(cmd, threads=False, finish=False)
