@@ -693,11 +693,10 @@ class TestGotoPosition(SopCmdTester,unittest.TestCase):
         self._gotoPosition('gotoStow', 121, 30, 0)
     def test_goto606060(self):
         sopTester.updateModel('tcc', TestHelper.tccState['tracking'])
-        self._gotoPosition('goto606060', 60, 60, 60)
+        self._gotoPosition('gotoAll60', 60, 60, 60)
     def test_goto12160(self):
         sopTester.updateModel('tcc', TestHelper.tccState['tracking'])
-        self._gotoPosition('goto12160', 121, 60, 0)
-
+        self._gotoPosition('gotoStow60', 121, 60, 0)
 
 
 class TestDoBossScience(SopCmdTester,unittest.TestCase):
