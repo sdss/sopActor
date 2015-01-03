@@ -433,27 +433,45 @@ class SopCmd(object):
     def doMangaSequence(self, cmd):
         """Take an exposure at a sequence of dither positions, including calibrations."""
         
+        name = 'doMangaSequence'
         sopState = myGlobals.actorState
         cmdState = sopState.doMangaSequence
+        keywords = cmd.cmd.keywords
         
         if "stop" in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
-            self.stop_cmd(cmd, cmdState, sopState, 'doMangaSequence')
+            self.stop_cmd(cmd, cmdState, sopState, name)
             return
 
         if self.modifiable(cmd, cmdState):
             # Modify running doMangaDither command
-            cmd.fail('text="Cannot modify MaNGA Sequence (yet)."')
+            if "dithers" in keywords:
+                newDithers = keywords['dithers'].values[0]
+                if (newDithers != cmdState.dithers):
+                    cmd.fail('text="Cannot modify MaNGA dither sequence."')
+                    return
+                dithers = newDithers
+            
+            if "count" in keywords:
+                count = int(keywords["count"].values[0])
+
+            cmdState.dithers = dithers
+            cmdState.count = count
+            cmdState.reset_ditherSeq()
+
+            if cmdState.index >= len(cmdState.ditherSeq):
+                cmd.warn('text="Modified exposure sequence is shorter than position in current sequence."')
+                cmd.warn('text="Truncating previous exposure sequence, but NOT trying to stop current exposure."')
+                cmdState.index = len(cmdState.ditherSeq)
+
+            self.status(cmd, threads=False, finish=True, oneCommand=name)
             return
 
         cmdState.reinitialize(cmd)
-        expTime = cmd.cmd.keywords["expTime"].values[0] \
-                    if "expTime" in cmd.cmd.keywords else None
+        expTime = keywords["expTime"].values[0] if "expTime" in keywords else None
         cmdState.set('expTime',expTime)
-        dither = cmd.cmd.keywords['dithers'].values[0] \
-                    if "dithers" in cmd.cmd.keywords else None
+        dither = keywords['dithers'].values[0] if "dithers" in keywords else None
         cmdState.set('dithers',dither)
-        count = cmd.cmd.keywords['count'].values[0] \
-                    if "count" in cmd.cmd.keywords else None
+        count = keywords['count'].values[0] if "count" in keywords else None
         cmdState.set('count',count)
         cmdState.reset_ditherSeq()
         

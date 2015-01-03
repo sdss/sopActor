@@ -418,18 +418,26 @@ class TestDoMangaSequence(SopCmdTester,unittest.TestCase):
         self._run_cmd('doMangaSequence abort', None)
         self.assertTrue(self.actorState.aborting)
 
-    def test_doMangaSequence_modify(self):
-        """Cannot modify this command, so fail and nothing should change."""
+    def _doMangaSequence_modify(self, args1, args2, cmd_levels=(0,12,0,0), didFail=False):
         queue = myGlobals.actorState.queues[sopActor.MASTER]
         # create something we can modify.
-        msg = self._run_cmd('doMangaSequence dithers=NSE expTime=100 count=1', queue)
-        msgNew = self._run_cmd('doMangaSequence dithers=SEN expTime=200 count=2', queue, empty=True)
+        msg = self._run_cmd('doMangaSequence %s'%args1, queue)
+        msgNew = self._run_cmd('doMangaSequence %s'%args2, queue, empty=True)
         self.assertIsNone(msgNew)
-        self.assertEqual(msg.cmdState.expTime, 100)
-        self.assertEqual(msg.cmdState.dithers, 'NSE')
-        self.assertEqual(msg.cmdState.count, 1)
-        self._check_cmd(0,2,0,0,True,True)
+        self._check_cmd(*cmd_levels,finish=True, didFail=didFail)
+        return msg
+    def test_doMangaSequence_modify(self):
+        msg = self._doMangaSequence_modify('dithers=NSE count=2','dithers=NSE count=1')
+        self.assertEqual(msg.cmdState.dithers,'NSE')
+        self.assertEqual(msg.cmdState.count,1)
+        self.assertEqual(msg.cmdState.ditherSeq,'NSE')
 
+    def test_doMangaSequence_modify_not_dithers(self):
+        msg = self._doMangaSequence_modify('dithers=NSE count=2','dithers=SEN count=1',(0,2,0,0),True)
+        self.assertEqual(msg.cmdState.dithers,'NSE')
+        self.assertEqual(msg.cmdState.count,2)
+        self.assertEqual(msg.cmdState.ditherSeq,'NSENSE')
+        self.assertTrue(self.cmd.didFail)
 
 class TestDoApogeeMangaDither(SopCmdTester,unittest.TestCase):
     def _doApogeeMangaDither(self, expect, args=''):
