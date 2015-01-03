@@ -532,18 +532,26 @@ class TestDoApogeeMangaSequence(SopCmdTester,unittest.TestCase):
         self._run_cmd('doApogeeMangaSequence abort', None)
         self.assertTrue(self.actorState.aborting)
 
-    def test_doApogeeMangaSequence_modify(self):
-        """Cannot modify this command, so fail and nothing should change."""
+    def _doApogeeMangaSequence_modify(self, args1, args2, cmd_levels=(0,12,0,0), didFail=False):
         queue = myGlobals.actorState.queues[sopActor.MASTER]
         # create something we can modify.
-        msg = self._run_cmd('doApogeeMangaSequence mangaDithers=NSE mangaExpTime=100 apogeeExpTime=100 count=1', queue)
-        msgNew = self._run_cmd('doApogeeMangaSequence mangaDithers=SEN mangaExpTime=200 apogeeExpTime=100 count=2', queue, empty=True)
+        msg = self._run_cmd('doApogeeMangaSequence %s'%args1, queue)
+        msgNew = self._run_cmd('doApogeeMangaSequence %s'%args2, queue, empty=True)
         self.assertIsNone(msgNew)
-        self.assertEqual(msg.cmdState.mangaExpTime, 100)
-        self.assertEqual(msg.cmdState.apogeeExpTime, 100)
-        self.assertEqual(msg.cmdState.mangaDithers, 'NSE')
-        self.assertEqual(msg.cmdState.count, 1)
-        self._check_cmd(0,2,0,0,True,True)
+        self._check_cmd(*cmd_levels,finish=True, didFail=didFail)
+        return msg
+    def test_doApogeeMangaSequence_modify(self):
+        msg = self._doApogeeMangaSequence_modify('mangaDithers=ESN count=2','mangaDithers=ESN count=1')
+        self.assertEqual(msg.cmdState.mangaDithers,'ESN')
+        self.assertEqual(msg.cmdState.count,1)
+        self.assertEqual(msg.cmdState.mangaDitherSeq,'ESN')
+
+    def test_doApogeeMangaSequence_modify_not_dithers(self):
+        msg = self._doApogeeMangaSequence_modify('mangaDithers=NSE count=2','mangaDithers=SEN count=1',(0,2,0,0),True)
+        self.assertEqual(msg.cmdState.mangaDithers,'NSE')
+        self.assertEqual(msg.cmdState.count,2)
+        self.assertEqual(msg.cmdState.mangaDitherSeq,'NSENSE')
+        self.assertTrue(self.cmd.didFail)
 
 
 class TestGotoField(SopCmdTester,unittest.TestCase):

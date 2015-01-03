@@ -606,7 +606,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
                            mangaDithers='CC',
                            count=2,
                            comment='')
-        self.readout = True 
+        self.readout = True
         if not (self.cmd and self.cmd.isAlive()):
             self.reset_ditherSeq()
 

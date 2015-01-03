@@ -447,7 +447,7 @@ class SopCmd(object):
             if "dithers" in keywords:
                 newDithers = keywords['dithers'].values[0]
                 if (newDithers != cmdState.dithers):
-                    cmd.fail('text="Cannot modify MaNGA dither sequence."')
+                    cmd.fail('text="Cannot modify MaNGA dither pattern, only counts."')
                     return
                 dithers = newDithers
             
@@ -513,31 +513,48 @@ class SopCmd(object):
         
         sopState = myGlobals.actorState
         cmdState = sopState.doApogeeMangaSequence
-        
-        if "stop" in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
-            self.stop_cmd(cmd, cmdState, sopState, 'doApogeeMangaSequence')
+        keywords = cmd.cmd.keywords
+        name = 'doApogeeMangaSequence'
+
+        if "stop" in keywords or 'abort' in keywords:
+            self.stop_cmd(cmd, cmdState, sopState, name)
             return
 
         if self.modifiable(cmd, cmdState):
-            # Modify running doApogeeMangaDither command
-            cmd.fail('text="Cannot modify ApogeeManga Sequence (yet)."')
+            # Modify running doMangaDither command
+            if "mangaDithers" in keywords:
+                newMangaDithers = keywords['mangaDithers'].values[0]
+                if (newMangaDithers != cmdState.mangaDithers):
+                    cmd.fail('text="Cannot modify APOGEE/MaNGA dither pattern, only counts."')
+                    return
+                mangaDithers = newMangaDithers
+            
+            if "count" in keywords:
+                count = int(keywords["count"].values[0])
+
+            cmdState.mangaDithers = mangaDithers
+            cmdState.count = count
+            cmdState.reset_ditherSeq()
+
+            if cmdState.index >= len(cmdState.mangaDitherSeq):
+                cmd.warn('text="Modified exposure sequence is shorter than position in current sequence."')
+                cmd.warn('text="Truncating previous exposure sequence, but NOT trying to stop current exposure."')
+                cmdState.index = len(cmdState.mangaDitherSeq)
+
+            self.status(cmd, threads=False, finish=True, oneCommand=name)
             return
 
         cmdState.reinitialize(cmd)
 
-        apogeeExpTime = cmd.cmd.keywords["apogeeExpTime"].values[0] \
-                    if "apogeeExpTime" in cmd.cmd.keywords else None
+        apogeeExpTime = keywords["apogeeExpTime"].values[0] if "apogeeExpTime" in keywords else None
         cmdState.set('apogeeExpTime',apogeeExpTime)
 
-        mangaDithers = cmd.cmd.keywords['mangaDithers'].values[0] \
-                    if "mangaDithers" in cmd.cmd.keywords else None
+        mangaDithers = keywords['mangaDithers'].values[0] if "mangaDithers" in keywords else None
         cmdState.set('mangaDithers',mangaDithers)
-        mangaExpTime = cmd.cmd.keywords["mangaExpTime"].values[0] \
-                    if "mangaExpTime" in cmd.cmd.keywords else None
+        mangaExpTime = keywords["mangaExpTime"].values[0] if "mangaExpTime" in keywords else None
         cmdState.set('mangaExpTime',mangaExpTime)
 
-        count = cmd.cmd.keywords["count"].values[0] \
-                    if "count" in cmd.cmd.keywords else None
+        count = keywords["count"].values[0] if "count" in keywords else None
         cmdState.set('count',count)
 
         cmdState.reset_ditherSeq()
