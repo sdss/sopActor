@@ -13,8 +13,8 @@ class Precondition(object):
     that it be satisfied before the non-Precondition actions are begun
     """
 
-    def __init__(self, queue, msgId=None, timeout=None, **kwargs):
-        self.queue = queue
+    def __init__(self, queueName, msgId=None, timeout=None, **kwargs):
+        self.queueName = queueName
         self.msgId = msgId
         self.timeout = timeout
         self.kwargs = kwargs
@@ -44,8 +44,9 @@ class MultiCommand(object):
 
     def append(self, queueName, msgId=None, timeout=None, isPrecondition=False, **kwargs):
         """
-        Append msgId (or Precondition.msgId) to this MultiCommand, to be run
-        under queue queueName (one of the classes under 'try: MASTER' above).
+        Append msgId or Precondition.msgId (one of the classes under try: Msg in
+        __init__) to this MultiCommand, to be run under queue queueName (one of
+        the classes under 'try: MASTER' in __init__).
         """
         if isinstance(queueName, Precondition):
             assert msgId is None

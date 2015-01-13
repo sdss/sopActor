@@ -1,0 +1,26 @@
+[test_do_apogee_sky_flats]
+guider off
+
+tcc offset arc 0.01,0.0
+
+apogee expose time=150.0 object=object comment="sky flat, offset 0.01 degree in RA"
+apogee dither namedpos=A
+apogee expose time=150.0 object=object comment="sky flat, offset 0.01 degree in RA"
+apogee expose time=150.0 object=object comment="sky flat, offset 0.01 degree in RA"
+apogee dither namedpos=B
+apogee expose time=150.0 object=object comment="sky flat, offset 0.01 degree in RA"
+
+[test_do_apogee_sky_flats_fails_tcc]
+tcc offset arc 0.01,0.0
+
+[test_do_apogee_sky_flats_ok_tcc_bypassed]
+tcc offset arc 0.01,0.0
+
+apogee shutter open
+
+apogee expose time=150.0 object=object comment="sky flat, offset 0.01 degree in RA"
+apogee dither namedpos=B
+apogee expose time=150.0 object=object comment="sky flat, offset 0.01 degree in RA"
+apogee expose time=150.0 object=object comment="sky flat, offset 0.01 degree in RA"
+apogee dither namedpos=A
+apogee expose time=150.0 object=object comment="sky flat, offset 0.01 degree in RA"

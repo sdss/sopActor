@@ -70,6 +70,10 @@ except NameError:
         class DO_MANGA_SEQUENCE(): pass
         class DO_APOGEEMANGA_DITHER(): pass
         class DO_APOGEEMANGA_SEQUENCE(): pass
+        class DO_APOGEE_SKY_FLATS(): pass
+        class DO_APOGEE_DOME_FLAT(): pass
+        class MANGA_DITHER(): pass
+        class GOTO_GANG_CHANGE(): pass
         class DONE(): pass
         class EXIT(): pass
         class ENABLE(): pass
@@ -89,15 +93,11 @@ except NameError:
         class AXIS_STOP(): pass
         class WAIT_UNTIL(): pass
         class DITHER(): pass
-        class EXPOSE_DITHER_SET(): pass
+        class APOGEE_DITHER_SET(): pass
         class DECENTER(): pass
-        class MANGA_DITHER(): pass
-        class GOTO_GANG_CHANGE(): pass
-        class APOGEE_DOME_FLAT(): pass
         class POST_FLAT(): pass
         class APOGEE_SHUTTER(): pass            # control the internal APOGEE shutter
         class APOGEE_PARK_DARKS(): pass
-        class APOGEE_SKY_FLATS(): pass
         class NEW_SCRIPT(): pass
         class STOP_SCRIPT(): pass
         class SCRIPT_STEP(): pass
@@ -172,7 +172,7 @@ def handle_bad_exception(actor, e, threadName, msg):
     Send error, dump stacktrace, try to reply with a failure.
     """
     errMsg = qstr("Unexpected exception %s: %s, in sop %s thread" % (type(e).__name__, e, threadName))
-    actor.bcast.error('text="%s"' % errMsg)
+    actor.bcast.error('text=%s' % errMsg)
     tback(errMsg, e)
     try:
         msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)

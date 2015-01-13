@@ -261,21 +261,16 @@ class TestDoApogeeScience(CmdStateTester,unittest.TestCase):
         expect = 'slewing disallowed for APOGEE, blocked by active doApogeeScience sequence'
         self.assertEqual(result,expect)
 
-    def test_ditherSeq_count_1(self):
-        self.cmdState.seqCount = 1
-        self.cmdState.reset_ditherSeq()
-        self.assertEqual(self.cmdState.exposureSeq, 'ABBA')
-
     def test_abort(self):
         super(TestDoApogeeScience,self).test_abort()
         self.assertEqual(self.cmd.calls, ['apogee expose stop',])
-        self.assertEqual(self.cmdState.exposureSeq,'')
+        self.assertEqual(self.cmdState.index,self.cmdState.ditherPairs)
 
     def test_exposures_remain(self):
         self.assertTrue(self.cmdState.exposures_remain())
 
     def test_no_exposures_remain(self):
-        self.cmdState.index = len(self.cmdState.exposureSeq)
+        self.cmdState.index = self.cmdState.ditherPairs
         self.assertFalse(self.cmdState.exposures_remain())
 
     def test_exposures_remain_aborted(self):
@@ -292,10 +287,12 @@ class TestDoApogeeSkyFlats(CmdStateTester,unittest.TestCase):
 
     def test_reset_nonkeywords(self):
         self.cmdState.index = 100
-        self.cmdState.seqCount = 100
+        self.cmdState.expType = 'blah'
+        self.cmdState.comment = 'blahdeblah'
         self.cmdState.reset_nonkeywords()
         self.assertEqual(self.cmdState.index, 0)
-        self.assertEqual(self.cmdState.seqCount, 1)
+        self.assertEqual(self.cmdState.expType, 'object')
+        self.assertEqual(self.cmdState.comment, 'sky flat, offset 0.01 degree in RA')
 
     def test_isSlewingDisabled_no_cmd(self):
         self._isSlewingDisabled_no_cmd()
@@ -311,13 +308,13 @@ class TestDoApogeeSkyFlats(CmdStateTester,unittest.TestCase):
     def test_abort(self):
         super(TestDoApogeeSkyFlats,self).test_abort()
         self.assertEqual(self.cmd.calls, ['apogee expose stop',])
-        self.assertEqual(self.cmdState.exposureSeq,'')
+        self.assertEqual(self.cmdState.ditherPairs,0)
 
     def test_exposures_remain(self):
         self.assertTrue(self.cmdState.exposures_remain())
 
     def test_no_exposures_remain(self):
-        self.cmdState.index = len(self.cmdState.exposureSeq)
+        self.cmdState.index = self.cmdState.ditherPairs
         self.assertFalse(self.cmdState.exposures_remain())
 
     def test_exposures_remain_aborted(self):
@@ -493,12 +490,18 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
     def test_mangaDither(self):
         self.cmdState.set_mangaDither()
         self.assertFalse(self.cmdState.readout)
+        self.assertEqual(self.cmdState.mangaExpTime, 900)
+        self.assertEqual(self.cmdState.apogeeExpTime, 450)
     def test_mangaStare(self):
         self.cmdState.set_mangaStare()
         self.assertFalse(self.cmdState.readout)
+        self.assertEqual(self.cmdState.mangaExpTime, 900)
+        self.assertEqual(self.cmdState.apogeeExpTime, 450)
     def test_apogeeLead(self):
         self.cmdState.set_apogeeLead()
         self.assertTrue(self.cmdState.readout)
+        self.assertEqual(self.cmdState.mangaExpTime, 900)
+        self.assertEqual(self.cmdState.apogeeExpTime, 500)
 
     def test_abort(self):
         self._fake_boss_exposing()
@@ -519,6 +522,7 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
 
 class TestDoApogeeMangaDither(CmdStateTester,unittest.TestCase):
     def setUp(self):
+        self.userKeys = True
         super(TestDoApogeeMangaDither,self).setUp()
         self.cmdState = sopActor.CmdState.DoApogeeMangaDitherCmd()
         self.ok_stage = 'dither'
@@ -535,6 +539,15 @@ class TestDoApogeeMangaDither(CmdStateTester,unittest.TestCase):
     def test_isSlewingDisabled_False(self):
         sopTester.updateModel('boss',TestHelper.bossState['reading'])
         self._isSlewingDisabled_False()
+
+    def test_apogeeLead(self):
+        self.cmdState.set_apogeeLead()
+        self.assertEqual(self.cmdState.mangaExpTime, 900)
+        self.assertEqual(self.cmdState.apogeeExpTime, 500)
+    def test_manga(self):
+        self.cmdState.set_manga()
+        self.assertEqual(self.cmdState.mangaExpTime, 900)
+        self.assertEqual(self.cmdState.apogeeExpTime, 450)
 
     def test_isSlewingDisabled_no_cmd(self):
         self._isSlewingDisabled_no_cmd()

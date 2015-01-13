@@ -1,8 +1,7 @@
 import Queue, threading
-import math, numpy, time
 
 import sopActor
-from sopActor import *
+from sopActor import Msg, tback
 import sopActor.myGlobals as myGlobals
 
 from opscore.utility.qstr import qstr
@@ -69,12 +68,15 @@ def do_expose(cmd, actorState, expTime, dither, expType, comment):
         cmd.inform('text="done with %s exposure"' % (expType))
     return success
 
-def do_expose_dither_set(cmd, actorState, expTime, dithers, expType, comment):
+def do_apogee_dither_set(cmd, actorState, expTime, dithers, expType, comment):
     """
     A set of exposures at multiple dither positions, moving the dither
     in between as needed.
     """
     for dither in dithers:
+        if actorState.aborting:
+            cmd.warn('Commander aborted: stopping APOGEE dither set.')
+            return False
         currentDither = actorState.models['apogee'].keyVarDict["ditherPosition"][1]
         # Per ticket #1756, APOGEE now does not want dither move requests unless necessary
         if dither == currentDither:
@@ -143,38 +145,23 @@ class ApogeeCB(object):
         self.cb = cb if cb else self.flashLamps
 
     def turnOffLamps(self):
-        self.cmd.warn('text="calling ff_lamp.off"')
+        self.cmd.diag('text="calling ff_lamp.off"')
         replyQueue = sopActor.Queue("apogeeFlasher")
         myGlobals.actorState.queues[sopActor.FF_LAMP].put(Msg.LAMP_ON, cmd=self.cmd, on=False, replyQueue=replyQueue)
-
-        # This is dreadful. Why is this .get() and test commented out? Some bad threading/reactor interaction. CPL
-        #ret = replyQueue.get()
-        #self.cmd.diag('text="ff_lamp.off ret: %s"' % (ret))
         self.cmd.diag('text="called ff_lamp.off"')
 
     def flashLamps(self):
         time2flash = 4.0       # seconds
-        t0 = time.time()
 
-        cmdr = myGlobals.actorState.actor.cmdr
         replyQueue = sopActor.Queue("apogeeFlasher")
         self.cmd.diag('text="calling ff_lamp.on"')
         # NOTE: calling with noWait, so we don't wait for the mcp to respond.
         # This prevents the problem where one lamp doesn't turn on within 4 seconds.
         myGlobals.actorState.queues[sopActor.FF_LAMP].put(Msg.LAMP_ON, cmd=self.cmd, on=True, replyQueue=replyQueue, noWait=True)
 
-        # See angry comment in .turnOffLamps(). In this case I wonder if calling reactor.callLater _before_
-        # the put(LAMP_ON) would help. Bad, bad, bad.
-        #ret = replyQueue.get(True)
-        #self.cmd.diag('text="ff_lamp.on ret: %s"' % (ret))
-
-        self.cmd.warn('text="called ff_lamp.on"')
-        t1 = time.time()
-        if False: # cmdVar.didFail: # ret.success:
-            self.cmd.warn('text="ff lamp on command failed"')
-        else:
-            self.cmd.diag('text="pausing..."')
-            reactor.callLater(time2flash, self.turnOffLamps)
+        self.cmd.diag('text="called ff_lamp.on"')
+        self.cmd.diag('text="pausing..."')
+        reactor.callLater(time2flash, self.turnOffLamps)
 
 def main(actor, queues):
     """Main loop for APOGEE ICC thread"""
@@ -196,7 +183,7 @@ def main(actor, queues):
 
             elif msg.type == Msg.DITHER:
                 cmdVar = do_dither(msg.cmd, actorState, msg.dither)
-                checkFailure(msg.cmd,msg.replyQueue,cmdVar,"Failed to move APOGEE dither to %s position."%(dither))
+                checkFailure(msg.cmd,msg.replyQueue,cmdVar,"Failed to move APOGEE dither to %s position."%(msg.dither))
                 
             elif msg.type == Msg.APOGEE_SHUTTER:
                 position = "open" if msg.open else "close"
@@ -211,11 +198,11 @@ def main(actor, queues):
 
                 msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=success)
 
-            elif msg.type == Msg.EXPOSE_DITHER_SET:
+            elif msg.type == Msg.APOGEE_DITHER_SET:
                 dithers = getattr(msg,'dithers','AB')
                 expType = getattr(msg,'expType','object')
                 comment = getattr(msg,'comment','')
-                success = do_expose_dither_set(msg.cmd, actorState, msg.expTime, dithers, expType, comment)
+                success = do_apogee_dither_set(msg.cmd, actorState, msg.expTime, dithers, expType, comment)
 
                 msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=success)
 
@@ -253,19 +240,19 @@ def script_main(actor, queues):
                 return
 
             elif msg.type == Msg.NEW_SCRIPT:
-                if self.script:
+                if msg.script:
                     msg.cmd.warn('text="%s thread is already running a script: %s"' %
                              (threadName, script.name))
                     msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
-                self.script = msg.script
-                self.script.genStartKeys()
+                msg.script = msg.script
+                msg.script.genStartKeys()
                 actorState.queues[sopActor.APOGEE_SCRIPT].put(Msg.SCRIPT_STEP, msg.cmd)
 
             elif msg.type == Msg.SCRIPT_STEP:
                 pass
 
             elif msg.type == Msg.STOP_SCRIPT:
-                if not self.script:
+                if not msg.script:
                     msg.cmd.warn('text="%s thread is not running a script, so cannot stop it."' %
                              (threadName))
                     msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
@@ -274,17 +261,14 @@ def script_main(actor, queues):
                 cmd = msg.cmd
                 n = 3
 
-                if False:
-                    cmd.warn('text="SKIPPING flat exposure"')
-                else:
-                    actorState.queues[sopActor.APOGEE].put(Msg.EXPOSE, cmd, replyQueue=msg.replyQueue,
-                                                           expTime=50, expType='DomeFlat')
-                    apogeeFlatCB.waitForNthRead(cmd, n, msg.replyQueue)
+                actorState.queues[sopActor.APOGEE].put(Msg.EXPOSE, cmd, replyQueue=msg.replyQueue,
+                                                       expTime=50, expType='DomeFlat')
+                apogeeFlatCB.waitForNthRead(cmd, n, msg.replyQueue)
 
             elif msg.type == Msg.APOGEE_PARK_DARKS:
                 cmd = msg.cmd
                 n = 2
-                expTime = 100.0
+                # expTime = 100.0
 
                 if True:
                     cmd.warn('text="SKIPPING darks"')

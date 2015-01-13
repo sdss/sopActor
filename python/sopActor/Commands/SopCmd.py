@@ -85,16 +85,13 @@ class SopCmd(object):
                                         keys.Key("absolute", help="Set scale to provided value"),
                                         keys.Key("test", help="Assert that the exposures are not expected to be meaningful"),
                                         keys.Key("keepOffsets", help="When slewing, do not clear accumulated offsets"),
+                                        keys.Key("ditherPairs", types.Int(),
+                                                 help="Number of dither pairs (AB or BA) to observe"),
                                         keys.Key("ditherSeq", types.String(),
                                                  help="dither positions for each sequence. e.g. AB"),
-                                        keys.Key("seqCount", types.Int(),
-                                                 help="number of times to launch sequence"),
                                         keys.Key("comment", types.String(), help="comment for headers"),
                                         keys.Key("dither", types.String(), help="MaNGA dither position for a single dither."),
                                         keys.Key("dithers", types.String(), help="MaNGA dither positions for a dither sequence."),
-                                        keys.Key("apogeeExpTime", types.Float(), help="APOGEE exposure time per apogeeDither"),
-                                        keys.Key("mangaExpTime", types.Float(), help="MaNGA exposure time per mangaDither"),
-                                        keys.Key("apogeeDithers", types.String(), help="APOGEE dither positions for a single MaNGA dither."),
                                         keys.Key("mangaDithers", types.String(), help="MaNGA dither positions for a dither sequence."),
                                         keys.Key("mangaDither", types.String(), help="MaNGA dither position for a single dither."),
                                         keys.Key("count", types.Int(), help="Number of MaNGA dither sets to perform."),
@@ -112,12 +109,12 @@ class SopCmd(object):
              "[<narc>] [<nbias>] [<ndark>] [<nflat>] [<arcTime>] [<darkTime>] [<flatTime>] [<guiderFlatTime>] [abort]",
              self.doBossCalibs),
             ("doBossScience", "[<expTime>] [<nexp>] [abort] [stop] [test]", self.doBossScience),
-            ("doApogeeScience", "[<expTime>] [<ditherSeq>] [<seqCount>] [stop] [<abort>] [<comment>]", self.doApogeeScience),
-            ("doApogeeSkyFlats", "[<expTime>] [<ditherSeq>] [stop] [abort]", self.doApogeeSkyFlats),
+            ("doApogeeScience", "[<expTime>] [<ditherPairs>] [stop] [<abort>] [<comment>]", self.doApogeeScience),
+            ("doApogeeSkyFlats", "[<expTime>] [<ditherPairs>] [stop] [abort]", self.doApogeeSkyFlats),
             ("doMangaDither", "[<expTime>] [<dither>] [stop] [abort]", self.doMangaDither),
             ("doMangaSequence", "[<expTime>] [<dithers>] [<count>] [stop] [abort]", self.doMangaSequence),
-            ("doApogeeMangaDither", "[<apogeeExpTime>] [<mangaExpTime>] [<apogeeDithers>] [<mangaDither>] [<comment>] [stop] [abort]", self.doApogeeMangaDither),
-            ("doApogeeMangaSequence", "[<apogeeExpTime>] [<mangaExpTime>] [<apogeeDithers>] [<mangaDithers>] [<comment>] [<count>] [stop] [abort]", self.doApogeeMangaSequence),
+            ("doApogeeMangaDither", "[<mangaDither>] [<comment>] [stop] [abort]", self.doApogeeMangaDither),
+            ("doApogeeMangaSequence", "[<mangaDithers>] [<count>] [<comment>] [stop] [abort]", self.doApogeeMangaSequence),
             ("ditheredFlat", "[sp1] [sp2] [<expTime>] [<nStep>] [<nTick>]", self.ditheredFlat),
             ("hartmann", "[<expTime>]", self.hartmann),
             ("collimateBoss", "", self.collimateBoss),
@@ -299,53 +296,32 @@ class SopCmd(object):
         cmdState = sopState.doApogeeScience
         sopState.aborting = False
         keywords = cmd.cmd.keywords
+        name = 'doApogeeScience'
 
         if "stop" in keywords or 'abort' in keywords:
-            self.stop_cmd(cmd, cmdState, sopState, "doApogeeScience")
+            self.stop_cmd(cmd, cmdState, sopState, name)
             return
         
         # Modify running doApogeeScience command
         if self.modifiable(cmd, cmdState):
-            ditherSeq = cmdState.ditherSeq
-            seqCount = cmdState.seqCount
-            if "ditherSeq" in keywords:
-                newDitherSeq = keywords['ditherSeq'].values[0]
-                if (cmdState.seqCount > 1 and newDitherSeq != cmdState.ditherSeq):
-                    cmd.fail('text="Cannot modify dither sequence if current sequence count is > 1."')
-                    cmd.fail('text="If you are certain it makes sense to change the dither sequence, change Seq Count to 1 first."')
-                    return
-                ditherSeq = newDitherSeq
-            
-            if "seqCount" in keywords:
-                seqCount = int(keywords["seqCount"].values[0])
+            if "ditherPairs" in keywords:
+                cmdState.set('ditherPairs',int(keywords["ditherPairs"].values[0]))
 
-            exposureSeq = ditherSeq * seqCount
-            cmdState.ditherSeq = ditherSeq
-            cmdState.seqCount = seqCount
-            cmdState.exposureSeq = exposureSeq
+            if "expTime" in keywords:
+                cmdState.set('expTime',int(keywords["expTime"].values[0]))
 
-            if cmdState.index >= len(cmdState.exposureSeq):
-                cmd.warn('text="Modified exposure sequence is shorter than position in current sequence."')
-                cmd.warn('text="Truncating previous exposure sequence, but NOT trying to stop current exposure."')
-                cmdState.index = len(cmdState.exposureSeq)
-
-            self.status(cmd, threads=False, finish=True, oneCommand='doApogeeScience')
+            self.status(cmd, threads=False, finish=True, oneCommand=name)
             return
 
         cmdState.reinitialize(cmd)
-        seqCount = int(keywords["seqCount"].values[0]) if "seqCount" in keywords else None
-        cmdState.set('seqCount', seqCount)
-        ditherSeq = keywords["ditherSeq"].values[0] if "ditherSeq" in keywords else None
-        cmdState.set('ditherSeq', ditherSeq)
-        comment = keywords["comment"].values[0] \
-                    if "comment" in keywords else ""
+        ditherPairs = int(keywords["ditherPairs"].values[0]) if "ditherPairs" in keywords else None
+        cmdState.set('ditherPairs',ditherPairs)
+        comment = keywords["comment"].values[0] if "comment" in keywords else None
         cmdState.comment = comment
         expTime = float(keywords["expTime"].values[0]) if "expTime" in keywords else None
         cmdState.set('expTime', expTime)
 
-        cmdState.reset_ditherSeq()
-
-        if len(cmdState.exposureSeq) == 0:
+        if cmdState.ditherPairs == 0:
             cmd.fail('text="You must take at least one exposure"')
             return
 
@@ -353,57 +329,41 @@ class SopCmd(object):
                                              actorState=sopState, cmdState=cmdState)
 
     def doApogeeSkyFlats(self, cmd):
-        """ Take sky flats. """
+        """Take a set of APOGEE sky flats, offsetting by 0.01 degree in RA."""
 
         sopState = myGlobals.actorState
         cmdState = sopState.doApogeeSkyFlats
+        keywords = cmd.cmd.keywords
+        name = 'doApogeeSkyFlats'
 
         if "stop" in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
-            self.stop_cmd(cmd, cmdState, sopState, "doApogeeSkyFlats")
+            self.stop_cmd(cmd, cmdState, sopState, name)
             return
-        
-        cmdState.expTime = float(cmd.cmd.keywords["expTime"].values[0]) if \
-                           "expTime" in cmd.cmd.keywords else 150.0
-        ditherSeq = cmd.cmd.keywords["ditherSeq"].values[0] \
-                    if "ditherSeq" in cmd.cmd.keywords else "ABBA"
 
+        if self.modifiable(cmd, cmdState):
+            if "ditherPairs" in keywords:
+                cmdState.set('ditherPairs',int(keywords["ditherPairs"].values[0]))
+
+            if "expTime" in keywords:
+                cmdState.set('expTime',int(keywords["expTime"].values[0]))
+
+            self.status(cmd, threads=False, finish=True, oneCommand=name)
+            return
         cmdState.reinitialize(cmd)
-        cmdState.ditherSeq = ditherSeq
-        cmdState.comment = "sky flat, offset 0.01 degree in RA"
 
-        exposureSeq = ditherSeq * 1
-        cmdState.exposureSeq = exposureSeq
-        cmdState.index = 0
+        expTime = float(keywords["expTime"].values[0]) if "expTime" in keywords else None
+        cmdState.set('expTime', expTime)
+        ditherPairs = int(keywords["ditherPairs"].values[0]) if "ditherPairs" in keywords else None
+        cmdState.set('ditherPairs',ditherPairs)
 
-        if len(cmdState.exposureSeq) == 0:
+        if cmdState.ditherPairs == 0:
             cmd.fail('text="You must take at least one exposure"')
             return
-        
-        # Turn off the guider, if it's on.
-        guideState = myGlobals.actorState.models["guider"].keyVarDict["guideState"][0]
-        if guideState == 'on' or guideState == 'starting':
-            cmdVar = sopState.actor.cmdr.call(actor="guider", forUserCmd=cmd,
-                                              cmdStr="off",
-                                              timeLim=sopState.timeout)
-            if cmdVar.didFail:
-                cmd.fail('text="Failed to turn off guiding for sky flats."')
-                return
 
-        # Offset
-        cmdVar = sopState.actor.cmdr.call(actor="tcc", forUserCmd=cmd,
-                                            cmdStr="offset arc 0.01,0.0",
-                                            timeLim=sopState.timeout)
-        if cmdVar.didFail:
-            cmd.fail('text="Failed to make tcc offset for sky flats."')
-            return
+        cmdState.setCommandState('running')
 
-        if not MultiCommand(cmd, 2, None,
-                            sopActor.MASTER, Msg.DO_APOGEE_EXPOSURES,
-                            actorState=sopState,
-                            expType='object',
-                            cartridge=sopState.cartridge,
-                            survey=sopState.survey, cmdState=cmdState).run():
-            cmd.fail('text="Failed to issue doApogeeSkyFlats"')
+        sopState.queues[sopActor.MASTER].put(Msg.DO_APOGEE_SKY_FLATS, cmd, replyQueue=self.replyQueue,
+                                             actorState=sopState, cmdState=cmdState)
     
     def doMangaDither(self, cmd):
         """Take an exposure at a single manga dither position."""
@@ -494,16 +454,9 @@ class SopCmd(object):
 
         cmdState.reinitialize(cmd)
 
-        apogeeExpTime = cmd.cmd.keywords["apogeeExpTime"].values[0] \
-                    if "apogeeExpTime" in cmd.cmd.keywords else None
-        cmdState.set('apogeeExpTime',apogeeExpTime)
-
         mangaDither = cmd.cmd.keywords['mangaDither'].values[0] \
                     if "mangaDither" in cmd.cmd.keywords else None
         cmdState.set('mangaDither',mangaDither)
-        mangaExpTime = cmd.cmd.keywords["mangaExpTime"].values[0] \
-                    if "mangaExpTime" in cmd.cmd.keywords else None
-        cmdState.set('mangaExpTime',mangaExpTime)
 
         sopState.queues[sopActor.MASTER].put(Msg.DO_APOGEEMANGA_DITHER, cmd, replyQueue=self.replyQueue,
                                              actorState=sopState, cmdState=cmdState)
@@ -546,13 +499,8 @@ class SopCmd(object):
 
         cmdState.reinitialize(cmd)
 
-        apogeeExpTime = keywords["apogeeExpTime"].values[0] if "apogeeExpTime" in keywords else None
-        cmdState.set('apogeeExpTime',apogeeExpTime)
-
         mangaDithers = keywords['mangaDithers'].values[0] if "mangaDithers" in keywords else None
         cmdState.set('mangaDithers',mangaDithers)
-        mangaExpTime = keywords["mangaExpTime"].values[0] if "mangaExpTime" in keywords else None
-        cmdState.set('mangaExpTime',mangaExpTime)
 
         count = keywords["count"].values[0] if "count" in keywords else None
         cmdState.set('count',count)
@@ -653,7 +601,7 @@ class SopCmd(object):
         nTick = int(cmd.cmd.keywords["nTick"].values[0]) if "nTick" in cmd.cmd.keywords else 62
         expTime = float(cmd.cmd.keywords["expTime"].values[0]) if "expTime" in cmd.cmd.keywords else 30
 
-        sopState.queues[sopActor.MASTER].put(Msg.DITHERED_FLAT, cmd, replyQueue=sopState.queues[sopActor.MASTER],
+        sopState.queues[sopActor.MASTER].put(Msg.DITHERED_FLAT, cmd, replyQueue=self.replyQueue,
                                                actorState=sopState,
                                                expTime=expTime, spN=spN, nStep=nStep, nTick=nTick)
 
@@ -963,7 +911,7 @@ class SopCmd(object):
 
         cmdState.reinitialize(cmd)
 
-        sopState.queues[sopActor.MASTER].put(Msg.APOGEE_DOME_FLAT, cmd, replyQueue=sopState.queues[sopActor.MASTER],
+        sopState.queues[sopActor.MASTER].put(Msg.DO_APOGEE_DOME_FLAT, cmd, replyQueue=self.replyQueue,
                                                actorState=sopState, cmdState=cmdState,
                                                survey=sopState.survey)
     
@@ -971,7 +919,7 @@ class SopCmd(object):
         """ Run the named script from the SOPACTOR_DIR/scripts directory. """
         sopState = myGlobals.actorState
 
-        sopState.queues[sopActor.SCRIPT].put(Msg.NEW_SCRIPT, cmd, replyQueue=sopState.queues[sopActor.MASTER],
+        sopState.queues[sopActor.SCRIPT].put(Msg.NEW_SCRIPT, cmd, replyQueue=self.replyQueue,
                                              actorState=sopState,
                                              survey=sopState.survey,
                                              scriptName = cmd.cmd.keywords["scriptName"].values[0])
@@ -1071,10 +1019,6 @@ class SopCmd(object):
             for t in threading.enumerate():
                 cmd.inform('text="%s"' % t)
 
-        bypassNames, bypassStates = bypass.get_bypass_list()
-
-        cmd.inform("bypassNames=" + ", ".join(bypassNames))
-        cmd.inform("bypassed=" + ", ".join([str(x) for x in bypassStates]))
         bypassed = bypass.get_bypassedNames()
         txt = "bypassedNames=" + ", ".join(bypassed)
         # output non-empty bypassedNames as a warning, per #2187.

@@ -1,4 +1,4 @@
-[test_do_apogee_science]
+[test_do_apogee_science_4_pair_A_closed]
 apogee shutter open
 
 apogee expose time=500.0 object=object
@@ -7,6 +7,25 @@ apogee dither namedpos=B
 
 apogee expose time=500.0 object=object
 
+apogee expose time=500.0 object=object
+
+apogee dither namedpos=A
+
+apogee expose time=500.0 object=object
+
+apogee expose time=500.0 object=object
+
+apogee dither namedpos=B
+
+apogee expose time=500.0 object=object
+
+apogee expose time=500.0 object=object
+
+apogee dither namedpos=A
+
+apogee expose time=500.0 object=object
+
+[test_do_apogee_science_1_pair_B_open]
 apogee expose time=500.0 object=object
 
 apogee dither namedpos=A

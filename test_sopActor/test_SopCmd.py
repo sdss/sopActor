@@ -78,30 +78,30 @@ class TestBypass(SopCmdTester,unittest.TestCase):
             self.actorState.surveyMode == survey[1]
         self._check_cmd(nCalls,nInfo,nWarn,0,True)
     def test_bypass_isBoss(self):
-        self._bypass_set('isBoss', 58, 3, 1, ['eBOSS',None])
+        self._bypass_set('isBoss', 57, 3, 1, ['eBOSS',None])
     def test_bypass_isApogee(self):
-        self._bypass_set('isApogee', 58, 3, 1, ['APOGEE',None])
+        self._bypass_set('isApogee', 57, 3, 1, ['APOGEE',None])
     def test_bypass_isMangaStare(self):
-        self._bypass_set('isMangaStare', 58, 3, 1, ['MaNGA','MaNGA stare'])
+        self._bypass_set('isMangaStare', 57, 3, 1, ['MaNGA','MaNGA stare'])
     def test_bypass_isMangaDither(self):
-        self._bypass_set('isMangaDither', 58, 3, 1, ['MaNGA','MaNGA dither'])
+        self._bypass_set('isMangaDither', 57, 3, 1, ['MaNGA','MaNGA dither'])
     def test_bypass_isApogeeLead(self):
-        self._bypass_set('isApogeeLead', 58, 3, 1, ['APGOEE-2&MaNGA','APOGEE lead'])
+        self._bypass_set('isApogeeLead', 57, 3, 1, ['APGOEE-2&MaNGA','APOGEE lead'])
     def test_bypass_isApogeeMangaDither(self):
-        self._bypass_set('isApogeeMangaDither', 58, 3, 1, ['APGOEE-2&MaNGA','MaNGA dither'])
+        self._bypass_set('isApogeeMangaDither', 57, 3, 1, ['APGOEE-2&MaNGA','MaNGA dither'])
     def test_bypass_isApogeeMangaStare(self):
-        self._bypass_set('isApogeeMangaStare', 58, 3, 1, ['APGOEE-2&MaNGA','MaNGA stare'])
+        self._bypass_set('isApogeeMangaStare', 57, 3, 1, ['APGOEE-2&MaNGA','MaNGA stare'])
 
     def test_bypass_gangToCart(self):
-        self._bypass_set('gangToCart', 57, 4)
+        self._bypass_set('gangToCart', 56, 4)
     def test_bypass_gangToPodium(self):
-        self._bypass_set('gangToPodium', 57, 4)
+        self._bypass_set('gangToPodium', 56, 4)
 
     def test_bypass_axes(self):
-        self._bypass_set('axes', 57, 1)
+        self._bypass_set('axes', 56, 1)
 
     def test_bypass_slewToField(self):
-        self._bypass_set('slewToField', 57, 1)
+        self._bypass_set('slewToField', 56, 1)
 
     def test_not_bypassable(self):
         self._clear_bypasses()
@@ -119,7 +119,7 @@ class TestStopCmd(SopCmdTester,unittest.TestCase):
         self._fake_boss_exposing()
         self.sopCmd.stop_cmd(self.cmd,self.cmdState,self.actorState,'fakeCmd')
         self.assertTrue(myGlobals.actorState.aborting)
-        self._check_cmd(0,7,0,0, True)
+        self._check_cmd(0,5,0,0, True)
     def test_stop_cmd_not_active(self):
         """Fail if there's no active command to operate on."""
         cmdState = self.actorState.doBossScience
@@ -265,12 +265,12 @@ class TestStatus(SopCmdTester,unittest.TestCase):
         self._run_cmd('status %s'%args, None)
         self._check_cmd(0,nInfo,0,0,True)
     def test_status(self):
-        self._status(58)
+        self._status(57)
     def test_status_geek(self):
-        self._status(60,args='geek')
+        self._status(59,args='geek')
     def test_status_noFinish(self):
         self.sopCmd.status(self.cmd,finish=False)
-        self._check_cmd(0,58,0,0,False)
+        self._check_cmd(0,57,0,0,False)
 
     def _oneCommand(self, nInfo, oneCommand):
         """
@@ -278,7 +278,7 @@ class TestStatus(SopCmdTester,unittest.TestCase):
         This is usually 3, or 4 if there are userKeys in that CmdState.
         """
         self.sopCmd.status(self.cmd,oneCommand=oneCommand)
-        self._check_cmd(0,6+nInfo,0,0,True)
+        self._check_cmd(0,4+nInfo,0,0,True)
     def test_gotoGangChange(self):
         self._oneCommand(3,'gotoGangChange')
     def test_doApogeeDomeFlat(self):
@@ -300,7 +300,7 @@ class TestStatus(SopCmdTester,unittest.TestCase):
     def test_doMangaDither(self):
         self._oneCommand(3,'doMangaDither')
     def test_doApogeeMangaDither(self):
-        self._oneCommand(3,'doApogeeMangaDither')
+        self._oneCommand(4,'doApogeeMangaDither')
     def test_doApogeeMangaSequence(self):
         self._oneCommand(4,'doApogeeMangaSequence')
     def test_gotoStow(self):
@@ -418,7 +418,7 @@ class TestDoMangaSequence(SopCmdTester,unittest.TestCase):
         self._run_cmd('doMangaSequence abort', None)
         self.assertTrue(self.actorState.aborting)
 
-    def _doMangaSequence_modify(self, args1, args2, cmd_levels=(0,12,0,0), didFail=False):
+    def _doMangaSequence_modify(self, args1, args2, cmd_levels=(0,10,0,0), didFail=False):
         queue = myGlobals.actorState.queues[sopActor.MASTER]
         # create something we can modify.
         msg = self._run_cmd('doMangaSequence %s'%args1, queue)
@@ -451,25 +451,25 @@ class TestDoApogeeMangaDither(SopCmdTester,unittest.TestCase):
         self.assertEqual(msg.cmdState.apogeeExpTime,expect['apogeeExpTime'])
         self.assertEqual(msg.cmdState.mangaDither,expect['mangaDither'])
 
-    def test_doApogeeMangaDither_default(self):
+    def test_doApogeeMangaDither_mangaDither(self):
+        self._update_cart(2, 'APOGEE-2&MaNGA', 'MaNGA dither')
         expect = {'mangaExpTime':900,
                   'apogeeExpTime':450,
-                  'mangaDither':'C'
-                  }
+                  'mangaDither':'C'}
         self._doApogeeMangaDither(expect)
-    def test_doApogeeMangaDither_N(self):
+    def test_doApogeeMangaDither_mangaDither_N(self):
+        self._update_cart(2, 'APOGEE-2&MaNGA', 'MaNGA dither')
         expect = {'mangaExpTime':900,
                   'apogeeExpTime':450,
-                  'mangaDither':'N'
-                  }
+                  'mangaDither':'N'}
         args = 'mangaDither=N'
         self._doApogeeMangaDither(expect,args)
     def test_doApogeeMangaDither_apogeeLead(self):
+        self._update_cart(2, 'APOGEE-2&MaNGA', 'APOGEE lead')
         expect = {'mangaExpTime':900,
                   'apogeeExpTime':500,
-                  'mangaDither':'C'
-                  }
-        args = ' mangaDither=\"C\" apogeeExpTime=500.0 mangaExpTime=900.0'
+                  'mangaDither':'C'}
+        args = 'mangaDither=C'
         self._doApogeeMangaDither(expect,args)
 
     def test_doApogeeMangaDither_abort(self):
@@ -481,11 +481,9 @@ class TestDoApogeeMangaDither(SopCmdTester,unittest.TestCase):
         """Cannot modify this command, so fail and nothing should change."""
         queue = myGlobals.actorState.queues[sopActor.MASTER]
         # create something we can modify.
-        msg = self._run_cmd('doApogeeMangaDither mangaDither=N mangaExpTime=100 apogeeExpTime=100', queue)
-        msgNew = self._run_cmd('doApogeeMangaDither mangaDither=S mangaExpTime=200 apogeeExpTime=100', queue, empty=True)
+        msg = self._run_cmd('doApogeeMangaDither mangaDither=N', queue)
+        msgNew = self._run_cmd('doApogeeMangaDither mangaDither=S', queue, empty=True)
         self.assertIsNone(msgNew)
-        self.assertEqual(msg.cmdState.mangaExpTime, 100)
-        self.assertEqual(msg.cmdState.apogeeExpTime, 100)
         self.assertEqual(msg.cmdState.mangaDither, 'N')
         self._check_cmd(0,2,0,0,True,True)
 
@@ -503,28 +501,34 @@ class TestDoApogeeMangaSequence(SopCmdTester,unittest.TestCase):
         self.assertEqual(msg.cmdState.mangaDithers,expect['mangaDithers'])
         self.assertEqual(msg.cmdState.count,expect['count'])
 
-    def test_doApogeeMangaSequence_default(self):
+    def test_doApogeeMangaSequence_mangaDither(self):
+        self._update_cart(2, 'APOGEE-2&MaNGA', 'MaNGA dither')
         expect = {'mangaExpTime':900,
                   'apogeeExpTime':450,
                   'mangaDithers':'NSE',
-                  'count':2
-                  }
+                  'count':2}
+        self._doApogeeMangaSequence(expect)
+    def test_doApogeeMangaSequence_mangaStare(self):
+        self._update_cart(2, 'APOGEE-2&MaNGA', 'MaNGA stare')
+        expect = {'mangaExpTime':900,
+                  'apogeeExpTime':450,
+                  'mangaDithers':'CCC',
+                  'count':2}
         self._doApogeeMangaSequence(expect)
     def test_doApogeeMangaSequence_apogeeLead(self):
+        self._update_cart(2, 'APOGEE-2&MaNGA', 'APOGEE lead')
         expect = {'mangaExpTime':900,
                   'apogeeExpTime':500,
                   'mangaDithers':'CC',
-                  'count':2
-                  }
-        args = 'apogeeExpTime=500 mangaDithers=CC'
-        self._doApogeeMangaSequence(expect,args)
-    def test_doApogeeMangaSequence_apogeeLead_count1(self):
+                  'count':2}
+        self._doApogeeMangaSequence(expect)
+    def test_doApogeeMangaSequence_apogeeLead_CCC_count1(self):
+        self._update_cart(2, 'APOGEE-2&MaNGA', 'APOGEE lead')
         expect = {'mangaExpTime':900,
                   'apogeeExpTime':500,
                   'mangaDithers':'CCC',
-                  'count':1
-                  }
-        args = 'apogeeExpTime=500 mangaDithers=CCC count=1'
+                  'count':1}
+        args = 'mangaDithers=CCC count=1'
         self._doApogeeMangaSequence(expect,args)
 
     def test_doApogeeMangaSequence_abort(self):
@@ -532,7 +536,8 @@ class TestDoApogeeMangaSequence(SopCmdTester,unittest.TestCase):
         self._run_cmd('doApogeeMangaSequence abort', None)
         self.assertTrue(self.actorState.aborting)
 
-    def _doApogeeMangaSequence_modify(self, args1, args2, cmd_levels=(0,12,0,0), didFail=False):
+    def _doApogeeMangaSequence_modify(self, args1, args2, cmd_levels=(0,10,0,0), didFail=False):
+        self._update_cart(2, 'APOGEE-2&MaNGA', 'MaNGA dither')
         queue = myGlobals.actorState.queues[sopActor.MASTER]
         # create something we can modify.
         msg = self._run_cmd('doApogeeMangaSequence %s'%args1, queue)
@@ -679,7 +684,7 @@ class TestGotoField(SopCmdTester,unittest.TestCase):
 
     # @unittest.skip("Properly doing these is going to be complicated...")
     def test_gotoField_modify_cancel_calibs(self):
-        msg = self._gotoField_modify('','noCalibs', cmd_levels=(0,15,0,0))
+        msg = self._gotoField_modify('','noCalibs', cmd_levels=(0,13,0,0))
         self.assertEqual(msg.cmdState.doCalibs, False)
 
 
@@ -757,7 +762,7 @@ class TestDoBossScience(SopCmdTester,unittest.TestCase):
         msg = self._run_cmd('doBossScience nexp=2', queue)
         msgNew = self._run_cmd('doBossScience nexp=1 expTime=100', queue, empty=True)
         self.assertIsNone(msgNew)
-        self._check_cmd(0,12,0,0,True)
+        self._check_cmd(0,10,0,0,True)
         self.assertEqual(msg.cmdState.nExp, 1)
         self.assertEqual(msg.cmdState.expTime, 100)
 
@@ -835,7 +840,7 @@ class TestBossCalibs(SopCmdTester,unittest.TestCase):
         msg = self._run_cmd('doBossCalibs nbias=2 ndark=2 nflat=2 narc=2', queue)
         msgNew = self._run_cmd('doBossCalibs nbias=1 ndark=1 nflat=1 narc=1 darkTime=10 flatTime=10 guiderFlatTime=10 arcTime=10', queue, empty=True)
         self.assertIsNone(msgNew)
-        self._check_cmd(0,14,0,0,True)
+        self._check_cmd(0,12,0,0,True)
         for nExp in ['nBias', 'nDark', 'nFlat', 'nArc']:
             self.assertEqual(getattr(msg.cmdState,nExp), 1)
         for expTime in ['darkTime', 'flatTime', 'guiderFlatTime', 'arcTime']:
@@ -885,8 +890,7 @@ class TestDoApogeeScience(SopCmdTester,unittest.TestCase):
         self._check_levels(*cmd_levels)
         self.assertEqual(msg.cmdState.stages,stages)
         self.assertEqual(msg.cmdState.expTime,expect.get('expTime',500))
-        self.assertEqual(msg.cmdState.seqCount,expect.get('seqCount',2))
-        self.assertEqual(msg.cmdState.ditherSeq,expect.get('ditherSeq','ABBA'))
+        self.assertEqual(msg.cmdState.ditherPairs,expect.get('ditherPairs',4))
         self.assertEqual(msg.cmdState.index,0)
         self.assertEqual(msg.cmdState.expType,'object')
 
@@ -894,6 +898,8 @@ class TestDoApogeeScience(SopCmdTester,unittest.TestCase):
         self._doApogeeScience({},'')
     def test_doApogeeScience_450_expTime(self):
         self._doApogeeScience({'expTime':450},'expTime=450')
+    def test_doApogeeScience_2_pairs(self):
+        self._doApogeeScience({'ditherPairs':2},'ditherPairs=2')
 
     def _doApogeeScience_fails(self, args):
         queue = myGlobals.actorState.queues[sopActor.MASTER]
@@ -901,58 +907,62 @@ class TestDoApogeeScience(SopCmdTester,unittest.TestCase):
         self.assertIsNone(msg)
         self._check_cmd(0,2,0,0,True,True)
     def test_no_count_fails(self):
-        self._doApogeeScience_fails('seqCount=0')
+        self._doApogeeScience_fails('ditherPairs=0')
 
     def test_doApogeeScience_abort(self):
         self.actorState.doApogeeScience.cmd = self.cmd
         self._run_cmd('doApogeeScience abort', None)
         self.assertTrue(self.actorState.aborting)
 
-    def test_doApogeeScience_modify_seqCount(self):
+    def test_doApogeeScience_modify_ditherPairs(self):
         queue = myGlobals.actorState.queues[sopActor.MASTER]
         # create something we can modify.
         msg = self._run_cmd('doApogeeScience', queue)
-        msgNew = self._run_cmd('doApogeeScience seqCount=1', queue, empty=True)
+        msgNew = self._run_cmd('doApogeeScience ditherPairs=3', queue, empty=True)
         self.assertIsNone(msgNew)
-        self.assertEqual(msg.cmdState.seqCount, 1)
+        self.assertEqual(msg.cmdState.ditherPairs, 3)
 
 
-@unittest.skip('This will fail until the NOTE in the docstring is cleared up.')
 class TestDoApogeeSkyFlats(SopCmdTester,unittest.TestCase):
-    """
-    NOTE: Don't like this one, since it sends raw cmds as part of the sopCmd,
-    instead of having a function in masterThread to do the work.
-    This makes it hard to test, since I can't easily verify the cmd_calls.
-    """
-    def test_doApogeeSkyFlats(self):
-        stages = ['expose']
+    def _doApogeeSkyFlats(self, expect, args):
+        stages = ['offset','expose']
         queue = myGlobals.actorState.queues[sopActor.MASTER]
-        msg = self._run_cmd('doApogeeSkyFlat',queue)
-        self.assertEqual(msg.type,sopActor.Msg.APOGEE_SKY_FLATS)
+        msg = self._run_cmd('doApogeeSkyFlats %s'%args,queue)
+        self.assertEqual(msg.type,sopActor.Msg.DO_APOGEE_SKY_FLATS)
         stages = dict(zip(stages,['idle']*len(stages)))
         self.assertEqual(msg.cmdState.stages,stages)
+        self.assertEqual(msg.cmdState.expTime,expect.get('expTime',150))
+        self.assertEqual(msg.cmdState.ditherPairs,expect.get('ditherPairs',2))
+        self.assertEqual(msg.cmdState.index,0)
+        self.assertEqual(msg.cmdState.expType,'object')
+        self.assertEqual(msg.cmdState.comment,'sky flat, offset 0.01 degree in RA')
+
+    def test_doApogeeSkyFlats_default(self):
+        self._doApogeeSkyFlats({},'')
+    def test_doApogeeSkyFlats_100_expTime(self):
+        self._doApogeeSkyFlats({'ditherPairs':3, 'expTime':100},'ditherPairs=3 expTime=100')
+    def test_doApogeeSkyFlats_1_pairs(self):
+        self._doApogeeSkyFlats({'ditherPairs':1},'ditherPairs=1')
 
     def test_doApogeeSkyFlats_abort(self):
         self.actorState.doApogeeSkyFlats.cmd = self.cmd
         self._run_cmd('doApogeeSkyFlats abort', None)
         self.assertTrue(self.actorState.aborting)
 
-    def test_doApogeeSkyFlats_modify_seqCount(self):
+    def test_doApogeeSkyFlats_modify(self):
         queue = myGlobals.actorState.queues[sopActor.MASTER]
         # create something we can modify.
-        msg = self._run_cmd('doApogeeSkyFlats', queue)
-        msgNew = self._run_cmd('doApogeeSkyFlats', queue, empty=True)
+        msg = self._run_cmd('doApogeeSkyFlats ditherPairs=2 expTime=150', queue)
+        msgNew = self._run_cmd('doApogeeSkyFlats ditherPairs=1', queue, empty=True)
         self.assertIsNone(msgNew)
-        self.assertEqual(msg.cmdState.seqCount, 1)
-        self._check_cmd(0,2,0,0,True)
-
+        self.assertEqual(msg.cmdState.ditherPairs, 1)
 
 class TestDoApogeeDomeFlat(SopCmdTester,unittest.TestCase):
     def test_doApogeeDomeFlat(self):
         stages = ['domeFlat']
         queue = myGlobals.actorState.queues[sopActor.MASTER]
         msg = self._run_cmd('doApogeeDomeFlat',queue)
-        self.assertEqual(msg.type,sopActor.Msg.APOGEE_DOME_FLAT)
+        self.assertEqual(msg.type,sopActor.Msg.DO_APOGEE_DOME_FLAT)
         stages = dict(zip(stages,['idle']*len(stages)))
         self.assertEqual(msg.cmdState.stages,stages)
 
@@ -1048,6 +1058,7 @@ if __name__ == '__main__':
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestBossCalibs)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoBossScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoApogeeScience)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoApogeeSkyFlats)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestUpdateCartridge)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestStatus)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestIsSlewingDisabled)

@@ -19,7 +19,6 @@ class SopPrecondition(Precondition):
 
     def __init__(self, queueName, msgId=None, timeout=None, **kwargs):
         Precondition.__init__(self, queueName, msgId, timeout, **kwargs)
-        self.queueName = queueName
 
     def required(self):
         """
@@ -494,6 +493,8 @@ def do_boss_science(cmd, cmdState, actorState):
     failMsg = ""            # message to use if we've failed
     stageName = 'expose'
     cmdState.setStageState(stageName, 'running')
+    show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
+
     while cmdState.exposures_remain():
         expTime = cmdState.expTime
         multiCmd = SopMultiCommand(cmd,
@@ -516,29 +517,24 @@ def do_boss_science(cmd, cmdState, actorState):
     finish_command(cmd,cmdState,actorState,finishMsg)
 #...
 
-def do_apogee_science(cmd, cmdState, actorState):
+def do_apogee_science(cmd, cmdState, actorState, finishMsg=None):
     """Start an APOGEE science sequence."""
     
     expType = cmdState.expType
-    finishMsg = "Your Nobel Prize is a little closer!"
+    if finishMsg is None:
+        finishMsg = "Your Nobel Prize is a little closer!"
     failMsg = ""            # message to use if we've failed
     stageName = 'expose'
     cmdState.setStageState(stageName, 'running')
+    show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
+
     while cmdState.exposures_remain():
         expTime = cmdState.expTime
-        newDither = cmdState.exposureSeq[cmdState.index]
-        currentDither = actorState.models['apogee'].keyVarDict["ditherPosition"][1]
-        # Per ticket #1756, APOGEE now does not want dither move requests
-        # unless necessary, except at the start of an exposure sequence.
-        if newDither == currentDither:
-            dither = None
-            cmd.inform('text="APOGEE dither already at desired position %s: not commanding move."'%(newDither))
-        else:
-            dither = newDither
-            
-        multiCmd = SopMultiCommand(cmd, expTime + actorState.timeout, cmdState.name)
-        multiCmd.append(sopActor.APOGEE, Msg.EXPOSE,
-                        expTime=expTime, dither=dither,
+        dithers = get_next_apogee_dither_pair(actorState)
+
+        multiCmd = SopMultiCommand(cmd, expTime*len(dithers) + actorState.timeout, cmdState.name)
+        multiCmd.append(sopActor.APOGEE, Msg.APOGEE_DITHER_SET,
+                        expTime=expTime, dithers=dithers,
                         expType=expType, comment=cmdState.comment)
         prep_for_science(multiCmd,precondition=True)
         prep_apogee_shutter(multiCmd,open=True)
@@ -670,7 +666,7 @@ def do_one_apogeemanga_dither(cmd, cmdState, actorState):
     multiCmd = SopMultiCommand(cmd, duration, cmdState.name+".expose")
     multiCmd.append(sopActor.BOSS, Msg.EXPOSE,
                     expTime=mangaExpTime, expType="science", readout=readout)
-    multiCmd.append(sopActor.APOGEE, Msg.EXPOSE_DITHER_SET,
+    multiCmd.append(sopActor.APOGEE, Msg.APOGEE_DITHER_SET,
                     expTime=apogeeExpTime,dithers=apogeeDithers,
                     expType="object", comment=cmdState.comment)
     prep_for_science(multiCmd, precondition=True)
@@ -1118,6 +1114,33 @@ def goto_field(cmd, cmdState, actorState):
     if success:
         finish_command(cmd,cmdState,actorState,finishMsg)
 
+def do_apogee_sky_flats(cmd, cmdState, actorState):
+    """Offset the telescope slightly and take some short sky exposures."""
+
+    # Turn off the guider, if it's on.
+    guideState = myGlobals.actorState.models["guider"].keyVarDict["guideState"][0]
+    if guideState == 'on' or guideState == 'starting':
+        multiCmd = SopMultiCommand(cmd, actorState.timeout,cmdState.name+".offset")
+        multiCmd.append(sopActor.GUIDER, Msg.START, on=False)
+        if not handle_multiCmd(multiCmd,cmd,cmdState,"offset","Failed to turn off guiding for sky flats"):
+            return
+
+    # NOTE: I don't like using raw call()s here, but it's probably not worth
+    # creating a tccThread Msg just for this arc offset.
+    cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd,
+                                        cmdStr="offset arc 0.01,0.0",
+                                        timeLim=actorState.timeout)
+    if cmdVar.didFail:
+        if myGlobals.bypass.get(name='axes'):
+            cmd.warn("text='Failed to make tcc offset for sky flats, but axes bypass is set.'")
+        else:
+            failMsg = 'Failed to make tcc offset for sky flats.'
+            fail_command(cmd, cmdState, failMsg)
+            return
+
+    do_apogee_science(cmd, cmdState, actorState, finishMsg="APOGEE Sky Flats finished.")
+#...`
+
 def goto_gang_change(cmd, cmdState, actorState):
     """
     Goto gang change position at requested altitude, taking a dome flat on
@@ -1317,7 +1340,11 @@ def main(actor, queues):
                 cmd,cmdState,actorState = preprocess_msg(msg)
                 goto_field(cmd, cmdState, actorState)
             
-            elif msg.type == Msg.APOGEE_DOME_FLAT:
+            elif msg.type == Msg.DO_APOGEE_SKY_FLATS:
+                cmd,cmdState,actorState = preprocess_msg(msg)
+                do_apogee_sky_flats(cmd, cmdState, actorState)
+
+            elif msg.type == Msg.DO_APOGEE_DOME_FLAT:
                 cmd,cmdState,actorState = preprocess_msg(msg)
                 name = 'apogeeDomeFlat'
                 finishMsg = "Dome flat done."

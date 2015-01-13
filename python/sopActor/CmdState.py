@@ -357,19 +357,16 @@ class DoApogeeScienceCmd(CmdState):
     def __init__(self):
         CmdState.__init__(self, 'doApogeeScience',
                           ['expose'],
-                          keywords=dict(ditherSeq="ABBA",
+                          keywords=dict(ditherPairs=4,
                                         expTime=500.0,
-                                        comment="",
-                                        seqCount=2))
-        self.reset_ditherSeq()
-
+                                        comment=""))
     def reset_nonkeywords(self):
         self.expType = "object"
         super(DoApogeeScienceCmd,self).reset_nonkeywords()
 
     def getUserKeys(self):
         msg = []
-        msg.append('%s_sequenceState="%s",%d' % (self.name,self.exposureSeq,self.index))
+        msg.append('%s_index=%d,%d' % (self.name,self.index,self.ditherPairs))
         return msg
 
     def exposures_remain(self):
@@ -377,7 +374,7 @@ class DoApogeeScienceCmd(CmdState):
         if self.aborted:
             return False
         else:
-            return self.index < len(self.exposureSeq)
+            return self.index < self.ditherPairs
 
     def isSlewingDisabled(self):
         """If slewing is disabled, return a string describing why, else False."""
@@ -386,32 +383,28 @@ class DoApogeeScienceCmd(CmdState):
         else:
             return False
 
-    def reset_ditherSeq(self):
-       """Reset dither sequence based on dithers,count parameters."""
-       self.exposureSeq = self.ditherSeq*self.seqCount
-
     def abort(self):
+        self.ditherPairs = self.index
         self.stop_apogee_exposure()
-        self.exposureSeq = self.exposureSeq[:self.index]
         super(DoApogeeScienceCmd,self).abort()
 
 
 class DoApogeeSkyFlatsCmd(CmdState):
     def __init__(self):
         CmdState.__init__(self, 'doApogeeSkyFlats',
-                          ['expose'],
-                          keywords=dict(ditherSeq="ABBA",
+                          ['offset','expose'],
+                          keywords=dict(ditherPairs=2,
                                         expTime=150.0))
         self.exposureSeq = "ABBA"
 
     def reset_nonkeywords(self):
         self.expType = "object"
-        self.seqCount = 1
+        self.comment = "sky flat, offset 0.01 degree in RA"
         super(DoApogeeSkyFlatsCmd,self).reset_nonkeywords()
 
     def getUserKeys(self):
         msg = []
-        msg.append('%s_sequenceState="%s",%d' % (self.name,self.exposureSeq,self.index))
+        msg.append('%s_index=%d,%d' % (self.name,self.index,self.ditherPairs))
         return msg
 
     def exposures_remain(self):
@@ -419,7 +412,7 @@ class DoApogeeSkyFlatsCmd(CmdState):
         if self.aborted:
             return False
         else:
-            return self.index < len(self.exposureSeq)
+            return self.index < self.ditherPairs
 
     def isSlewingDisabled(self):
         """If slewing is disabled, return a string describing why, else False."""
@@ -429,8 +422,8 @@ class DoApogeeSkyFlatsCmd(CmdState):
             return False
 
     def abort(self):
+        self.ditherPairs = self.index
         self.stop_apogee_exposure()
-        self.exposureSeq = self.exposureSeq[:self.index]
         super(DoApogeeSkyFlatsCmd,self).abort()
 
 
@@ -562,17 +555,22 @@ class DoApogeeMangaDitherCmd(CmdState):
 
     def set_apogeeLead(self):
         """Setup to use this for APOGEE lead observations."""
-        self.keywords=dict(mangaExpTime=900.0,
-                           apogeeExpTime=500.0,
-                           mangaDither='C',
+        self.keywords=dict(mangaDither='C',
                            comment='')
+        self.mangaExpTime=900.0
+        self.apogeeExpTime=500.0
 
     def set_manga(self):
         """Setup to use this for MaNGA (stare or dither) observations."""
-        self.keywords=dict(mangaExpTime=900.0,
-                           apogeeExpTime=450.0,
-                           mangaDither='C',
+        self.keywords=dict(mangaDither='C',
                            comment='')
+        self.mangaExpTime=900.0
+        self.apogeeExpTime=450.0
+
+    def getUserKeys(self):
+        msg = []
+        msg.append("%s_expTime=%s,%s" % (self.name, self.mangaExpTime, self.apogeeExpTime))
+        return msg
 
     def isSlewingDisabled(self):
         """If slewing is disabled, return a string describing why, else False."""
@@ -592,42 +590,42 @@ class DoApogeeMangaSequenceCmd(CmdState):
     def __init__(self):
         CmdState.__init__(self, 'doApogeeMangaSequence',
                           ['expose','calibs','dither'],
-                          keywords=dict(mangaExpTime=900.0,
-                                        apogeeExpTime=450.0,
-                                        mangaDithers='NSE',
+                          keywords=dict(mangaDithers='NSE',
                                         count=2,
                                         comment=''))
+        self.mangaExpTime=0
+        self.apogeeExpTime=0
         self.reset_ditherSeq()
     
     def set_apogeeLead(self):
         """Setup to use this for APOGEE lead observations."""
-        self.keywords=dict(mangaExpTime=900.0,
-                           apogeeExpTime=500.0,
-                           mangaDithers='CC',
+        self.keywords=dict(mangaDithers='CC',
                            count=2,
                            comment='')
+        self.mangaExpTime=900.0
+        self.apogeeExpTime=500.0
         self.readout = True
         if not (self.cmd and self.cmd.isAlive()):
             self.reset_ditherSeq()
 
     def set_mangaDither(self):
         """Setup to use this for MaNGA dither observations."""
-        self.keywords=dict(mangaExpTime=900.0,
-                           apogeeExpTime=450.0,
-                           mangaDithers='NSE',
+        self.keywords=dict(mangaDithers='NSE',
                            count=2,
                            comment='')
+        self.mangaExpTime=900.0
+        self.apogeeExpTime=450.0
         self.readout = False
         if not (self.cmd and self.cmd.isAlive()):
             self.reset_ditherSeq()
 
     def set_mangaStare(self):
         """Setup to use this for MaNGA stare observations."""
-        self.keywords=dict(mangaExpTime=900.0,
-                           apogeeExpTime=450.0,
-                           mangaDithers='CCC',
+        self.keywords=dict(mangaDithers='CCC',
                            count=2,
                            comment='')
+        self.mangaExpTime=900.0
+        self.apogeeExpTime=450.0
         self.readout = False
         if not (self.cmd and self.cmd.isAlive()):
             self.reset_ditherSeq()
@@ -644,6 +642,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
     def getUserKeys(self):
         msg = []
         msg.append("%s_ditherSeq=%s,%s" % (self.name, self.mangaDitherSeq, self.index))
+        msg.append("%s_expTime=%s,%s" % (self.name, self.mangaExpTime, self.apogeeExpTime))
         return msg
 
     def exposures_remain(self):

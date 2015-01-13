@@ -17,6 +17,8 @@ from sopActor.utils.gang import ApogeeGang
 from sopActor.utils.guider import GuiderState
 import sopActor.myGlobals as myGlobals
 
+class TEST_QUEUE(): pass
+
 def FakeThread(actor,queues):
     """A thread that just outputs what it was told to do, for any message."""
     # how to get the actual name and ID of this thread.
@@ -39,8 +41,8 @@ def FakeThread(actor,queues):
             else:
                 unique = set(dir(msg)) - redundant
                 txt = ' '.join(['='.join((str(u),str(getattr(msg,u)))) for u in unique])
-                msg.cmd.call('%s %s %s'%(name,str(msg.type),txt))
-                msg.replyQueue.put(sopActor.Msg.DONE, cmd=msg.cmd, success=True)
+                cmdVar = msg.cmd.call('%s %s %s'%(name,str(msg.type),txt))
+                msg.replyQueue.put(sopActor.Msg.DONE, cmd=msg.cmd, success=not cmdVar.didFail)
         except Queue.Empty:
             actor.bcast.diag('text="%s alive"' % name)
 
