@@ -217,7 +217,7 @@ class CmdState(object):
             if cmdVar.didFail:
                 cmd.warn('text="Failed to stop running BOSS exposure"')
         else:
-            cmd.warn('text='"No BOSS exposure to abort!"'')
+            cmd.warn('text="No BOSS exposure to abort!"')
 
     def stop_apogee_exposure(self):
         """Abort any currently running APOGEE exposure."""
