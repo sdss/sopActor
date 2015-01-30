@@ -169,8 +169,6 @@ class SopCmd(object):
             cmd.fail("text='A science exposure sequence is running -- will not take calibration frames!")
             return
 
-        sopState.aborting = False
-
         if "abort" in keywords:
             self.stop_cmd(cmd, cmdState, sopState, 'doBossCalibs')
             return
@@ -251,7 +249,6 @@ class SopCmd(object):
         """Take a set of BOSS science frames"""
 
         sopState = myGlobals.actorState
-        sopState.aborting = False
         cmdState = sopState.doBossScience
         keywords = cmd.cmd.keywords
 
@@ -294,7 +291,6 @@ class SopCmd(object):
 
         sopState = myGlobals.actorState
         cmdState = sopState.doApogeeScience
-        sopState.aborting = False
         keywords = cmd.cmd.keywords
         name = 'doApogeeScience'
 
@@ -620,13 +616,14 @@ class SopCmd(object):
         screens returned to their initial state.
         """
         sopState = myGlobals.actorState
+        cmdState = sopState.hartmann
+
         if self.doing_science(sopState):
             cmd.fail("text='A science exposure sequence is running -- will not start a hartmann sequence!")
             return
-        
-        sopState.aborting = False
-        cmdState = sopState.hartmann
-        
+                
+        cmdState.reinitialize(cmd, output=False)
+
         expTime = float(cmd.cmd.keywords["expTime"].values[0]) \
                   if "expTime" in cmd.cmd.keywords else CmdState.getDefaultArcTime(sopActor.BOSS)
         cmdState.expTime = expTime
@@ -640,13 +637,14 @@ class SopCmd(object):
         the BOSS spectrographs, ignoring any remaining blue residuals.
         """
         sopState = myGlobals.actorState
+        cmdState = sopState.collimateBoss
+
         if self.doing_science(sopState):
             cmd.fail("text='A science exposure sequence is running -- will not start a hartmann sequence!")
             return
+        
+        cmdState.reinitialize(cmd, output=False)
 
-        sopState.aborting = False
-        cmdState = sopState.collimateBoss
-                
         sopState.queues[sopActor.MASTER].put(Msg.COLLIMATE_BOSS, cmd, replyQueue=self.replyQueue,
                                              actorState=sopState, cmdState=cmdState)
 
@@ -668,8 +666,6 @@ class SopCmd(object):
         if self.doing_science(sopState):
             cmd.fail("text='A science exposure sequence is running -- will not go to field!")
             return
-
-        sopState.aborting = False
 
         if "abort" in keywords:
             self.stop_cmd(cmd, cmdState, sopState, 'gotoField')
@@ -785,8 +781,6 @@ class SopCmd(object):
 
         cmdState.setCommandState('running')
         cmdState.setStageState("slew", "running")
-
-        sopState.aborting = False
 
         # TBD: Try to guess how long the slew will take. Will the TCC offer a suggestion?
         slewDuration = 230

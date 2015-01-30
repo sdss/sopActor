@@ -33,10 +33,12 @@ class TestKeywords(sopTester.SopTester,unittest.TestCase):
         self.cmdState.setStageState('1','running')
         self.cmdState.setStageState('2','aborted')
         self.cmdState.aborted = True
+        self.actorState.aborting = True
         self.cmdState.reinitialize()
         for n in self.stages:
             self.assertEquals(self.cmdState.stages[n],'idle')
         self.assertFalse(self.cmdState.aborted)
+        self.assertFalse(self.actorState.aborting)
 
     def test_set_item_ok(self):
         x = 1000

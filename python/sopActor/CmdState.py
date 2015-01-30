@@ -88,6 +88,7 @@ class CmdState(object):
         """Re-initialize this cmdState, keeping the stages list as is."""
         self.stateText="OK"
         self.aborted = False
+        myGlobals.actorState.aborting = False
         self.reset_keywords()
         self.reset_nonkeywords()
         if cmd is not None:
