@@ -75,7 +75,7 @@ def do_apogee_dither_set(cmd, actorState, expTime, dithers, expType, comment):
     """
     for dither in dithers:
         if actorState.aborting:
-            cmd.warn('Commander aborted: stopping APOGEE dither set.')
+            cmd.warn('text="Primary command aborted: stopping APOGEE dither set."')
             return False
         currentDither = actorState.models['apogee'].keyVarDict["ditherPosition"][1]
         # Per ticket #1756, APOGEE now does not want dither move requests unless necessary
