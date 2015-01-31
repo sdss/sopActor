@@ -333,6 +333,11 @@ class SopCmd(object):
         keywords = cmd.cmd.keywords
         name = 'doApogeeSkyFlats'
 
+        blocked = self.isSlewingDisabled(cmd)
+        if blocked:
+            cmd.fail('text=%s' % (qstr('will not take APOGEE sky flats: %s' % (blocked))))
+            return
+
         if "stop" in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
             self.stop_cmd(cmd, cmdState, sopState, name)
             return
