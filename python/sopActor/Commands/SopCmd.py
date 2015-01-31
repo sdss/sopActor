@@ -901,6 +901,10 @@ class SopCmd(object):
         sopState = myGlobals.actorState
         cmdState = sopState.doApogeeDomeFlat
         
+        if self.doing_science(sopState):
+            cmd.fail("text='A science exposure sequence is running -- will not take a dome flat!")
+            return
+
         if 'stop' in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
             self.stop_cmd(cmd, cmdState, sopState, 'doApogeeDomeFlat')
             return
