@@ -1020,6 +1020,8 @@ class SopCmd(object):
             for t in threading.enumerate():
                 cmd.inform('text="%s"' % t)
 
+        bypassNames, bypassStates = bypass.get_bypass_list()
+        cmd.inform("bypassNames="+", ".join(bypassNames))
         bypassed = bypass.get_bypassedNames()
         txt = "bypassedNames=" + ", ".join(bypassed)
         # output non-empty bypassedNames as a warning, per #2187.
