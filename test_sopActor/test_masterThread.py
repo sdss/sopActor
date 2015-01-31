@@ -462,7 +462,7 @@ class TestGotoGangChange(MasterThreadTester):
         myGlobals.actorState.survey = sopActor.APOGEE
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
-        self._goto_gang_change(6, 20, 1, 0)
+        self._goto_gang_change(6, 21, 1, 0)
     def test_goto_gang_change_apogee_closed(self):
         """
         One warning from "in slew with halted=False slewing=False"
@@ -470,7 +470,7 @@ class TestGotoGangChange(MasterThreadTester):
         myGlobals.actorState.survey = sopActor.APOGEE
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['A_closed'])
-        self._goto_gang_change(7, 20, 1, 0)
+        self._goto_gang_change(7, 21, 1, 0)
     def test_goto_gang_change_apogee_gang_podium(self):
         """
         One warning from "in slew with halted=False slewing=False"
@@ -478,13 +478,33 @@ class TestGotoGangChange(MasterThreadTester):
         myGlobals.actorState.survey = sopActor.APOGEE
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
-        self._goto_gang_change(3, 12, 1, 0)
+        self._goto_gang_change(3, 14, 1, 0)
     def test_goto_gang_change_boss(self):
         """
-        One warning from "in slew with halted=False slewing=False"
+        One warning from "in slew with halted=False slewing=False
         """
         myGlobals.actorState.survey = sopActor.BOSS
-        self._goto_gang_change(3, 12, 1, 0)
+        self._goto_gang_change(3, 14, 1, 0)
+
+    def test_goto_gang_change_apogee_noSlew(self):
+        myGlobals.actorState.survey = sopActor.APOGEE
+        sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
+        sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
+        cmdState = self.actorState.gotoGangChange
+        cmdState.reinitialize(self.cmd)
+        cmdState.doSlew = False
+        masterThread.goto_gang_change(self.cmd, cmdState, myGlobals.actorState)
+        self._check_cmd(2, 15, 0, 0, True)
+    def test_goto_gang_change_apogee_noDomeFlat(self):
+        myGlobals.actorState.survey = sopActor.APOGEE
+        sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
+        sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
+        cmdState = self.actorState.gotoGangChange
+        cmdState.reinitialize(self.cmd)
+        cmdState.doDomeFlat = False
+        masterThread.goto_gang_change(self.cmd, cmdState, myGlobals.actorState)
+        self._check_cmd(4, 11, 1, 0, True)
+
 
     def test_goto_gang_change_apogee_bypass_gangToCart(self):
         """Testing for complaints from the observers about gang bypass and gang changes."""
@@ -492,14 +512,14 @@ class TestGotoGangChange(MasterThreadTester):
         myGlobals.actorState.survey = sopActor.APOGEE
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
-        self._goto_gang_change(6, 20, 4, 0)
+        self._goto_gang_change(6, 21, 4, 0)
     def test_goto_gang_change_apogee_bypass_gangToPodium(self):
         """Testing for complaints from the observers about gang bypass and gang changes."""
         self._prep_bypass('gangToPodium',clear=True)
         myGlobals.actorState.survey = sopActor.APOGEE
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
-        self._goto_gang_change(3, 12, 4, 0)
+        self._goto_gang_change(3, 14, 4, 0)
 
     def test_goto_gang_change_apogee_fails_domeflat(self):
         """shutter open, FFS close, expose->fail"""
@@ -513,7 +533,7 @@ class TestGotoGangChange(MasterThreadTester):
         myGlobals.actorState.survey = sopActor.APOGEE
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
-        self._goto_gang_change(5, 19, 0, 2, didFail=True)
+        self._goto_gang_change(5, 20, 0, 2, didFail=True)
 
 
 class TestBossScience(MasterThreadTester):

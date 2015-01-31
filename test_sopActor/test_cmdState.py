@@ -178,6 +178,8 @@ class TestGotoGangChange(CmdStateTester,unittest.TestCase):
     def test_abort(self):
         super(TestGotoGangChange,self).test_abort()
         self.assertEqual(self.cmd.calls, ['apogee expose stop', 'tcc axis stop',])
+        self.assertFalse(self.cmdState.doDomeFlat)
+        self.assertFalse(self.cmdState.doSlew)
 
 
 class TestGotoField(CmdStateTester,unittest.TestCase):

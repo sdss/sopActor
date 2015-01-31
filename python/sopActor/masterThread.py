@@ -1150,59 +1150,66 @@ def goto_gang_change(cmd, cmdState, actorState):
     finishMsg = "at gang change position"
     # Behavior varies depending on where the gang connector is.
     gangCart = actorState.apogeeGang.atCartridge()
-    multiCmd = SopMultiCommand(cmd, actorState.timeout + 100,
-                               cmdState.name+".slew")
-    cmdState.setStageState('slew', 'running')
-    
-    # if the gang connector is at the cartridge, we know we should do cals.
-    if gangCart and actorState.survey != sopActor.BOSS:
-        cmd.inform('text="scheduling dome flat: %s"' % (actorState.survey))
-        if not apogee_dome_flat(cmd, cmdState, actorState, multiCmd, failMsg="failed to take flat before gang change"):
-            return
-    else:
+
+    if cmdState.doDomeFlat:
+        multiCmd = SopMultiCommand(cmd, actorState.timeout + 100,
+                                   cmdState.name+".domeFlat")
+        cmdState.setStageState('domeFlat', 'running')
+        # if the gang connector is at the cartridge, we should do cals.
+        if gangCart and actorState.survey != sopActor.BOSS:
+            cmd.inform('text="scheduling dome flat: %s"' % (actorState.survey))
+            if not apogee_dome_flat(cmd, cmdState, actorState, multiCmd, failMsg="failed to take flat before gang change"):
+                return
+        else:
+            gangAt = actorState.apogeeGang.getPos()
+            cmd.inform('text="Skipping flat with %s and %s"' % (gangAt, actorState.survey))
+            cmdState.setStageState('domeFlat', 'done')
+
+    if cmdState.doSlew:
+        multiCmd = SopMultiCommand(cmd, actorState.timeout + 100,
+                                   cmdState.name+".slew")
+        cmdState.setStageState('slew', 'running')
         # Close the FFS, to prevent excess light incase of slews past the moon, etc.
         multiCmd.append(SopPrecondition(sopActor.FFS, Msg.FFS_MOVE, open=False))
-        gangAt = actorState.apogeeGang.getPos()
-        cmd.inform('text="Skipping flat with %s and %s"' % (gangAt, actorState.survey))
 
-    tccDict = actorState.models["tcc"].keyVarDict
+        tccDict = actorState.models["tcc"].keyVarDict
+        if gangCart:
+            # Heading towards the instrument change pos.
+            az = 121
+            alt = cmdState.alt
+            rot = 0
 
-    if gangCart:              # Heading towards the instrument change pos.
-        az = 121
-        alt = cmdState.alt
-        rot = 0
+            # Try to move the rotator as far as we can while the altitude is moving.
+            thisAlt = tccDict['axePos'][1]
+            thisRot = tccDict['axePos'][2]
+            dRot = rot-thisRot
+            if dRot != 0:
+                dAlt = alt-thisAlt
+                dAltTime = abs(dAlt) / 1.5 #deg/sec
+                dRotTime = abs(dRot) / 2.0 #deg/sec
+                dCanRot = dRot * min(1.0, dAltTime/dRotTime)
+                rot = thisRot + dCanRot
+        else:
+            # Nod up: going to the commanded altitude, leaving az and rot where they are.
+            az = tccDict['axePos'][0]
+            alt = cmdState.alt
+            rot = tccDict['axePos'][2]
 
-        # Try to move the rotator as far as we can while the altitude is moving.
-        thisAlt = tccDict['axePos'][1]
-        thisRot = tccDict['axePos'][2]
-        dRot = rot-thisRot
-        if dRot != 0:
-            dAlt = alt-thisAlt
-            dAltTime = abs(dAlt) / 1.5 #deg/sec
-            dRotTime = abs(dRot) / 2.0 #deg/sec
-            dCanRot = dRot * min(1.0, dAltTime/dRotTime)
-            rot = thisRot + dCanRot
-    else:                   # Nod up.
-        # going to the commanded altitude, leaving az and rot where they are.
-        az = tccDict['axePos'][0]
-        alt = cmdState.alt
-        rot = tccDict['axePos'][2]
+        slewDuration = 60
+        multiCmd = MultiCommand(cmd, slewDuration + actorState.timeout, None)
 
-    slewDuration = 60
-    multiCmd = MultiCommand(cmd, slewDuration + actorState.timeout, None)
+        # start with an axis init, in case the axes are not clear.
+        multiCmd.append(SopPrecondition(sopActor.TCC, Msg.AXIS_INIT))
+        # if the gang is at the cart, we need to close the apogee shutter during
+        # the slew, no matter which survey is leading.
+        if actorState.apogeeGang.atCartridge():
+            prep_apogee_shutter(multiCmd,open=False)
+            # used to do darks on the way to the field.
+            # multiCmd.append(sopActor.APOGEE_SCRIPT, Msg.APOGEE_PARK_DARKS)
+        multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState, az=az, alt=alt, rot=rot)
 
-    # start with an axis init, in case the axes are not clear.
-    multiCmd.append(SopPrecondition(sopActor.TCC, Msg.AXIS_INIT))
-    # if the gang is at the cart, we need to close the apogee shutter during
-    # the slew, no matter which survey is leading.
-    if actorState.apogeeGang.atCartridge():
-        prep_apogee_shutter(multiCmd,open=False)
-        # used to do darks on the way to the field.
-        # multiCmd.append(sopActor.APOGEE_SCRIPT, Msg.APOGEE_PARK_DARKS)
-    multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState, az=az, alt=alt, rot=rot)
-
-    if not handle_multiCmd(multiCmd,cmd,cmdState,"slew","Failed to slew to gang change"):
-        return
+        if not handle_multiCmd(multiCmd,cmd,cmdState,"slew","Failed to slew to gang change"):
+            return
 
     finish_command(cmd,cmdState,actorState,finishMsg)
 #...

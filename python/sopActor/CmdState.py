@@ -248,9 +248,15 @@ class GotoGangChangeCmd(CmdState):
                           keywords=dict(alt=45.0))
         self.expType = "object"
 
+    def reset_nonkeywords(self):
+        self.doDomeFlat = True
+        self.doSlew = True
+
     def abort(self):
         self.stop_apogee_exposure()
         self.stop_tcc()
+        self.doDomeFlat = False
+        self.doSlew = False
         super(GotoGangChangeCmd,self).abort()
 
 

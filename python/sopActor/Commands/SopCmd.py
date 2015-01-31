@@ -75,6 +75,7 @@ class SopCmd(object):
                                         keys.Key("noHartmann", help="Don't make Hartmann corrections"),
                                         keys.Key("noGuider", help="Don't start the guider"),
                                         keys.Key("noCalibs", help="Don't run the calibration step"),
+                                        keys.Key("noDomeFlat", help="Don't run the dome flat step"),
                                         keys.Key("sp1", help="Select SP1"),
                                         keys.Key("sp2", help="Select SP2"),
                                         keys.Key("geek", help="Show things that only some of us love"),
@@ -126,7 +127,7 @@ class SopCmd(object):
             ("gotoStow", "", self.gotoStow),
             ("gotoAll60", "", self.gotoAll60),
             ("gotoStow60", "", self.gotoStow60),
-            ("gotoGangChange", "[<alt>] [abort] [stop]", self.gotoGangChange),
+            ("gotoGangChange", "[<alt>] [abort] [stop] [noDomeFlat] [noSlew]", self.gotoGangChange),
             ("doApogeeDomeFlat", "[stop] [abort]", self.doApogeeDomeFlat),
             ("setFakeField", "[<az>] [<alt>] [<rotOffset>]", self.setFakeField),
             ("status", "[geek]", self.status),
@@ -865,13 +866,14 @@ class SopCmd(object):
 
         sopState = myGlobals.actorState
         cmdState = sopState.gotoGangChange
+        keywords = cmd.cmd.keywords
 
         blocked = self.isSlewingDisabled(cmd)
         if blocked:
             cmd.fail('text=%s' % (qstr('will not go to gang change: %s' % (blocked))))
             return
 
-        if 'stop' in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
+        if 'stop' in keywords or 'abort' in keywords:
             self.stop_cmd(cmd, cmdState, sopState, 'gotoGangChange')
             return
         
@@ -880,12 +882,17 @@ class SopCmd(object):
             cmd.fail('text="Cannot modify gotoGangChange."')
             return
 
-        cmdState.reinitialize(cmd)
-        alt = cmd.cmd.keywords["alt"].values[0] \
-              if "alt" in cmd.cmd.keywords else 45.0
+        cmdState.reinitialize(cmd, output=False)
+        alt = keywords["alt"].values[0] if "alt" in keywords else None
+        cmdState.set('alt',alt)
+        cmdState.doSlew = "noSlew" not in keywords
+        cmdState.doDomeFlat = "noDomeFlat" not in keywords
 
-        cmdState.alt = alt
-        
+        activeStages = []
+        if cmdState.doSlew: activeStages.append('slew')
+        if cmdState.doDomeFlat: activeStages.append('domeFlat')
+        cmdState.setupCommand(cmd, activeStages)
+
         sopState.queues[sopActor.MASTER].put(Msg.GOTO_GANG_CHANGE, cmd, replyQueue=self.replyQueue,
                                              actorState=sopState, cmdState=cmdState)
     

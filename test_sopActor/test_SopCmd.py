@@ -17,6 +17,14 @@ from sopActor import Queue, CmdState
 from actorcore import TestHelper
 import sopTester
 
+
+def build_active_stages(allStages, activeStages):
+    """Returns a dictionary of stages and their off/pending state."""
+    stages = dict(zip(allStages,['off']*len(allStages)))
+    for x in activeStages: stages[x] = 'pending'
+    return stages
+
+
 class SopCmdTester(sopTester.SopTester):
     def setUp(self):
         self.verbose = True
@@ -311,13 +319,17 @@ class TestStatus(SopCmdTester,unittest.TestCase):
 
 class TestGotoGangChange(SopCmdTester,unittest.TestCase):
     def _gotoGangChange(self, nCart, survey, args, expect):
+        allStages = ['domeFlat','slew']
+        stages = build_active_stages(allStages, expect.get('stages',allStages))
+
         self._update_cart(nCart, survey)
         queue = myGlobals.actorState.queues[sopActor.MASTER]
         msg = self._run_cmd('gotoGangChange %s'%(args),queue)
         self.assertEqual(msg.type,sopActor.Msg.GOTO_GANG_CHANGE)
         self.assertEqual(msg.cmdState.alt,expect.get('alt',45))
-        stages = dict(zip(expect['stages'],['idle']*len(expect['stages'])))
         self.assertEqual(msg.cmdState.stages,stages)
+        self.assertEqual(msg.cmdState.doSlew,expect.get('doSlew',True))
+        self.assertEqual(msg.cmdState.doDomeFlat,expect.get('doDomeFlat',True))
     
     def test_gotoGangChange_ok(self):
         sopTester.updateModel('guider',TestHelper.guiderState['apogeeLoaded'])
@@ -327,6 +339,14 @@ class TestGotoGangChange(SopCmdTester,unittest.TestCase):
         sopTester.updateModel('guider',TestHelper.guiderState['bossLoaded'])
         expect = {'stages':['domeFlat','slew']}
         self._gotoGangChange(11,'boss','',expect)
+    def test_gotoGangChange_noSlew(self):
+        sopTester.updateModel('guider',TestHelper.guiderState['apogeeLoaded'])
+        expect = {'stages':['domeFlat'],'doSlew':False}
+        self._gotoGangChange(1,'apogee','noSlew',expect)
+    def test_gotoGangChange_noDomeFlat(self):
+        sopTester.updateModel('guider',TestHelper.guiderState['apogeeLoaded'])
+        expect = {'stages':['slew'],'doDomeFlat':False}
+        self._gotoGangChange(1,'apogee','noDomeFlat',expect)
 
     def test_gotoGangChange_abort(self):
         self.actorState.gotoGangChange.cmd = self.cmd
@@ -568,9 +588,7 @@ class TestGotoField(SopCmdTester,unittest.TestCase):
             allStages = ['slew', 'guider', 'cleanup']
         else:
             allStages = ['slew', 'hartmann', 'calibs', 'guider', 'cleanup']
-        _stages = dict(zip(allStages,['off']*len(allStages)))
-        for x in stages: _stages[x] = 'pending'
-        stages = _stages
+        stages = build_active_stages(allStages,stages)
 
         self._update_cart(cart,survey)
         queue = myGlobals.actorState.queues[sopActor.MASTER]
@@ -770,9 +788,7 @@ class TestDoBossScience(SopCmdTester,unittest.TestCase):
 class TestBossCalibs(SopCmdTester,unittest.TestCase):
     def _bossCalibs(self, expect, stages, args,):
         allStages = ['bias', 'dark', 'flat', 'arc', 'cleanup']
-        _stages = dict(zip(allStages,['off']*len(allStages)))
-        for x in stages: _stages[x] = 'pending'
-        stages = _stages
+        stages = build_active_stages(allStages,stages)
 
         queue = myGlobals.actorState.queues[sopActor.MASTER]
         msg = self._run_cmd('doBossCalibs %s'%(args),queue)
