@@ -31,17 +31,27 @@ class TestAxisChecks(sopTester.SopTester, unittest.TestCase):
         super(TestAxisChecks,self).setUp()
 
     def test_axes_are_clear(self):
-        sopTester.updateModel('tcc',TestHelper.tccState['moving'])
+        sopTester.updateModel('tcc',TestHelper.tccState['tracking'])
         self.assertTrue(tccThread.axes_are_clear(self.actorState))
     def test_axes_are_clear_False(self):
         sopTester.updateModel('tcc',TestHelper.tccState['bad'])
         self.assertFalse(tccThread.axes_are_clear(self.actorState))
 
+    def test_axes_are_ok(self):
+        sopTester.updateModel('tcc',TestHelper.tccState['slewing'])
+        self.assertTrue(tccThread.axes_are_ok(self.actorState))
+    def test_axes_are_ok_Halted_True(self):
+        sopTester.updateModel('tcc',TestHelper.tccState['halted'])
+        self.assertTrue(tccThread.axes_are_ok(self.actorState))
+    def test_axes_are_ok_False(self):
+        sopTester.updateModel('tcc',TestHelper.tccState['stopped'])
+        self.assertFalse(tccThread.axes_are_ok(self.actorState))
+
     def test_check_stop_in(self):
         sopTester.updateModel('tcc',TestHelper.tccState['stopped'])
         self.assertTrue(tccThread.check_stop_in(self.actorState))
     def test_check_stop_in_False(self):
-        sopTester.updateModel('tcc',TestHelper.tccState['moving'])
+        sopTester.updateModel('tcc',TestHelper.tccState['halted'])
         self.assertFalse(tccThread.check_stop_in(self.actorState))
 
     def test_below_alt_limit_no(self):
@@ -50,6 +60,26 @@ class TestAxisChecks(sopTester.SopTester, unittest.TestCase):
     def test_below_alt_limit_yes(self):
         sopTester.updateModel('tcc',TestHelper.tccState['halted_low'])
         self.assertTrue(tccThread.below_alt_limit(self.actorState))
+
+    def _axes_state(self, axisCmdState, state, expect, axes=('az','alt','rot')):
+        result = tccThread.axes_state(axisCmdState, state, axes=axes)
+        self.assertEqual(result,expect,'wanted: %s, got: %s'%(state, axisCmdState))
+    def test_axes_state_all_tracking(self):
+        sopTester.updateModel('tcc',TestHelper.tccState['tracking'])
+        axisCmdState = self.actorState.models['tcc'].keyVarDict['axisCmdState']
+        self._axes_state(axisCmdState, 'tracking', True)
+    def test_axes_state_all_tracking_not(self):
+        sopTester.updateModel('tcc',TestHelper.tccState['badAz'])
+        axisCmdState = self.actorState.models['tcc'].keyVarDict['axisCmdState']
+        self._axes_state(axisCmdState, 'tracking', False)
+    def test_axes_state_all_halt(self):
+        sopTester.updateModel('tcc',TestHelper.tccState['halted_low'])
+        axisCmdState = self.actorState.models['tcc'].keyVarDict['axisCmdState']
+        self._axes_state(axisCmdState, 'halt', True)
+    def test_axes_state_altrot_tracking(self):
+        sopTester.updateModel('tcc',TestHelper.tccState['badAz'])
+        axisCmdState = self.actorState.models['tcc'].keyVarDict['axisCmdState']
+        self._axes_state(axisCmdState, 'slewing', True, axes=('alt','rot'))
 
 
 class TestMcpSemaphoreOk(TccThreadTester, unittest.TestCase):
@@ -85,12 +115,12 @@ class TestAxisInit(TccThreadTester, unittest.TestCase):
         return msg
 
     def test_axis_init_ok(self):
-        sopTester.updateModel('tcc',TestHelper.tccState['moving'])
+        sopTester.updateModel('tcc',TestHelper.tccState['tracking'])
         msg = self._test_axis_init()
         self.assertTrue(msg.success)
         self._check_cmd(2,1,0,0,False)
     def test_axis_init_no_init_needed(self):
-        sopTester.updateModel('tcc',TestHelper.tccState['moving'])
+        sopTester.updateModel('tcc',TestHelper.tccState['tracking'])
         sopTester.updateModel('mcp',TestHelper.mcpState['tcc_semaphore'])
         msg = self._test_axis_init()
         self.assertTrue(msg.success)
@@ -104,7 +134,7 @@ class TestAxisInit(TccThreadTester, unittest.TestCase):
 
     def test_axis_init_no_axis_status(self):
         self.cmd.failOn = 'tcc axis status'
-        sopTester.updateModel('tcc',TestHelper.tccState['moving'])
+        sopTester.updateModel('tcc',TestHelper.tccState['tracking'])
         msg = self._test_axis_init()
         self.assertFalse(msg.success)
         self._check_cmd(1,0,0,2,False)
@@ -115,13 +145,13 @@ class TestAxisInit(TccThreadTester, unittest.TestCase):
         self._check_cmd(2,0,0,1,False)
     def test_axis_init_bad_semaphore(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['bad_semaphore'])
-        sopTester.updateModel('tcc',TestHelper.tccState['moving'])
+        sopTester.updateModel('tcc',TestHelper.tccState['tracking'])
         msg = self._test_axis_init()
         self.assertFalse(msg.success)
         self._check_cmd(1,0,0,3,False)
     def test_axis_init_fails(self):
         self.cmd.failOn = 'tcc axis init'
-        sopTester.updateModel('tcc',TestHelper.tccState['moving'])
+        sopTester.updateModel('tcc',TestHelper.tccState['slewing'])
         msg = self._test_axis_init()
         self.assertFalse(msg.success)
         self._check_cmd(2,1,0,2,False)
@@ -148,23 +178,7 @@ class TestAxisStop(TccThreadTester, unittest.TestCase):
 class TestSlew(TccThreadTester, unittest.TestCase):
     def setUp(self):
         super(TestSlew,self).setUp()
-        self.slewHandler = tccThread.SlewHandler(self.actorState, self.actorState.tccState, self.queues['tcc'])
-        self.update_tccState()
-
-    def update_tccState(self):
-        """
-        Have to call the appropriate functions after we updateModel:
-            no callbacks in a fakeModel."""
-        tccState = self.actorState.tccState
-        model = self.actorState.models['tcc']
-        # TBD: can't use moveItems, since these keyVars don't have reply.
-        # So, Robert's Ughh. comment at the top of that implies Craig lied... (at least for my tests...)
-        # tccState.listenToMoveItems(model.keyVarDict["moveItems"])
-        tccState.listenToBadStatusMask(model.keyVarDict["axisBadStatusMask"])
-        tccState.listenToAxisStat(model.keyVarDict["altStat"])
-        tccState.listenToAxisStat(model.keyVarDict["azStat"])
-        tccState.listenToAxisStat(model.keyVarDict["rotStat"])
-        tccState.listenToTccStatus(model.keyVarDict["tccStatus"])
+        self.slewHandler = tccThread.SlewHandler(self.actorState, self.queues['tcc'])
 
     def test_parse_args_radecrot(self):
         ra, dec, rot = 10, 20, 30
@@ -187,7 +201,6 @@ class TestSlew(TccThreadTester, unittest.TestCase):
         self.assertTrue(self.slewHandler.keepOffsets)
 
     def _not_ok_to_slew(self, expect):
-        self.update_tccState()
         result = self.slewHandler.not_ok_to_slew(self.cmd)
         self.assertEqual(result, expect)
     def test_not_ok_to_slew_halted_ok(self):
@@ -204,9 +217,8 @@ class TestSlew(TccThreadTester, unittest.TestCase):
         self._not_ok_to_slew(True)
 
     def test_not_ok_to_slew_ignore_az_ok(self):
-        """Start at low alt, pretend to move up, continued bad alt should be ok."""
+        """Start at low alt, pretend to move up, continued bad az should be ok."""
         sopTester.updateModel('tcc',TestHelper.tccState['halted_low'])
-        self.update_tccState()
         self.slewHandler.not_ok_to_slew(self.cmd)
         sopTester.updateModel('tcc',TestHelper.tccState['badAz'])
         self._not_ok_to_slew(False)
@@ -226,8 +238,7 @@ class TestSlew(TccThreadTester, unittest.TestCase):
 
     def test_slew_twice(self):
         msg = self._slew_radec(10,20,30)
-        sopTester.updateModel('tcc',TestHelper.tccState['moving'])
-        self.update_tccState()
+        sopTester.updateModel('tcc',TestHelper.tccState['slewing'])
         self.assertEqual(msg.type, sopActor.Msg.WAIT_FOR_SLEW_END)
         msg = self._slew_radec(40,50,60)
         self.assertEqual(msg.type, sopActor.Msg.WAIT_FOR_SLEW_END)
@@ -254,7 +265,6 @@ class TestSlew(TccThreadTester, unittest.TestCase):
 
     def test_slew_axis_stopped(self):
         sopTester.updateModel('tcc',TestHelper.tccState['stopped'])
-        self.update_tccState()
         self.slewHandler.slew(self.cmd, self.queues['tcc'])
         msg = self.queues['tcc'].get(timeout=0.1)
         self.assertEqual(msg.type, sopActor.Msg.REPLY)
@@ -265,41 +275,47 @@ class TestSlew(TccThreadTester, unittest.TestCase):
         sopTester.updateModel('tcc',TestHelper.tccState['halted'])
         # prep that we're in a slew, don't care about the return msg.
         self._slew_radec(10,20,30)
-        sopTester.updateModel('tcc',TestHelper.tccState['moving'])
-        self.update_tccState()
-        # TBD: have to fake the slewing state, because I'm not using a proper Model.
-        tccState = self.actorState.tccState
-        tccState.slewing = True
-        tccState.halted = False
+        self.cmd.clear_msgs() # don't bother with messages from the initial slew
+        sopTester.updateModel('tcc',TestHelper.tccState['slewing'])
         self.slewHandler.wait_for_slew_end(self.cmd, self.queues['tcc'])
         msg = self.queues['tcc'].get(timeout=0.1)
         self.assertEqual(msg.type, sopActor.Msg.WAIT_FOR_SLEW_END)
+        self._check_cmd(0,1,0,0,False,False)
 
     def test_wait_for_slew_end_waiting_from_low(self):
         sopTester.updateModel('tcc',TestHelper.tccState['halted_low'])
         # prep that we're in a slew, don't care about the return msg.
         self._slew_altaz(30,121,0)
+        self.cmd.clear_msgs() # don't bother with messages from the initial slew
         sopTester.updateModel('tcc',TestHelper.tccState['badAz'])
-        self.update_tccState()
         self.slewHandler.wait_for_slew_end(self.cmd, self.queues['tcc'])
         msg = self.queues['tcc'].get(timeout=0.1)
         self.assertEqual(msg.type, sopActor.Msg.REPLY)
         self.assertTrue(msg.success)
+        self._check_cmd(0,0,1,0,False,False)
 
     def test_wait_for_slew_end_done_ok(self):
         sopTester.updateModel('tcc',TestHelper.tccState['halted'])
         # prep that we're in a slew, don't care about the return msg.
         self._slew_radec(10,20,30)
-        sopTester.updateModel('tcc',TestHelper.tccState['moving'])
-        self.update_tccState()
-        # TBD: have to fake the slewing state, because I'm not using a proper Model.
-        tccState = self.actorState.tccState
-        tccState.slewing = False
-        tccState.halted = False
+        self.cmd.clear_msgs() # don't bother with messages from the initial slew
+        sopTester.updateModel('tcc',TestHelper.tccState['tracking'])
         self.slewHandler.wait_for_slew_end(self.cmd, self.queues['tcc'])
         msg = self.queues['tcc'].get(timeout=0.1)
         self.assertEqual(msg.type, sopActor.Msg.REPLY)
         self.assertTrue(msg.success)
+        self._check_cmd(0,1,0,0,False,False)
+    def test_wait_for_slew_end_done_not_ok(self):
+        sopTester.updateModel('tcc',TestHelper.tccState['halted'])
+        # prep that we're in a slew, don't care about the return msg.
+        self._slew_radec(10,20,30)
+        self.cmd.clear_msgs() # don't bother with messages from the initial slew
+        sopTester.updateModel('tcc',TestHelper.tccState['stopped'])
+        self.slewHandler.wait_for_slew_end(self.cmd, self.queues['tcc'])
+        msg = self.queues['tcc'].get(timeout=0.1)
+        self.assertEqual(msg.type, sopActor.Msg.REPLY)
+        self.assertFalse(msg.success)
+        self._check_cmd(0,0,1,0,False,False)
 
 
 if __name__ == '__main__':

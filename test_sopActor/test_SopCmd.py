@@ -86,30 +86,30 @@ class TestBypass(SopCmdTester,unittest.TestCase):
             self.actorState.surveyMode == survey[1]
         self._check_cmd(nCalls,nInfo,nWarn,0,True)
     def test_bypass_isBoss(self):
-        self._bypass_set('isBoss', 57, 3, 1, ['eBOSS',None])
+        self._bypass_set('isBoss', 58, 3, 1, ['eBOSS',None])
     def test_bypass_isApogee(self):
-        self._bypass_set('isApogee', 57, 3, 1, ['APOGEE',None])
+        self._bypass_set('isApogee', 58, 3, 1, ['APOGEE',None])
     def test_bypass_isMangaStare(self):
-        self._bypass_set('isMangaStare', 57, 3, 1, ['MaNGA','MaNGA stare'])
+        self._bypass_set('isMangaStare', 58, 3, 1, ['MaNGA','MaNGA stare'])
     def test_bypass_isMangaDither(self):
-        self._bypass_set('isMangaDither', 57, 3, 1, ['MaNGA','MaNGA dither'])
+        self._bypass_set('isMangaDither', 58, 3, 1, ['MaNGA','MaNGA dither'])
     def test_bypass_isApogeeLead(self):
-        self._bypass_set('isApogeeLead', 57, 3, 1, ['APGOEE-2&MaNGA','APOGEE lead'])
+        self._bypass_set('isApogeeLead', 58, 3, 1, ['APGOEE-2&MaNGA','APOGEE lead'])
     def test_bypass_isApogeeMangaDither(self):
-        self._bypass_set('isApogeeMangaDither', 57, 3, 1, ['APGOEE-2&MaNGA','MaNGA dither'])
+        self._bypass_set('isApogeeMangaDither', 58, 3, 1, ['APGOEE-2&MaNGA','MaNGA dither'])
     def test_bypass_isApogeeMangaStare(self):
-        self._bypass_set('isApogeeMangaStare', 57, 3, 1, ['APGOEE-2&MaNGA','MaNGA stare'])
+        self._bypass_set('isApogeeMangaStare', 58, 3, 1, ['APGOEE-2&MaNGA','MaNGA stare'])
 
     def test_bypass_gangToCart(self):
-        self._bypass_set('gangToCart', 56, 4)
+        self._bypass_set('gangToCart', 57, 4)
     def test_bypass_gangToPodium(self):
-        self._bypass_set('gangToPodium', 56, 4)
+        self._bypass_set('gangToPodium', 57, 4)
 
     def test_bypass_axes(self):
-        self._bypass_set('axes', 56, 1)
+        self._bypass_set('axes', 57, 1)
 
     def test_bypass_slewToField(self):
-        self._bypass_set('slewToField', 56, 1)
+        self._bypass_set('slewToField', 57, 1)
 
     def test_not_bypassable(self):
         self._clear_bypasses()
@@ -127,7 +127,7 @@ class TestStopCmd(SopCmdTester,unittest.TestCase):
         self._fake_boss_exposing()
         self.sopCmd.stop_cmd(self.cmd,self.cmdState,self.actorState,'fakeCmd')
         self.assertTrue(myGlobals.actorState.aborting)
-        self._check_cmd(0,5,0,0, True)
+        self._check_cmd(0,6,0,0, True)
     def test_stop_cmd_not_active(self):
         """Fail if there's no active command to operate on."""
         cmdState = self.actorState.doBossScience
@@ -273,12 +273,12 @@ class TestStatus(SopCmdTester,unittest.TestCase):
         self._run_cmd('status %s'%args, None)
         self._check_cmd(0,nInfo,0,0,True)
     def test_status(self):
-        self._status(57)
+        self._status(58)
     def test_status_geek(self):
-        self._status(59,args='geek')
+        self._status(60,args='geek')
     def test_status_noFinish(self):
         self.sopCmd.status(self.cmd,finish=False)
-        self._check_cmd(0,57,0,0,False)
+        self._check_cmd(0,58,0,0,False)
 
     def _oneCommand(self, nInfo, oneCommand):
         """
@@ -288,33 +288,33 @@ class TestStatus(SopCmdTester,unittest.TestCase):
         self.sopCmd.status(self.cmd,oneCommand=oneCommand)
         self._check_cmd(0,4+nInfo,0,0,True)
     def test_gotoGangChange(self):
-        self._oneCommand(3,'gotoGangChange')
+        self._oneCommand(4,'gotoGangChange')
     def test_doApogeeDomeFlat(self):
-        self._oneCommand(3,'doApogeeDomeFlat')
+        self._oneCommand(4,'doApogeeDomeFlat')
     def test_hartmann(self):
-        self._oneCommand(3,'hartmann')
+        self._oneCommand(4,'hartmann')
     def test_gotoField(self):
-        self._oneCommand(3,'gotoField')
+        self._oneCommand(4,'gotoField')
     def test_doBossCalibs(self):
-        self._oneCommand(4,'doBossCalibs')
+        self._oneCommand(5,'doBossCalibs')
     def test_doApogeeScience(self):
-        self._oneCommand(4,'doApogeeScience')
+        self._oneCommand(5,'doApogeeScience')
     def test_doApogeeSkyFlats(self):
-        self._oneCommand(4,'doApogeeSkyFlats')
+        self._oneCommand(5,'doApogeeSkyFlats')
     def test_doBossScience(self):
-        self._oneCommand(4,'doBossScience')
+        self._oneCommand(5,'doBossScience')
     def test_doMangaSequence(self):
-        self._oneCommand(4,'doMangaSequence')
+        self._oneCommand(5,'doMangaSequence')
     def test_doMangaDither(self):
-        self._oneCommand(3,'doMangaDither')
+        self._oneCommand(4,'doMangaDither')
     def test_doApogeeMangaDither(self):
-        self._oneCommand(4,'doApogeeMangaDither')
+        self._oneCommand(5,'doApogeeMangaDither')
     def test_doApogeeMangaSequence(self):
-        self._oneCommand(4,'doApogeeMangaSequence')
+        self._oneCommand(5,'doApogeeMangaSequence')
     def test_gotoStow(self):
-        self._oneCommand(2,'gotoStow')
+        self._oneCommand(3,'gotoStow')
     def test_gotoInstrumentChange(self):
-        self._oneCommand(2,'gotoInstrumentChange')
+        self._oneCommand(3,'gotoInstrumentChange')
 
 
 class TestGotoGangChange(SopCmdTester,unittest.TestCase):
@@ -438,7 +438,7 @@ class TestDoMangaSequence(SopCmdTester,unittest.TestCase):
         self._run_cmd('doMangaSequence abort', None)
         self.assertTrue(self.actorState.aborting)
 
-    def _doMangaSequence_modify(self, args1, args2, cmd_levels=(0,10,0,0), didFail=False):
+    def _doMangaSequence_modify(self, args1, args2, cmd_levels=(0,11,0,0), didFail=False):
         queue = myGlobals.actorState.queues[sopActor.MASTER]
         # create something we can modify.
         msg = self._run_cmd('doMangaSequence %s'%args1, queue)
@@ -556,7 +556,7 @@ class TestDoApogeeMangaSequence(SopCmdTester,unittest.TestCase):
         self._run_cmd('doApogeeMangaSequence abort', None)
         self.assertTrue(self.actorState.aborting)
 
-    def _doApogeeMangaSequence_modify(self, args1, args2, cmd_levels=(0,10,0,0), didFail=False):
+    def _doApogeeMangaSequence_modify(self, args1, args2, cmd_levels=(0,11,0,0), didFail=False):
         self._update_cart(2, 'APOGEE-2&MaNGA', 'MaNGA dither')
         queue = myGlobals.actorState.queues[sopActor.MASTER]
         # create something we can modify.
@@ -702,7 +702,7 @@ class TestGotoField(SopCmdTester,unittest.TestCase):
 
     # @unittest.skip("Properly doing these is going to be complicated...")
     def test_gotoField_modify_cancel_calibs(self):
-        msg = self._gotoField_modify('','noCalibs', cmd_levels=(0,13,0,0))
+        msg = self._gotoField_modify('','noCalibs', cmd_levels=(0,14,0,0))
         self.assertEqual(msg.cmdState.doCalibs, False)
 
 
@@ -780,7 +780,7 @@ class TestDoBossScience(SopCmdTester,unittest.TestCase):
         msg = self._run_cmd('doBossScience nexp=2', queue)
         msgNew = self._run_cmd('doBossScience nexp=1 expTime=100', queue, empty=True)
         self.assertIsNone(msgNew)
-        self._check_cmd(0,10,0,0,True)
+        self._check_cmd(0,11,0,0,True)
         self.assertEqual(msg.cmdState.nExp, 1)
         self.assertEqual(msg.cmdState.expTime, 100)
 
@@ -856,7 +856,7 @@ class TestBossCalibs(SopCmdTester,unittest.TestCase):
         msg = self._run_cmd('doBossCalibs nbias=2 ndark=2 nflat=2 narc=2', queue)
         msgNew = self._run_cmd('doBossCalibs nbias=1 ndark=1 nflat=1 narc=1 darkTime=10 flatTime=10 guiderFlatTime=10 arcTime=10', queue, empty=True)
         self.assertIsNone(msgNew)
-        self._check_cmd(0,12,0,0,True)
+        self._check_cmd(0,13,0,0,True)
         for nExp in ['nBias', 'nDark', 'nFlat', 'nArc']:
             self.assertEqual(getattr(msg.cmdState,nExp), 1)
         for expTime in ['darkTime', 'flatTime', 'guiderFlatTime', 'arcTime']:

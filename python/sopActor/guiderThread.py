@@ -71,7 +71,7 @@ def guider_start(cmd, replyQueue, actorState, start, expTime, clearCorrections, 
 def decenter(cmd, state, actorState):
     """Activate or deactive decentered guiding."""
     cmd.respond('text="Turning decentered guiding %s."'%state)
-    timeLim = 30 # could take as long as a long guider exposure.
+    timeLim = 60 # could take as long as a 3xstack.
     cmdVar = actorState.actor.cmdr.call(actor="guider", forUserCmd=cmd,
                                         cmdStr="decenter %s"%(state),
                                         keyVars=[], timeLim=timeLim)

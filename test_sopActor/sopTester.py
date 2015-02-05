@@ -12,7 +12,6 @@ import sopActor
 
 from sopActor.bypass import Bypass
 from sopActor.Commands import SopCmd
-from sopActor.utils.tcc import TCCState
 from sopActor.utils.gang import ApogeeGang
 from sopActor.utils.guider import GuiderState
 import sopActor.myGlobals as myGlobals
@@ -61,7 +60,6 @@ class SopTester(TestHelper.ActorTester):
         super(SopTester,self).setUp()
         myGlobals.actorState = self.actorState
         actorState = myGlobals.actorState
-        actorState.tccState = TCCState(actorState.models["tcc"])
         actorState.guiderState = GuiderState(actorState.models["guider"])
         actorState.apogeeGang = ApogeeGang()
         actorState.threads = {} # so things that look for threads here don't fail.

@@ -758,10 +758,7 @@ class SopCmd(object):
             cmdState.rotang = 0.0  # Rotator angle; should always be 0.0
 
         if myGlobals.bypass.get(name='slewToField'):
-            fakeSkyPos = sopState.tccState.obs2Sky(cmd,
-                                                     cmdState.fakeAz,
-                                                     cmdState.fakeAlt,
-                                                     cmdState.fakeRotOffset)
+            fakeSkyPos = obs2Sky(cmd, cmdState.fakeAz, cmdState.fakeAlt, cmdState.fakeRotOffset)
             cmdState.ra = fakeSkyPos[0]
             cmdState.dec = fakeSkyPos[1]
             cmdState.rotang = fakeSkyPos[2]
@@ -1260,3 +1257,30 @@ class SopCmd(object):
                (sopState.doMangaSequence.cmd and sopState.doMangaSequence.cmd.isAlive()) or \
                (sopState.doApogeeMangaDither.cmd and sopState.doApogeeMangaDither.cmd.isAlive()) or \
                (sopState.doApogeeMangaSequence.cmd and sopState.doApogeeMangaSequence.cmd.isAlive())
+
+
+def obs2Sky(cmd, az=None, alt=None, rotOffset=0.0):
+    """Return ra, dec, rot for the current telescope position, for fake slews."""
+
+    tccDict = myGlobals.actorState.models['tcc'].keyVarDict
+    axePos = tccDict['axePos']
+    gotoAz = az if az != None else axePos[0]
+    gotoAlt = alt if alt != None else axePos[1]
+
+    cmd.warn('text="FAKING slew position from az, alt, and rotator offset: %0.1f %0.1f %0.1f"'
+             % (gotoAz, gotoAlt, rotOffset))
+    cmdVar = myGlobals.actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd,
+                                                  cmdStr=("convert %0.5f,%0.6f obs icrs" %
+                                                          (gotoAz, gotoAlt)))
+    if cmdVar.didFail:
+        return 0,0,0
+    else:
+        convPos = tccDict['convPos']
+        convAng = tccDict['convAng']
+
+        rotPos = 180.0-convAng[0].getPos()
+        rotPos += rotOffset
+            
+        # I think I need to do _something with the axePos rotation angle.
+        return convPos[0].getPos(), convPos[1].getPos(), rotPos
+    

@@ -7,7 +7,7 @@ apogee shutter close
 tcc axis status
 tcc axis init
 
-tcc track 121.000000, 45.000000 mount/rottype=mount/rotangle=0.000000
+tcc track 121.000000, 45.000000 mount/rottype=mount/rotangle=41.333333
 
 [test_goto_gang_change_apogee_closed]
 mcp ffs.close
@@ -19,19 +19,19 @@ apogee shutter close
 tcc axis status
 tcc axis init
 
-tcc track 121.000000, 45.000000 mount/rottype=mount/rotangle=0.000000
+tcc track 121.000000, 45.000000 mount/rottype=mount/rotangle=41.333333
 
 [test_goto_gang_change_apogee_gang_podium]
 tcc axis status
 tcc axis init
 
-tcc track 121.000000, 45.000000 mount/rottype=mount/rotangle=0.000000
+tcc track 12.000000, 45.000000 mount/rottype=mount/rotangle=56.000000
 
 [test_goto_gang_change_boss]
 tcc axis status
 tcc axis init
 
-tcc track 121.000000, 45.000000 mount/rottype=mount/rotangle=0.000000
+tcc track 12.000000, 45.000000 mount/rottype=mount/rotangle=56.000000
 
 [test_goto_gang_change_apogee_noSlew]
 mcp ffs.close
@@ -54,13 +54,13 @@ apogee shutter close
 tcc axis status
 tcc axis init
 
-tcc track 121.000000, 45.000000 mount/rottype=mount/rotangle=0.000000
+tcc track 121.000000, 45.000000 mount/rottype=mount/rotangle=41.333333
 
 [test_goto_gang_change_apogee_bypass_gangToPodium]
 tcc axis status
 tcc axis init
 
-tcc track 121.000000, 45.000000 mount/rottype=mount/rotangle=0.000000
+tcc track 12.000000, 45.000000 mount/rottype=mount/rotangle=56.000000
 
 [test_goto_gang_change_apogee_fails_domeflat]
 mcp ffs.close

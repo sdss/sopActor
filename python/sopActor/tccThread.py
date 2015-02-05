@@ -7,21 +7,50 @@ import sopActor.myGlobals as myGlobals
 
 print "Loading TCC thread"
 
-def check_stop_in(actorState):
+def check_stop_in(actorState, axes=('az','alt','rot')):
     """
     Return true if any stop bit is set in the <axis>Stat TCC keywords.
     The [az,alt,rot]Stat[3] bits show the exact status:
     http://www.apo.nmsu.edu/Telescopes/HardwareControllers/AxisCommands.html
     """
-    return (actorState.models['tcc'].keyVarDict['azStat'][3] & 0x2000) | \
-           (actorState.models['tcc'].keyVarDict['altStat'][3] & 0x2000) | \
-           (actorState.models['tcc'].keyVarDict['rotStat'][3] & 0x2000)
-#...
+    try:
+        tccModel = actorState.models['tcc']
+        return any((tccModel.keyVarDict['%sStat'%axis][3] & 0x2000) for axis in axes)
+    except TypeError:
+        # some axisStat is unknown (and thus None)
+        return False
 
-def axes_are_clear(actorState):
-    return ((actorState.models['tcc'].keyVarDict['azStat'][3] == 0) and 
-            (actorState.models['tcc'].keyVarDict['altStat'][3] == 0) and 
-            (actorState.models['tcc'].keyVarDict['rotStat'][3] == 0))
+def axes_are_ok(actorState, axes=('az','alt','rot')):
+    """
+    No bad bits set in any axis status field.
+    Also return False if the badStatusMask or [axis]Stat is None.
+    """
+    try:
+        tccModel = actorState.models['tcc']
+        mask = tccModel.keyVarDict['axisBadStatusMask'][0]
+        return not any((tccModel.keyVarDict['%sStat'%axis][3] & mask) for axis in axes)
+    except TypeError:
+        # axisStat or axisBadStatusMask is unknown (and thus None)
+        return False
+
+def axes_are_clear(actorState, axes=('az','alt','rot')):
+    """No bits set in any axis status field."""
+    try:
+        tccModel = actorState.models['tcc']
+        return all((tccModel.keyVarDict['%sStat'%axis][3] == 0) for axis in axes)
+    except TypeError:
+        # some axisStat is unknown (and thus None)
+        return False
+
+def axes_state(axisCmdState, state, axes=('az','alt','rot')):
+    """Return True if all axes are in the given state."""
+    ax = {'az':0, 'alt':1, 'rot':2}
+    return all(state in axisCmdState[ax[x]].lower() for x in axes)
+
+def some_axes_state(axisCmdState, state, axes=('az','alt','rot')):
+    """Return True if any axis is in the given state."""
+    ax = {'az':0, 'alt':1, 'rot':2}
+    return any(state in axisCmdState[ax[x]].lower() for x in axes)
 
 def below_alt_limit(actorState):
     """Check if we are below the alt=18 limit that prevents init/motion in az."""
@@ -121,9 +150,8 @@ class SlewHandler(object):
         slewHandler.parse_args(msg)
         slewHandler.do_slew(msg.cmd, msg.replyQueue)
     """
-    def __init__(self, actorState, tccState, queue):
+    def __init__(self, actorState, queue):
         self.actorState = actorState
-        self.tccState = tccState
         self.queue = queue
         self.reset()
 
@@ -146,57 +174,61 @@ class SlewHandler(object):
 
     def slew(self, cmd, replyQueue):
         """Issue the commanded tcc track."""
-        tccState = self.tccState
+        tccModel = self.actorState.models['tcc']
         # Just fail if there's something wrong with an axis.
         if self.not_ok_to_slew(cmd):
-            cmd.warn('text="in slew with badStat=%s halted=%s slewing=%s"' % \
-                         (tccState.badStat, tccState.halted, tccState.slewing))
+            axisCmdState = tccModel.keyVarDict['axisCmdState']
+            cmd.warn('text="Trying to start slew with tcc.axisCmdState = %s"'%(','.join(axisCmdState)))
             replyQueue.put(Msg.REPLY, cmd=cmd, success=False)
             return
 
         self.do_slew(cmd, replyQueue)
 
-    def axis_status_ignore_az(self):
+    def axes_ok_with_bypass(self, axes=('az','alt','rot')):
         """Ignore the state of az when determing axis status."""
-        alt = (self.tccState.badStat & self.tccState.axisMask('ALT') != 0)
-        rot = (self.tccState.badStat & self.tccState.axisMask('ROT') != 0)
-        return alt and rot and not myGlobals.bypass.get(name='axes')
+        return axes_are_ok(self.actorState,axes) or myGlobals.bypass.get(name='axes')
 
     def not_ok_to_slew(self, cmd):
         """Return True if we should not command a slew."""
 
         if self.ignoreBadAz:
-            return self.axis_status_ignore_az()
+            # If we were coming up from low alt, az will still be bad.
+            return not self.axes_ok_with_bypass(('alt','rot'))
         if below_alt_limit(self.actorState):
             cmd.warn("text='Below alt=18 limit! Ignoring errors in Az, since we cannot move it anyway.'")
             self.ignoreBadAz = True
-            return self.axis_status_ignore_az()
+            return not self.axes_ok_with_bypass(('alt','rot'))
         else:
-            return (self.tccState.badStat != 0) and not myGlobals.bypass.get(name='axes')
+            return not self.axes_ok_with_bypass()
 
     def wait_for_slew_end(self, cmd, replyQueue):
         """
         Check and report on the status of a currently running slew.
         Need to do this because the tcc may report a slew as complete before
         the axes settle or there may be a delay before a bad slew is fully reported.
+
+        ! TBD: NOTE: we probably don't need this any more: the new tcc should
+        ! only claim that tcc track finished *after* it has output the various keywords.
+        ! So this method can probably disappear...
         """
-        tccState = self.tccState
-        # fail with an extra message if some axis status went bad.
+        tccModel = self.actorState.models['tcc']
+        axisCmdState = tccModel.keyVarDict['axisCmdState']
+        # Only output as warn level if some axis halted.
+        if some_axes_state(axisCmdState, 'halt'):
+            lvl = cmd.warn
+        else:
+            lvl = cmd.inform
+        lvl('text="Waiting for slew end with tcc.axisCmdState = %s"'%(','.join(axisCmdState)))
+        # fail if some axis status went bad during/after the slew.
         if self.not_ok_to_slew(cmd):
-            cmd.warn('text="in slew with badStat=%s halted=%s slewing=%s"' % \
-                         (tccState.badStat, tccState.halted, tccState.slewing))
             replyQueue.put(Msg.REPLY, cmd=cmd, success=False)
             return
 
-        # Only output warn level if the state is nonsensical.
-        lvl = cmd.warn if tccState.halted == tccState.slewing else cmd.inform
-        lvl('text="in slew with halted=%s slewing=%s"' % (tccState.halted, tccState.slewing))
-
-        if not tccState.slewing:
+        if not axes_state(axisCmdState, 'slewing'):
             if self.ignoreBadAz:
-                success = not self.axis_status_ignore_az()
+                success = self.axes_ok_with_bypass(('alt','rot'))
             else:
-                success = not tccState.halted
+                success = not axes_state(axisCmdState, 'halt')
             replyQueue.put(Msg.REPLY, cmd=cmd, success=success)
             return
 
@@ -237,9 +269,8 @@ def main(actor, queues):
 
     threadName = "tcc"
     actorState = myGlobals.actorState
-    tccState = actorState.tccState
     timeout = actorState.timeout
-    slewHandler = SlewHandler(actorState, tccState, queues[sopActor.TCC])
+    slewHandler = SlewHandler(actorState, queues[sopActor.TCC])
 
     while True:
         try:

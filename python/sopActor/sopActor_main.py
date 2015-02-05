@@ -71,15 +71,10 @@ class Sop(actorcore.Actor.Actor):
         #
         for actor in ["boss", "guider", "platedb", "mcp", "sop", "tcc", "apogee"]:
             actorState.models[actor] = opscore.actor.model.Model(actor)
-        #
-        # Start listening to the TCC's keywords that announce that it's done a move or halt
-        # that might invalidate guiding
-        #
-        from sopActor.utils.tcc import TCCState
+
         from sopActor.utils.guider import GuiderState
         from sopActor.utils.gang import ApogeeGang
 
-        actorState.tccState = TCCState(actorState.models["tcc"])
         actorState.guiderState = GuiderState(actorState.models["guider"])
         actorState.apogeeGang = ApogeeGang()
         
