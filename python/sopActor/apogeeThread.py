@@ -73,7 +73,7 @@ def do_apogee_dither_set(cmd, actorState, expTime, dithers, expType, comment):
     A set of exposures at multiple dither positions, moving the dither
     in between as needed.
     """
-    for dither in dithers:
+    for i,dither in enumerate(dithers):
         if actorState.aborting:
             cmd.warn('text="Primary command aborted: stopping APOGEE dither set."')
             return False
@@ -82,9 +82,11 @@ def do_apogee_dither_set(cmd, actorState, expTime, dithers, expType, comment):
         if dither == currentDither:
             cmd.inform('text="APOGEE dither already at desired position %s: not commanding move."'%(currentDither))
             dither = None
+        cmd.inform('apogeeDitherSet=%s,%d'%(dithers,i))
         success = do_expose(cmd, actorState, expTime, dither, expType, comment)
         if not success:
             return False
+    cmd.inform('apogeeDitherSet=%s,%d'%(dithers,i+1))
     return True
 
 class ApogeeCB(object):

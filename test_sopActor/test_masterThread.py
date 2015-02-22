@@ -1,5 +1,10 @@
 """
 Test the various commands in SOP masterThread
+
+NOTE: sometimes tests involving lamp warmup may fail by 1 info-level cmd. This
+is probably because of small variations in threads completing, resulting in
+certain lamp warmup messages sometimes being output, and sometimes not.
+Particularly bad in this regard are the do_boss_calibs tests.
 """
 
 import unittest
@@ -321,7 +326,7 @@ class TestApogeeSkyFlats(MasterThreadTester):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('guider',TestHelper.guiderState['guiderOn'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
-        self._do_apogee_sky_flats(8,40,0,0)
+        self._do_apogee_sky_flats(8,46,0,0)
     def test_do_apogee_sky_flats_fails_tcc(self):
         self.cmd.failOn = 'tcc offset arc 0.01,0.0'
         self._do_apogee_sky_flats(1,6,0,0, didFail=True)
@@ -330,7 +335,7 @@ class TestApogeeSkyFlats(MasterThreadTester):
         sopTester.updateModel('apogee',TestHelper.apogeeState['A_closed'])
         self.cmd.failOn = 'tcc offset arc 0.01,0.0'
         self._prep_bypass('axes',clear=True)
-        self._do_apogee_sky_flats(8,38,2,0)
+        self._do_apogee_sky_flats(8,44,2,0)
 
 
 
@@ -553,12 +558,12 @@ class TestApogeeScience(MasterThreadTester):
         """open shutter, one call per exposure/dither moves"""
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['A_closed'])
-        self._do_apogee_science(13,59,0,0,ditherPairs=4)
+        self._do_apogee_science(13,71,0,0,ditherPairs=4)
     def test_do_apogee_science_1_pair_B_open(self):
         """one call per exposure/dither move"""
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
-        self._do_apogee_science(3,26,0,0,ditherPairs=1)
+        self._do_apogee_science(3,29,0,0,ditherPairs=1)
 
 
 class TestMangaScience(MasterThreadTester):
@@ -657,17 +662,17 @@ class TestApogeeMangaScience(MasterThreadTester):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         mangaDither = 'N'
-        self._do_one_apogeemanga_dither(6,16,0,0, mangaDither)
+        self._do_one_apogeemanga_dither(6,19,0,0, mangaDither)
     def test_do_one_apogeemanga_dither_at_AC_shutter_closed(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['A_closed'])
         mangaDither = 'N'
-        self._do_one_apogeemanga_dither(7,16,0,0, mangaDither)
+        self._do_one_apogeemanga_dither(7,19,0,0, mangaDither)
     def test_do_one_apogeemanga_dither_apogee_lead(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         mangaDither = 'C'
-        self._do_one_apogeemanga_dither(5,15,0,0, mangaDither)
+        self._do_one_apogeemanga_dither(5,18,0,0, mangaDither)
 
     def _do_apogeemanga_dither(self, nCall, nInfo, nWarn, nErr, mangaDither, didFail=False, surveyMode='MaNGA dither'):
         self._update_cart(1, 'APOGEE&MaNGA', surveyMode=surveyMode)
@@ -680,7 +685,7 @@ class TestApogeeMangaScience(MasterThreadTester):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         mangaDither = 'N'
-        self._do_apogeemanga_dither(7,33,0,0, mangaDither)
+        self._do_apogeemanga_dither(7,36,0,0, mangaDither)
     def test_do_apogeemanga_dither_gang_at_podium(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
@@ -702,7 +707,7 @@ class TestApogeeMangaScience(MasterThreadTester):
         self.cmd.reset()
         self.cmd.verbose = self.verbose
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
-        self._do_apogeemanga_dither(7,33,0,0, mangaDither)
+        self._do_apogeemanga_dither(7,36,0,0, mangaDither)
 
     def test_do_apogeemanga_dither_guider_dither_fails(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
@@ -727,13 +732,13 @@ class TestApogeeMangaScience(MasterThreadTester):
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         mangaDithers = 'NSE'
         count = 1
-        self._do_apogeemanga_sequence(20,92,0,0, mangaDithers, count)
+        self._do_apogeemanga_sequence(20,101,0,0, mangaDithers, count)
     def test_do_apogeemanga_sequence_count_2_shutter_closed_at_A(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['A_closed'])
         mangaDithers = 'NSE'
         count = 2
-        self._do_apogeemanga_sequence(39,161,0,0, mangaDithers, count)
+        self._do_apogeemanga_sequence(39,179,0,0, mangaDithers, count)
     def test_do_apogeemanga_sequence_gang_podium(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
@@ -745,7 +750,7 @@ class TestApogeeMangaScience(MasterThreadTester):
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         mangaDithers = 'CC'
         count = 1
-        self._do_apogeemanga_sequence(10,59,0,0, mangaDithers, count, surveyMode='APOGEE lead')
+        self._do_apogeemanga_sequence(10,65,0,0, mangaDithers, count, surveyMode='APOGEE lead')
 
 
 class TestBossCalibs(MasterThreadTester):

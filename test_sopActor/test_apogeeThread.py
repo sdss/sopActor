@@ -82,19 +82,19 @@ class TestApogeeThread(sopTester.SopThreadTester,unittest.TestCase):
         self._check_cmd(nCall,nInfo,nWarn,nErr, finish=False, didFail=didFail)
     def test_apogee_dither_set(self):
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
-        self._do_apogee_dither_set(4,2,0,0, 500, 'AB')
+        self._do_apogee_dither_set(4,5,0,0, 500, 'AB')
     def test_apogee_dither_set_no_first_dither(self):
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
-        self._do_apogee_dither_set(3,3,0,0, 500, 'BA')
+        self._do_apogee_dither_set(3,6,0,0, 500, 'BA')
 
     def test_apogee_dither_set_B_dither_fails(self):
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         self.cmd.failOn = 'apogee dither namedpos=B'
-        self._do_apogee_dither_set(3,1,0,1, 500, 'AB', didFail=True)
+        self._do_apogee_dither_set(3,3,0,1, 500, 'AB', didFail=True)
     def test_apogee_dither_set_expose_fails(self):
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         self.cmd.failOn = 'apogee expose time=500.0 object=object'
-        self._do_apogee_dither_set(2,0,0,1, 500, 'AB', didFail=True)
+        self._do_apogee_dither_set(2,1,0,1, 500, 'AB', didFail=True)
 
     def test_apogee_dither_set_aborting(self):
         self.actorState.aborting = True
