@@ -224,31 +224,20 @@ class TestSlew(TccThreadTester, unittest.TestCase):
         self._not_ok_to_slew(False)
         self._check_cmd(0,0,1,0,False)
 
-    def _slew_radec(self, ra, dec, rot, success, tccState):
+    def _do_slew_radec(self, ra, dec, rot, success):
         self.slewHandler.ra = ra
         self.slewHandler.dec = dec
         self.slewHandler.rot = rot
-        sopTester.updateModel('tcc',TestHelper.tccState[tccState])
         self.slewHandler.do_slew(self.cmd, self.queues['tcc'])
-        msg = self.queues['tcc'].get()
+        msg = self.queues['tcc'].get(timeout=0.1)
         self.assertEqual(msg.success, success)
-        error = 0 if success else 1
+        error = 0 if success else 2
         self._check_cmd(1,1,0,error,False)
-    def test_slew(self):
-        self._slew_radec(10,20,30, True, 'tracking')
-    def test_slew_ends_halted(self):
-        self._slew_radec(10,20,30, True, 'halted')
-    def test_slew_ends_halted_low(self):
-        self._slew_radec(10,20,30, False, 'halted_low')
-    def test_slew_ends_bad_fails(self):
-        self._slew_radec(10,20,30, False, 'bad')
-    def test_slew_ends_badAz_fails(self):
-        self._slew_radec(10,20,30, False, 'badAz')
-    def test_slew_ends_stopped_fails(self):
-        self._slew_radec(10,20,30, False, 'stopped')
-    def test_slew_ends_slewing_fails(self):
-        self._slew_radec(10,20,30, False, 'slewing')
-
+    def test_do_slew(self):
+        self._do_slew_radec(10,20,30, True)
+    def test_do_slew_fails(self):
+        self.cmd.failOn = "tcc track 10.000000, 20.000000 icrs /rottype=object/rotang=30/rotwrap=mid"
+        self._do_slew_radec(10,20,30, False)
 
     def _slew_altaz(self, alt, az, rot, tccState='tracking'):
         self.slewHandler.alt = alt
@@ -262,10 +251,6 @@ class TestSlew(TccThreadTester, unittest.TestCase):
         self.assertTrue(msg.success)
         self._check_cmd(1,1,0,0,False)
 
-    def test_slew_fails(self):
-        self.cmd.failOn = "tcc track 10.000000, 20.000000 icrs /rottype=object/rotang=30/rotwrap=mid"
-        self._slew_radec(10,20,30, False, 'halted')
-
     def test_slew_axis_stopped(self):
         sopTester.updateModel('tcc',TestHelper.tccState['stopped'])
         self.slewHandler.slew(self.cmd, self.queues['tcc'])
@@ -273,52 +258,6 @@ class TestSlew(TccThreadTester, unittest.TestCase):
         self.assertEqual(msg.type, sopActor.Msg.REPLY)
         self.assertFalse(msg.success)
         self._check_cmd(0,0,1,0,False,False)
-
-    # def test_wait_for_slew_end_waiting(self):
-    #     sopTester.updateModel('tcc',TestHelper.tccState['halted'])
-    #     # prep that we're in a slew, don't care about the return msg.
-    #     self._slew_radec(10,20,30)
-    #     self.cmd.clear_msgs() # don't bother with messages from the initial slew
-    #     sopTester.updateModel('tcc',TestHelper.tccState['slewing'])
-    #     self.slewHandler.wait_for_slew_end(self.cmd, self.queues['tcc'])
-    #     msg = self.queues['tcc'].get(timeout=0.1)
-    #     self.assertEqual(msg.type, sopActor.Msg.WAIT_FOR_SLEW_END)
-    #     self._check_cmd(0,1,0,0,False,False)
-
-    # def test_wait_for_slew_end_waiting_from_low(self):
-    #     sopTester.updateModel('tcc',TestHelper.tccState['halted_low'])
-    #     # prep that we're in a slew, don't care about the return msg.
-    #     self._slew_altaz(30,121,0)
-    #     self.cmd.clear_msgs() # don't bother with messages from the initial slew
-    #     sopTester.updateModel('tcc',TestHelper.tccState['badAz'])
-    #     self.slewHandler.wait_for_slew_end(self.cmd, self.queues['tcc'])
-    #     msg = self.queues['tcc'].get(timeout=0.1)
-    #     self.assertEqual(msg.type, sopActor.Msg.REPLY)
-    #     self.assertTrue(msg.success)
-    #     self._check_cmd(0,0,1,0,False,False)
-
-    # def test_wait_for_slew_end_done_ok(self):
-    #     sopTester.updateModel('tcc',TestHelper.tccState['halted'])
-    #     # prep that we're in a slew, don't care about the return msg.
-    #     self._slew_radec(10,20,30)
-    #     self.cmd.clear_msgs() # don't bother with messages from the initial slew
-    #     sopTester.updateModel('tcc',TestHelper.tccState['tracking'])
-    #     self.slewHandler.wait_for_slew_end(self.cmd, self.queues['tcc'])
-    #     msg = self.queues['tcc'].get(timeout=0.1)
-    #     self.assertEqual(msg.type, sopActor.Msg.REPLY)
-    #     self.assertTrue(msg.success)
-    #     self._check_cmd(0,1,0,0,False,False)
-    # def test_wait_for_slew_end_done_not_ok(self):
-    #     sopTester.updateModel('tcc',TestHelper.tccState['halted'])
-    #     # prep that we're in a slew, don't care about the return msg.
-    #     self._slew_radec(10,20,30)
-    #     self.cmd.clear_msgs() # don't bother with messages from the initial slew
-    #     sopTester.updateModel('tcc',TestHelper.tccState['stopped'])
-    #     self.slewHandler.wait_for_slew_end(self.cmd, self.queues['tcc'])
-    #     msg = self.queues['tcc'].get(timeout=0.1)
-    #     self.assertEqual(msg.type, sopActor.Msg.REPLY)
-    #     self.assertFalse(msg.success)
-    #     self._check_cmd(0,0,1,0,False,False)
 
 
 if __name__ == '__main__':
