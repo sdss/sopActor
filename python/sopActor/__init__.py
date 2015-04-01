@@ -88,7 +88,6 @@ except NameError:
         class EXPOSURE_FINISHED(): pass
         class REPLY(): pass
         class SLEW(): pass
-        class WAIT_FOR_SLEW_END(): pass
         class AXIS_INIT(): pass
         class AXIS_STOP(): pass
         class WAIT_UNTIL(): pass

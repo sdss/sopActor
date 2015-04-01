@@ -11,10 +11,11 @@ def check_stop_in(actorState, axes=('az','alt','rot')):
     """
     Return true if any stop bit is set in the <axis>Stat TCC keywords.
     The [az,alt,rot]Stat[3] bits show the exact status:
-    http://www.apo.nmsu.edu/Telescopes/HardwareControllers/AxisCommands.html
+    http://www.apo.nmsu.edu/Telescopes/HardwareControllers/AxisControllers.html#25mStatusBits
     """
     try:
         tccModel = actorState.models['tcc']
+        # 0x2000 is "stop button in"
         return any((tccModel.keyVarDict['%sStat'%axis][3] & 0x2000) for axis in axes)
     except TypeError:
         # some axisStat is unknown (and thus None)
@@ -201,44 +202,12 @@ class SlewHandler(object):
         else:
             return not self.axes_ok_with_bypass()
 
-    def wait_for_slew_end(self, cmd, replyQueue):
-        """
-        Check and report on the status of a currently running slew.
-        Need to do this because the tcc may report a slew as complete before
-        the axes settle or there may be a delay before a bad slew is fully reported.
-
-        ! TBD: NOTE: we probably don't need this any more: the new tcc should
-        ! only claim that tcc track finished *after* it has output the various keywords.
-        ! So this method can probably disappear...
-        """
-        tccModel = self.actorState.models['tcc']
-        axisCmdState = tccModel.keyVarDict['axisCmdState']
-        # Only output as warn level if some axis halted.
-        if some_axes_state(axisCmdState, 'halt'):
-            lvl = cmd.warn
-        else:
-            lvl = cmd.inform
-        lvl('text="Waiting for slew end with tcc.axisCmdState = %s"'%(','.join(axisCmdState)))
-        # fail if some axis status went bad during/after the slew.
-        if self.not_ok_to_slew(cmd):
-            replyQueue.put(Msg.REPLY, cmd=cmd, success=False)
-            return
-
-        if not axes_state(axisCmdState, 'slewing'):
-            if self.ignoreBadAz:
-                success = self.axes_ok_with_bypass(('alt','rot'))
-            else:
-                success = not axes_state(axisCmdState, 'halt')
-            replyQueue.put(Msg.REPLY, cmd=cmd, success=success)
-            return
-
-        time.sleep(1)
-        self.queue.put(Msg.WAIT_FOR_SLEW_END, cmd=cmd, replyQueue=replyQueue)
-
     def do_slew(self, cmd, replyQueue):
         """Correctly handle a slew command, given what parse_args had received."""
         call = self.actorState.actor.cmdr.call
-        
+        tccModel = self.actorState.models['tcc']
+        axisCmdState = tccModel.keyVarDict['axisCmdState']
+
         # NOTE: TBD: We should limit which offsets are kept.
         keepArgs = "/keep=(obj,arc,gcorr,calib,bore)" if self.keepOffsets else ""
 
@@ -256,12 +225,35 @@ class SlewHandler(object):
                           (self.az, self.alt, self.rot))
             
         if cmdVar.didFail:
-            cmd.warn('text="Failed to start slew"')
+            cmd.error('text="Failed to complete slew: see TCC messages for details."')
             replyQueue.put(Msg.REPLY, cmd=cmd, success=False)
             return
 
-        # Wait for slew to end
-        self.queue.put(Msg.WAIT_FOR_SLEW_END, cmd=cmd, replyQueue=replyQueue)
+        # If the cmd didn't fail, we have to check various axis status(es)
+        # to know if everything is now in an appropriate state.
+
+        strAxisState = (','.join(axisCmdState))
+        strAxisCode = (','.join(tccModel.keyVarDict['axisErrCode']))
+        # fail if some axis status went bad during/after the slew.
+        if self.not_ok_to_slew(cmd):
+            cmd.error('text="Axis status turned bad during/after slew: %s with code: %s"'%(strAxisState, strAxisCode))
+            replyQueue.put(Msg.REPLY, cmd=cmd, success=False)
+            return
+
+        if some_axes_state(axisCmdState, 'slewing'):
+            cmd.error("text='Slew claimed to be finished, but tcc.axisCmdState = %s'"%(','.join(axisCmdState)))
+            replyQueue.put(Msg.REPLY, cmd=cmd, success=False)
+        else:
+            if self.ignoreBadAz:
+                success = self.axes_ok_with_bypass(('alt','rot'))
+            else:
+                # halted and halting are both good post-slew states.
+                success = not axes_state(axisCmdState, 'halt')
+            if not success:
+                cmd.error("text='Axes not tracking on slew completion: tcc.axisCmdState = %s'"%(','.join(axisCmdState)))
+            replyQueue.put(Msg.REPLY, cmd=cmd, success=success)
+
+        return
 
 
 def main(actor, queues):
@@ -292,8 +284,6 @@ def main(actor, queues):
                 slewHandler.reset()
                 slewHandler.parse_args(msg)
                 slewHandler.slew(msg.cmd, msg.replyQueue)
-            elif msg.type == Msg.WAIT_FOR_SLEW_END:
-                slewHandler.wait_for_slew_end(msg.cmd, msg.replyQueue)
 
             elif msg.type == Msg.STATUS:
                 msg.cmd.inform('text="%s thread"' % threadName)
