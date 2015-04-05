@@ -184,7 +184,7 @@ class SlewHandler(object):
         self.keepOffsets = getattr(msg, 'keepOffsets', False)
 
     def slew(self, cmd, replyQueue):
-        """Issue the commanded tcc track."""
+        """Issue the commanded tcc track if the axes are ready to move."""
         tccModel = self.actorState.models['tcc']
         # Fail before attempting slew if there's something wrong with an axis.
         if self.not_ok_to_slew(cmd):
@@ -244,14 +244,14 @@ class SlewHandler(object):
         if cmdVar.didFail:
             strAxisState = (','.join(tccModel.keyVarDict['axisCmdState']))
             strAxisCode = (','.join(tccModel.keyVarDict['axisErrCode']))
-            cmd.error('text="TCC track command failed with axis states: {} and error codes: {}"'.format(strAxisState, strAxisCode))
+            cmd.error('text="tcc track command failed with axis states: {} and error codes: {}"'.format(strAxisState, strAxisCode))
             cmd.error('text="Failed to complete slew: see TCC messages for details."')
             replyQueue.put(Msg.REPLY, cmd=cmd, success=False)
             return
 
         if self.not_ok_to_slew(cmd):
             axisBits = get_bad_axis_bits(tccModel)
-            cmd.error('text="TCC track command ended with some bad bits set: 0x{:x},0x{:x},0x{:x}"'.format(*axisBits))
+            cmd.error('text="tcc track command ended with some bad bits set: 0x{:x},0x{:x},0x{:x}"'.format(*axisBits))
             cmd.error('text="Failed to complete slew: see TCC messages for details."')
             replyQueue.put(Msg.REPLY, cmd=cmd, success=False)
         else:
