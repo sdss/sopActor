@@ -4,6 +4,9 @@ tcc track 10.000000, 20.000000 icrs /rottype=object/rotang=30/rotwrap=mid
 [test_do_slew_fails]
 tcc track 10.000000, 20.000000 icrs /rottype=object/rotang=30/rotwrap=mid
 
+[test_do_slew_axis_goes_bad]
+tcc track 10.000000, 20.000000 icrs /rottype=object/rotang=30/rotwrap=mid
+
 [test_slew_altaz]
 tcc track 200.000000, 100.000000 mount/rottype=mount/rotangle=300.000000
 

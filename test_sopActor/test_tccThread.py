@@ -30,6 +30,17 @@ class TestAxisChecks(sopTester.SopTester, unittest.TestCase):
         self.verbose = True
         super(TestAxisChecks,self).setUp()
 
+    def _get_bad_axis_bits(self, tccState, expect):
+        sopTester.updateModel('tcc',TestHelper.tccState[tccState])
+        result = tccThread.get_bad_axis_bits(self.actorState.models['tcc'])
+        self.assertEqual(result,expect)
+    def test_get_bad_axis_bits_tracking(self):
+        self._get_bad_axis_bits('tracking', [0,0,0])
+    def test_get_bad_axis_bits_badAz(self):
+        self._get_bad_axis_bits('badAz', [0x1800,0,0])
+    def test_get_bad_axis_bits_stopped(self):
+        self._get_bad_axis_bits('stopped', [0x2000,0x2000,0x2000])
+
     def test_axes_are_clear(self):
         sopTester.updateModel('tcc',TestHelper.tccState['tracking'])
         self.assertTrue(tccThread.axes_are_clear(self.actorState))
@@ -238,6 +249,10 @@ class TestSlew(TccThreadTester, unittest.TestCase):
     def test_do_slew_fails(self):
         self.cmd.failOn = "tcc track 10.000000, 20.000000 icrs /rottype=object/rotang=30/rotwrap=mid"
         self._do_slew_radec(10,20,30, False)
+    def test_do_slew_axis_goes_bad(self):
+        """bad axis bit before calling tcc track, so it is in place."""
+        sopTester.updateModel('tcc',TestHelper.tccState['badAz'])
+        self._do_slew_radec(10,20,30, False)
 
     def _slew_altaz(self, alt, az, rot, tccState='tracking'):
         self.slewHandler.alt = alt
@@ -257,7 +272,7 @@ class TestSlew(TccThreadTester, unittest.TestCase):
         msg = self.queues['tcc'].get(timeout=0.1)
         self.assertEqual(msg.type, sopActor.Msg.REPLY)
         self.assertFalse(msg.success)
-        self._check_cmd(0,0,1,0,False,False)
+        self._check_cmd(0,0,0,1,False,False)
 
 
 if __name__ == '__main__':

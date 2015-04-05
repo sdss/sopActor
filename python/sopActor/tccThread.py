@@ -7,6 +7,15 @@ import sopActor.myGlobals as myGlobals
 
 print "Loading TCC thread"
 
+def get_bad_axis_bits(tccModel, axes=('az','alt','rot'), mask=None):
+    """
+    Return the bad status bits for the requested axes.
+    Default mask is axisBadStatusMask (bad bits only), or some other bitmask.
+    """
+    if mask is None:
+        mask = tccModel.keyVarDict['axisBadStatusMask'][0]
+    return [(tccModel.keyVarDict['%sStat'%axis][3] & mask) for axis in axes]
+
 def check_stop_in(actorState, axes=('az','alt','rot')):
     """
     Return true if any stop bit is set in the <axis>Stat TCC keywords.
@@ -16,7 +25,7 @@ def check_stop_in(actorState, axes=('az','alt','rot')):
     try:
         tccModel = actorState.models['tcc']
         # 0x2000 is "stop button in"
-        return any((tccModel.keyVarDict['%sStat'%axis][3] & 0x2000) for axis in axes)
+        return any(get_bad_axis_bits(tccModel,axes=axes,mask=0x2000))
     except TypeError:
         # some axisStat is unknown (and thus None)
         return False
@@ -28,8 +37,7 @@ def axes_are_ok(actorState, axes=('az','alt','rot')):
     """
     try:
         tccModel = actorState.models['tcc']
-        mask = tccModel.keyVarDict['axisBadStatusMask'][0]
-        return not any((tccModel.keyVarDict['%sStat'%axis][3] & mask) for axis in axes)
+        return not any(get_bad_axis_bits(tccModel,axes=axes))
     except TypeError:
         # axisStat or axisBadStatusMask is unknown (and thus None)
         return False
@@ -147,6 +155,8 @@ def axis_stop(cmd, actorState, replyQueue):
 class SlewHandler(object):
     """
     Handle slew commands, which can include a variety of separate arguments.
+    Also remembers if the slew started below the alt limit, to still end cleanly.
+
     Example:
         slewHandler.parse_args(msg)
         slewHandler.do_slew(msg.cmd, msg.replyQueue)
@@ -176,10 +186,12 @@ class SlewHandler(object):
     def slew(self, cmd, replyQueue):
         """Issue the commanded tcc track."""
         tccModel = self.actorState.models['tcc']
-        # Just fail if there's something wrong with an axis.
+        # Fail before attempting slew if there's something wrong with an axis.
         if self.not_ok_to_slew(cmd):
-            axisCmdState = tccModel.keyVarDict['axisCmdState']
-            cmd.warn('text="Trying to start slew with tcc.axisCmdState = %s"'%(','.join(axisCmdState)))
+            strAxisState = (','.join(tccModel.keyVarDict['axisCmdState']))
+            strAxisCode = (','.join(tccModel.keyVarDict['axisErrCode']))
+            axisBits = get_bad_axis_bits(tccModel, mask=0xffff)
+            cmd.error('text="Trying to start slew with axis states: {}, error codes: {}, and status bits: 0x{:x},0x{:x},0x{:x}"'.format(strAxisState, strAxisCode, *axisBits))
             replyQueue.put(Msg.REPLY, cmd=cmd, success=False)
             return
 
@@ -211,14 +223,14 @@ class SlewHandler(object):
         keepArgs = "/keep=(obj,arc,gcorr,calib,bore)" if self.keepOffsets else ""
 
         if self.ra is not None and self.dec is not None:
-            cmd.inform('text="slewing to (%.04f, %.04f, %g)"' % (self.ra, self.dec, self.rot))
+            cmd.inform('text="slewing to ({:.4f}, {:.4f}, {:g})"'.format(self.ra, self.dec, self.rot))
             if keepArgs:
                 cmd.warn('text="keeping all offsets"')
             cmdVar = call(actor="tcc", forUserCmd=cmd,
                           cmdStr="track %f, %f icrs /rottype=object/rotang=%g/rotwrap=mid %s" % \
                           (self.ra, self.dec, self.rot, keepArgs))
         else:
-            cmd.inform('text="slewing to (az, alt, rot) == (%.04f, %.04f, %0.4f)"' % (self.az, self.alt, self.rot))
+            cmd.inform('text="slewing to (az, alt, rot) == ({:.4f}, {:.4f}, {:.4f})"'.format(self.az, self.alt, self.rot))
             cmdVar = call(actor="tcc", forUserCmd=cmd,
                           cmdStr="track %f, %f mount/rottype=mount/rotangle=%f" % \
                           (self.az, self.alt, self.rot))
@@ -226,10 +238,20 @@ class SlewHandler(object):
         # "tcc track" in the new TCC is only Done successfully when all requested
         # axes are in the "tracking" state. All other conditions mean the command
         # failed, and the appropriate axisCmdState and axisErrCode will be set.
+        # However, if an axis becomes bad during the slew, the TCC will try to
+        # finish it anyway, so we need to explicitly check for bad bits.
+
         if cmdVar.didFail:
             strAxisState = (','.join(tccModel.keyVarDict['axisCmdState']))
             strAxisCode = (','.join(tccModel.keyVarDict['axisErrCode']))
-            cmd.error('text="TCC track command failed with axis state: %s and error code: %s"'%(strAxisState, strAxisCode))
+            cmd.error('text="TCC track command failed with axis states: {} and error codes: {}"'.format(strAxisState, strAxisCode))
+            cmd.error('text="Failed to complete slew: see TCC messages for details."')
+            replyQueue.put(Msg.REPLY, cmd=cmd, success=False)
+            return
+
+        if self.not_ok_to_slew(cmd):
+            axisBits = get_bad_axis_bits(tccModel)
+            cmd.error('text="TCC track command ended with some bad bits set: 0x{:x},0x{:x},0x{:x}"'.format(*axisBits))
             cmd.error('text="Failed to complete slew: see TCC messages for details."')
             replyQueue.put(Msg.REPLY, cmd=cmd, success=False)
         else:
