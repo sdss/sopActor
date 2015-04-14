@@ -9,14 +9,14 @@ import sopActor
 
 def getDefaultArcTime(survey):
     """Get the default arc time for this survey"""
-    if survey == sopActor.BOSS or survey == sopActor.MANGA:
+    if survey == sopActor.BOSS or survey == sopActor.MANGA or sopActor.APOGEEMANGA:
         return 4
     else:
         return 0
 
 def getDefaultFlatTime(survey):
     """Get the default flat time for this survey"""
-    if survey == sopActor.BOSS or survey == sopActor.MANGA:
+    if survey == sopActor.BOSS or survey == sopActor.MANGA or sopActor.APOGEEMANGA:
         return 30
     else:
         return 0
