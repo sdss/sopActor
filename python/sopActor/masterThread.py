@@ -1161,7 +1161,7 @@ def goto_gang_change(cmd, cmdState, actorState):
         else:
             gangAt = actorState.apogeeGang.getPos()
             cmd.inform('text="Skipping flat with %s and %s"' % (gangAt, actorState.survey))
-            cmdState.setStageState('domeFlat', 'off')
+            cmdState.setStageState('domeFlat', 'idle')
 
     if cmdState.doSlew:
         multiCmd = SopMultiCommand(cmd, actorState.timeout + 100,

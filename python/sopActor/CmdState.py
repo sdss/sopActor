@@ -34,6 +34,14 @@ class CmdState(object):
     Be careful that your getUserKeys names don't clobber other keywords.
     """
 
+    # NOTE: these values need to match the *State enum values in actorkeys/sop.py
+    # which are also used by STUI to cause various things to happen.
+    # In particular:
+    #   off     : uncheck that checkbox (danger: this means it will remain
+    #                                    unchecked until a user re-checks it!)
+    #   failed  : mark with error color.
+    #   aborted : mark with warning color
+    #   starting, prepping, running : mark with running color.
     validStageStates = ('prepping', 'running', 'done', 'failed', 'aborted', 'pending', 'off', 'idle')
 
     def __init__(self, name, allStages, keywords={}, hiddenKeywords=()):
