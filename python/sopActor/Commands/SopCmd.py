@@ -21,7 +21,7 @@ from sopActor.multiCommand import MultiCommand
 
 # SDSS-IV plates should all be "APOGEE-2;MaNGA", but we need both,
 # for test plates drilled as part of SDSS-III.
-survey_dict = {'None':None, None:None,
+survey_dict = {'None':None, None:None, 'ecamera':sopActor.ECAMERA,
                'BOSS':sopActor.BOSS, 'eBOSS':sopActor.BOSS,
                'APOGEE':sopActor.APOGEE,'APOGEE-2':sopActor.APOGEE,
                'MaNGA':sopActor.MANGA,
@@ -34,7 +34,7 @@ surveyMode_dict = {'None':None, None:None,
 
 # And the inverses of the above.
 # Can't directly make an inverse, since it's not one-to-one.
-survey_inv_dict = {sopActor.UNKNOWN:'UNKNOWN',
+survey_inv_dict = {sopActor.UNKNOWN:'UNKNOWN', sopActor.ECAMERA:'ecamera',
                    sopActor.BOSS:'eBOSS', sopActor.APOGEE:'APOGEE-2',
                    sopActor.MANGA:'MaNGA',
                    sopActor.APOGEEMANGA:'APOGEE-2&MaNGA'}

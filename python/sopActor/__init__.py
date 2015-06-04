@@ -22,6 +22,7 @@ except NameError:
     class MANGADITHER(): pass
     class APOGEELEAD(): pass
     class APOGEEMANGA(): pass
+    class ECAMERA(): pass
     class UNKNOWN(): pass
     
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

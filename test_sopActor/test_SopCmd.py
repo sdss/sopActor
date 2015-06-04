@@ -194,7 +194,10 @@ class TestClassifyCartridge(SopCmdTester,unittest.TestCase):
         self._classifyCartridge(3,'APOGEE-2&MaNGA','MaNGA stare',expect)
         expect = [sopActor.APOGEEMANGA,sopActor.MANGASTARE, ['APOGEE&MaNGA','MaNGA stare']]
         self._classifyCartridge(3,'APOGEE&MaNGA','MaNGA stare',expect)
-    
+    def test_classifyCartridge_ecamera(self):
+        expect = [sopActor.ECAMERA,None, ['ecamera',None]]
+        self._classifyCartridge(19,'ecamera',None,expect)
+
     def test_classifyCartridge_boss_bypass(self):
         self._prep_bypass('isBoss',clear=True)
         expect = [sopActor.BOSS,None, ['eBOSS','None']]
@@ -1068,6 +1071,7 @@ if __name__ == '__main__':
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoMangaSequence)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoApogeeMangaSequence)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestClassifyCartridge)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestUpdateCartridge)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestHartmann)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoField)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoPosition)
@@ -1075,7 +1079,6 @@ if __name__ == '__main__':
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoBossScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoApogeeScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoApogeeSkyFlats)
-    # suite = unittest.TestLoader().loadTestsFromTestCase(TestUpdateCartridge)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestStatus)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestIsSlewingDisabled)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestBypass)
