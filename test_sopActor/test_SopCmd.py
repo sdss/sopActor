@@ -230,8 +230,8 @@ class TestClassifyCartridge(SopCmdTester,unittest.TestCase):
 
 class TestUpdateCartridge(SopCmdTester,unittest.TestCase):
     """Confirm that we get the right validCommands from each survey type."""
-    def _updateCartridge(self, nCart, survey, surveyMode, expected):
-        self.sopCmd.updateCartridge(nCart, survey, surveyMode)
+    def _updateCartridge(self, nCart, survey, surveyMode, expected, bypassed=False):
+        self.sopCmd.updateCartridge(nCart, survey, surveyMode, bypassed=bypassed)
         sop = myGlobals.actorState.models['sop']
         self.assertEqual(sop.keyVarDict['surveyCommands'].getValue(), expected['surveyCommands'])
         self.assertEqual(sop.keyVarDict['survey'].getValue(), (survey,surveyMode))
@@ -270,6 +270,15 @@ class TestUpdateCartridge(SopCmdTester,unittest.TestCase):
         expected = {}
         expected['surveyCommands'] = TestHelper.sopApogeeMangaCommands['surveyCommands']
         self._updateCartridge(1,'APOGEE-2&MaNGA','MaNGA dither',expected)
+
+    def test_updateCartridge_boss_bypass_was_set(self):
+        """When a cart is loaded, we should clear the survey bypasses, per #2284."""
+        sopTester.updateModel('guider',TestHelper.guiderState['bossLoaded'])
+        self._prep_bypass('isApogeeMangaStare',clear=True)
+        expected = {}
+        expected['surveyCommands'] = TestHelper.sopBossCommands['surveyCommands']
+        self._updateCartridge(11,'BOSS','None',expected)
+
 
 class TestStatus(SopCmdTester,unittest.TestCase):
     def _status(self, nInfo, args=''):

@@ -543,17 +543,17 @@ class SopCmd(object):
 
         for subSystem in subSystems:
             if bypass.set(subSystem, doBypass) is None:
-                cmd.fail('text="%s is not a recognised and bypassable subSystem"' % subSystem)
+                cmd.fail('text="{} is not a recognised and bypassable subSystem"'.format(subSystem))
                 return
             if bypass.is_cart_bypass(subSystem):
-                self.updateCartridge(sopState.cartridge, sopState.plateType, sopState.surveyModeName, status=False)
+                self.updateCartridge(sopState.cartridge, sopState.plateType, sopState.surveyModeName, status=False, bypassed=True)
                 cmdStr = 'setRefractionBalance plateType="{0}" surveyMode="{1}"'.format(*sopState.surveyText)
                 cmdVar = sopState.actor.cmdr.call(actor="guider", forUserCmd=cmd, cmdStr=cmdStr)
                 if cmdVar.didFail:
                     cmd.fail('text="Failed to set guider refraction balance for bypass {0} {1}'.format(subSystem, doBypass))
                     return
             if bypass.is_gang_bypass(subSystem):
-                cmd.warn('text="gang bypassed: %s"' % (sopState.apogeeGang.getPos()))
+                cmd.warn('text="gang bypassed: {}"'.format(sopState.apogeeGang.getPos()))
 
         self.status(cmd, threads=False)
 
@@ -1108,8 +1108,23 @@ class SopCmd(object):
         self.updateCartridge(-1,'None','None')
         sopState.guiderState.setLoadedNewCartridgeCallback(self.updateCartridge)
 
-    def updateCartridge(self, cartridge, plateType, surveyModeName, status=True):
-        """ Read the guider's notion of the loaded cartridge and configure ourselves appropriately. """
+    def updateCartridge(self, cartridge, plateType, surveyModeName, status=True, bypassed=False):
+        """
+        Read the guider's notion of the loaded cartridge and configure ourselves appropriately.
+
+        Args:
+            cartridge (int): Cartridge ID number
+            plateType (str): plateType keyword from the guider, used as a lookup into survey_dict
+            surveyModeName (str): surveyMode keyword from the guider, used as a lookup into surveyMode_dict
+
+        Kwargs:
+            status (bool): Output status when done?
+            bypassed (bool): Were we set as via a bypass? If not, clear cart bypasses before doing anything else.
+        """
+
+        # clear cart bypasses on load cartridge, per #2284
+        if not bypassed:
+            myGlobals.bypass.clear_cart_bypasses()
 
         sopState = myGlobals.actorState
         cmd = sopState.actor.bcast
@@ -1170,7 +1185,15 @@ class SopCmd(object):
             self.status(cmd, threads=False, finish=False)
 
     def classifyCartridge(self, cmd, cartridge, plateType, surveyMode):
-        """Set the survey and surveyMode for this cartridge in actorState."""
+        """
+        Set the survey and surveyMode for this cartridge in actorState.
+
+        Args:
+            cmd (Cmdr): Cmdr to send output to.
+            cartridge (int): Cartridge ID number
+            plateType (str): plateType keyword from the guider, used as a lookup into survey_dict
+            surveyModeName (str): surveyMode keyword from the guider, used as a lookup into surveyMode_dict
+        """
         def surveyText_bypass():
             sopState.surveyText = [survey_inv_dict[sopState.survey],
                                    surveyMode_inv_dict[sopState.surveyMode]]
