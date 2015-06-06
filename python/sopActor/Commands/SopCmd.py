@@ -1105,11 +1105,8 @@ class SopCmd(object):
         sopState.gotoAll60 = CmdState.CmdState('gotoAll60',["slew"])
         sopState.gotoStow60 = CmdState.CmdState('gotoStow60',["slew"])
 
-
         self.updateCartridge(-1,'None','None')
-        # guiderState is smart enough to only call the callback once both have been updated.
-        sopState.guiderState.setCartridgeLoadedCallback(self.updateCartridge)
-        sopState.guiderState.setSurveyCallback(self.updateCartridge)
+        sopState.guiderState.setLoadedNewCartridgeCallback(self.updateCartridge)
 
     def updateCartridge(self, cartridge, plateType, surveyModeName, status=True):
         """ Read the guider's notion of the loaded cartridge and configure ourselves appropriately. """
