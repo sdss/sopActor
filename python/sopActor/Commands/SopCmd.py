@@ -1119,7 +1119,7 @@ class SopCmd(object):
 
         Kwargs:
             status (bool): Output status when done?
-            bypassed (bool): Were we set as via a bypass? If not, clear cart bypasses before doing anything else.
+            bypassed (bool): Were we set via a bypass? If not, clear cart bypasses before doing anything else.
         """
 
         # clear cart bypasses on load cartridge, per #2284
