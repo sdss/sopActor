@@ -402,20 +402,20 @@ class TestApogeeDomeFlat(MasterThreadTester):
         name = 'apogeeDomeFlat'
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         multiCmd = MultiCommand(self.cmd, myGlobals.actorState.timeout + 50, name)
-        self._apogee_dome_flat(3,10,0,0, multiCmd)
+        self._apogee_dome_flat(4,11,0,0, multiCmd)
     def test_apogee_dome_flat_enclosure(self):
         """shutter open, exposure +(ff on, ff off)"""
         name = 'apogeeDomeFlat'
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_parked'])
         multiCmd = MultiCommand(self.cmd, myGlobals.actorState.timeout + 50, name)
-        self._apogee_dome_flat(2,10,0,0, multiCmd)
+        self._apogee_dome_flat(3,11,0,0, multiCmd)
     def test_apogee_dome_flat_enclosure_shutterOpen(self):
         """exposure +(ff on, ff off)"""
         name = 'apogeeDomeFlat'
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_parked'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         multiCmd = MultiCommand(self.cmd, myGlobals.actorState.timeout + 50, name)
-        self._apogee_dome_flat(1,7,0,0, multiCmd)
+        self._apogee_dome_flat(2,8,0,0, multiCmd)
         
     def test_apogee_dome_flat_ffs_fails(self):
         """shutter open, ffs close->fail"""
@@ -430,6 +430,13 @@ class TestApogeeDomeFlat(MasterThreadTester):
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
         multiCmd = MultiCommand(self.cmd, myGlobals.actorState.timeout + 50, name)
         self._apogee_dome_flat(0,5,0,0, multiCmd, finish=True, didFail=True)
+    def test_apogee_dome_flat_shuter_close_fails(self):
+        """shutter open, ffs close->fail"""
+        name = 'apogeeDomeFlat'
+        self.cmd.failOn = "apogee shutter close"
+        sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
+        multiCmd = MultiCommand(self.cmd, myGlobals.actorState.timeout + 50, name)
+        self._apogee_dome_flat(4,15,0,1, multiCmd, finish=True, didFail=True)
 
 
 class TestGotoGangChange(MasterThreadTester):
@@ -448,12 +455,12 @@ class TestGotoGangChange(MasterThreadTester):
         myGlobals.actorState.survey = sopActor.APOGEE
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
-        self._goto_gang_change(6, 21, 0, 0)
+        self._goto_gang_change(6, 22, 0, 0)
     def test_goto_gang_change_apogee_closed(self):
         myGlobals.actorState.survey = sopActor.APOGEE
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['A_closed'])
-        self._goto_gang_change(7, 21, 0, 0)
+        self._goto_gang_change(7, 22, 0, 0)
     def test_goto_gang_change_apogee_gang_podium(self):
         myGlobals.actorState.survey = sopActor.APOGEE
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
@@ -471,7 +478,7 @@ class TestGotoGangChange(MasterThreadTester):
         cmdState.reinitialize(self.cmd)
         cmdState.doSlew = False
         masterThread.goto_gang_change(self.cmd, cmdState, myGlobals.actorState)
-        self._check_cmd(2, 15, 0, 0, True)
+        self._check_cmd(3, 16, 0, 0, True)
     def test_goto_gang_change_apogee_noDomeFlat(self):
         myGlobals.actorState.survey = sopActor.APOGEE
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
@@ -489,7 +496,7 @@ class TestGotoGangChange(MasterThreadTester):
         myGlobals.actorState.survey = sopActor.APOGEE
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
-        self._goto_gang_change(6, 21, 3, 0)
+        self._goto_gang_change(6, 22, 3, 0)
     def test_goto_gang_change_apogee_bypass_gangToPodium(self):
         """Testing for complaints from the observers about gang bypass and gang changes."""
         self._prep_bypass('gangToPodium',clear=True)
@@ -510,7 +517,7 @@ class TestGotoGangChange(MasterThreadTester):
         myGlobals.actorState.survey = sopActor.APOGEE
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
-        self._goto_gang_change(5, 20, 0, 2, didFail=True)
+        self._goto_gang_change(5, 21, 0, 2, didFail=True)
 
 
 class TestBossScience(MasterThreadTester):

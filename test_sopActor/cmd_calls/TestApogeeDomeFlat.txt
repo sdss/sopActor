@@ -4,16 +4,30 @@ mcp ffs.close
 
 apogee expose time=50.0 object=DomeFlat
 
+apogee shutter close
+
 [test_apogee_dome_flat_enclosure]
 apogee shutter open
 
 apogee expose time=50.0 object=DomeFlat
 
+apogee shutter close
+
 [test_apogee_dome_flat_enclosure_shutterOpen]
 apogee expose time=50.0 object=DomeFlat
+
+apogee shutter close
 
 [test_apogee_dome_flat_ffs_fails]
 apogee shutter open
 mcp ffs.close
 
 [test_apogee_dome_flat_gang_on_podium_fails]
+
+[test_apogee_dome_flat_shuter_close_fails]
+apogee shutter open
+mcp ffs.close
+
+apogee expose time=50.0 object=DomeFlat
+
+apogee shutter close

@@ -482,8 +482,15 @@ def apogee_dome_flat(cmd, cmdState, actorState, multiCmd, failMsg="failed to tak
     multiCmd.append(sopActor.APOGEE_SCRIPT, Msg.POST_FLAT, cmdState=cmdState)
     if not handle_multiCmd(multiCmd, cmd, cmdState, 'domeFlat', failMsg, finish=True):
         return False
-    else:
-        return True
+
+    # per ticket #2379, we always want to close the APOGEE shuter after dome flats.
+    multiCmd = SopMultiCommand(cmd, actorState.timeout, '')
+    multiCmd.append(sopActor.APOGEE, Msg.APOGEE_SHUTTER, open=False)
+    if not multiCmd.run():
+        cmdState.setStageState('domeFlat', 'failed')
+        return fail_command(cmd, cmdState, ': '.join((failMsg,'error closing apogee shutter')), finish=True)
+
+    return True
 #...
 
 def do_boss_science(cmd, cmdState, actorState):

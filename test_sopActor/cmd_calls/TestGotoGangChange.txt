@@ -38,6 +38,8 @@ mcp ffs.close
 
 apogee expose time=50.0 object=DomeFlat
 
+apogee shutter close
+
 [test_goto_gang_change_apogee_noDomeFlat]
 apogee shutter close
 tcc axis status
