@@ -624,46 +624,36 @@ class TestGotoField(SopCmdTester,unittest.TestCase):
     
     def test_gotoField_boss_default(self):
         stages = ['slew','hartmann','calibs','guider','cleanup']
-        expect = {'arcTime':4,'flatTime':25,
-                  'guiderTime':5,'guiderFlatTime':0.5,
-                  'ra':10,'dec':20}
+        expect = {'ra':10,'dec':20}
         self._gotoField(11,'BOSS',expect,stages,'')
     def test_gotoField_boss_noSlew(self):
         stages = ['hartmann','calibs','guider','cleanup']
-        expect = {'arcTime':4,'flatTime':25,
-                  'guiderTime':5,'guiderFlatTime':0.5,
-                  'doSlew':False}
+        expect = {'doSlew':False}
         self._gotoField(11,'BOSS',expect,stages,'noSlew')
     def test_gotoField_boss_noHartmann(self):
         stages = ['slew','calibs','guider','cleanup']
-        expect = {'arcTime':4,'flatTime':25,
-                  'guiderTime':5,'guiderFlatTime':0.5,
-                  'ra':10,'dec':20,
+        expect = {'ra':10,'dec':20,
                   'doHartmann':False}
         self._gotoField(11,'BOSS',expect,stages,'noHartmann')
     def test_gotoField_boss_noCalibs(self):
         stages = ['slew','hartmann','guider','cleanup']
-        expect = {'guiderTime':5,'guiderFlatTime':0.5,
-                  'ra':10,'dec':20,
+        expect = {'ra':10,'dec':20,
                   'doCalibs':False, 'doArc':False, 'doFlat':False}
         self._gotoField(11,'BOSS',expect,stages,'noCalibs')
     def test_gotoField_boss_noGuider(self):
         stages = ['slew','hartmann','calibs','cleanup']
-        expect = {'arcTime':4,'flatTime':25,
-                  'ra':10,'dec':20,
+        expect = {'ra':10,'dec':20,
                   'doGuider':False, 'doGuiderFlat':False}
         self._gotoField(11,'BOSS',expect,stages,'noGuider')
 
     def test_gotoField_boss_0s_flat(self):
         stages = ['slew','hartmann','calibs','guider','cleanup']
-        expect = {'arcTime':4,'flatTime':0,
-                  'guiderTime':5,'guiderFlatTime':0.5,
+        expect = {'flatTime':0,
                   'ra':10,'dec':20}
         self._gotoField(11,'BOSS',expect,stages,'flatTime=0',cmd_levels=(0,2,1,0))
     def test_gotoField_boss_0s_arc(self):
         stages = ['slew','hartmann','calibs','guider','cleanup']
-        expect = {'arcTime':0,'flatTime':25,
-                  'guiderTime':5,'guiderFlatTime':0.5,
+        expect = {'arcTime':0,
                   'ra':10,'dec':20}
         self._gotoField(11,'BOSS',expect,stages,'arcTime=0',cmd_levels=(0,2,1,0))
 
@@ -674,17 +664,14 @@ class TestGotoField(SopCmdTester,unittest.TestCase):
         self._pre_command('gotoField',self.actorState.queues[sopActor.MASTER])
         self.actorState.gotoField.cmd = None
         stages = ['slew','hartmann','calibs','guider','cleanup']
-        expect = {'arcTime':4,'flatTime':25,
-                  'guiderTime':5,'guiderFlatTime':0.5,
-                  'ra':10,'dec':20}
+        expect = {'ra':10,'dec':20}
         self._gotoField(11,'BOSS',expect,stages,'')
 
     def test_gotoField_apogee_default(self):
         sopTester.updateModel('guider',TestHelper.guiderState['apogeeLoaded'])
         sopTester.updateModel('platedb',TestHelper.platedbState['apogee'])
         stages = ['slew','guider','cleanup']
-        expect = {'guiderTime':5,'guiderFlatTime':0.5,
-                  'ra':20,'dec':30,
+        expect = {'ra':20,'dec':30,
                   'doHartmann':False,'doCalibs':False}
         self._gotoField(1,'APOGEE',expect,stages,'')
 
@@ -692,9 +679,7 @@ class TestGotoField(SopCmdTester,unittest.TestCase):
         sopTester.updateModel('guider',TestHelper.guiderState['mangaDitherLoaded'])
         sopTester.updateModel('platedb',TestHelper.platedbState['mangaDither'])
         stages = ['slew','hartmann','calibs','guider','cleanup']
-        expect = {'arcTime':4,'flatTime':25,
-                  'guiderTime':5,'guiderFlatTime':0.5,
-                  'ra':30,'dec':40}
+        expect = {'ra':30,'dec':40}
         self._gotoField(2,'MaNGA',expect,stages,'')
 
     def test_gotoField_abort(self):
@@ -815,23 +800,23 @@ class TestDoBossCalibs(SopCmdTester,unittest.TestCase):
         self.assertEqual(msg.cmdState.nFlat,expect.get('nFlat',0))
         self.assertEqual(msg.cmdState.nArc,expect.get('nArc',0))
     
-    def test_bossCalibs_bias(self):
+    def test_doBossCalibs_bias(self):
         stages = ['bias','cleanup']
         expect = {'nBias':2}
         self._bossCalibs(expect,stages,'nbias=2')
-    def test_bossCalibs_dark(self):
+    def test_doBossCalibs_dark(self):
         stages = ['dark','cleanup']
         expect = {'nDark':2, 'darkTime':100}
         self._bossCalibs(expect,stages,'ndark=2 darkTime=100')
-    def test_bossCalibs_flat(self):
+    def test_doBossCalibs_flat(self):
         stages = ['flat','cleanup']
         expect = {'nFlat':2, 'flatTime':10, 'guiderFlatTime':10}
         self._bossCalibs(expect,stages,'nflat=2 flatTime=10 guiderFlatTime=10')
-    def test_bossCalibs_arc(self):
+    def test_doBossCalibs_arc(self):
         stages = ['arc','cleanup']
         expect = {'nArc':2, 'arcTime':10}
         self._bossCalibs(expect,stages,'narc=2 arcTime=10')
-    def test_bossCalibs_all(self):
+    def test_doBossCalibs_all(self):
         stages = ['bias','dark','flat','arc','cleanup']
         expect = {'nBias':1,'nDark':1,'nFlat':1,'nArc':1}
         self._bossCalibs(expect,stages,'nbias=1 ndark=1 nflat=1 narc=1')
@@ -1084,7 +1069,7 @@ if __name__ == '__main__':
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestHartmann)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoField)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoPosition)
-    # suite = unittest.TestLoader().loadTestsFromTestCase(TestBossCalibs)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoBossCalibs)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoBossScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoApogeeScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoApogeeSkyFlats)
