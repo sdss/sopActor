@@ -609,7 +609,7 @@ class TestGotoField(SopCmdTester,unittest.TestCase):
         self.assertEqual(msg.cmdState.stages,stages)
         self._check_levels(*cmd_levels)
         self.assertEqual(msg.cmdState.arcTime,expect.get('arcTime',4))
-        self.assertEqual(msg.cmdState.flatTime,expect.get('flatTime',30))
+        self.assertEqual(msg.cmdState.flatTime,expect.get('flatTime',25))
         self.assertEqual(msg.cmdState.guiderTime,expect.get('guiderTime',5))
         self.assertEqual(msg.cmdState.guiderFlatTime,expect.get('guiderFlatTime',0.5))
         self.assertEqual(msg.cmdState.ra,expect.get('ra',0))
@@ -624,19 +624,19 @@ class TestGotoField(SopCmdTester,unittest.TestCase):
     
     def test_gotoField_boss_default(self):
         stages = ['slew','hartmann','calibs','guider','cleanup']
-        expect = {'arcTime':4,'flatTime':30,
+        expect = {'arcTime':4,'flatTime':25,
                   'guiderTime':5,'guiderFlatTime':0.5,
                   'ra':10,'dec':20}
         self._gotoField(11,'BOSS',expect,stages,'')
     def test_gotoField_boss_noSlew(self):
         stages = ['hartmann','calibs','guider','cleanup']
-        expect = {'arcTime':4,'flatTime':30,
+        expect = {'arcTime':4,'flatTime':25,
                   'guiderTime':5,'guiderFlatTime':0.5,
                   'doSlew':False}
         self._gotoField(11,'BOSS',expect,stages,'noSlew')
     def test_gotoField_boss_noHartmann(self):
         stages = ['slew','calibs','guider','cleanup']
-        expect = {'arcTime':4,'flatTime':30,
+        expect = {'arcTime':4,'flatTime':25,
                   'guiderTime':5,'guiderFlatTime':0.5,
                   'ra':10,'dec':20,
                   'doHartmann':False}
@@ -649,7 +649,7 @@ class TestGotoField(SopCmdTester,unittest.TestCase):
         self._gotoField(11,'BOSS',expect,stages,'noCalibs')
     def test_gotoField_boss_noGuider(self):
         stages = ['slew','hartmann','calibs','cleanup']
-        expect = {'arcTime':4,'flatTime':30,
+        expect = {'arcTime':4,'flatTime':25,
                   'ra':10,'dec':20,
                   'doGuider':False, 'doGuiderFlat':False}
         self._gotoField(11,'BOSS',expect,stages,'noGuider')
@@ -662,7 +662,7 @@ class TestGotoField(SopCmdTester,unittest.TestCase):
         self._gotoField(11,'BOSS',expect,stages,'flatTime=0',cmd_levels=(0,2,1,0))
     def test_gotoField_boss_0s_arc(self):
         stages = ['slew','hartmann','calibs','guider','cleanup']
-        expect = {'arcTime':0,'flatTime':30,
+        expect = {'arcTime':0,'flatTime':25,
                   'guiderTime':5,'guiderFlatTime':0.5,
                   'ra':10,'dec':20}
         self._gotoField(11,'BOSS',expect,stages,'arcTime=0',cmd_levels=(0,2,1,0))
@@ -674,7 +674,7 @@ class TestGotoField(SopCmdTester,unittest.TestCase):
         self._pre_command('gotoField',self.actorState.queues[sopActor.MASTER])
         self.actorState.gotoField.cmd = None
         stages = ['slew','hartmann','calibs','guider','cleanup']
-        expect = {'arcTime':4,'flatTime':30,
+        expect = {'arcTime':4,'flatTime':25,
                   'guiderTime':5,'guiderFlatTime':0.5,
                   'ra':10,'dec':20}
         self._gotoField(11,'BOSS',expect,stages,'')
@@ -692,7 +692,7 @@ class TestGotoField(SopCmdTester,unittest.TestCase):
         sopTester.updateModel('guider',TestHelper.guiderState['mangaDitherLoaded'])
         sopTester.updateModel('platedb',TestHelper.platedbState['mangaDither'])
         stages = ['slew','hartmann','calibs','guider','cleanup']
-        expect = {'arcTime':4,'flatTime':30,
+        expect = {'arcTime':4,'flatTime':25,
                   'guiderTime':5,'guiderFlatTime':0.5,
                   'ra':30,'dec':40}
         self._gotoField(2,'MaNGA',expect,stages,'')
@@ -797,7 +797,7 @@ class TestDoBossScience(SopCmdTester,unittest.TestCase):
         self.assertEqual(msg.cmdState.expTime, 100)
 
 
-class TestBossCalibs(SopCmdTester,unittest.TestCase):
+class TestDoBossCalibs(SopCmdTester,unittest.TestCase):
     def _bossCalibs(self, expect, stages, args,):
         allStages = ['bias', 'dark', 'flat', 'arc', 'cleanup']
         stages = build_active_stages(allStages,stages)
@@ -807,7 +807,7 @@ class TestBossCalibs(SopCmdTester,unittest.TestCase):
         self.assertEqual(msg.type,sopActor.Msg.DO_BOSS_CALIBS)
         self.assertEqual(msg.cmdState.stages,stages)
         self.assertEqual(msg.cmdState.darkTime,expect.get('darkTime',900))
-        self.assertEqual(msg.cmdState.flatTime,expect.get('flatTime',30))
+        self.assertEqual(msg.cmdState.flatTime,expect.get('flatTime',25))
         self.assertEqual(msg.cmdState.arcTime,expect.get('arcTime',4))
         self.assertEqual(msg.cmdState.guiderFlatTime,expect.get('guiderFlatTime',0.5))
         self.assertEqual(msg.cmdState.nBias,expect.get('nBias',0))
@@ -1081,10 +1081,10 @@ if __name__ == '__main__':
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoApogeeMangaSequence)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestClassifyCartridge)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestUpdateCartridge)
-    #suite = unittest.TestLoader().loadTestsFromTestCase(TestHartmann)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestHartmann)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoField)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoPosition)
-    #suite = unittest.TestLoader().loadTestsFromTestCase(TestBossCalibs)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestBossCalibs)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoBossScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoApogeeScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoApogeeSkyFlats)

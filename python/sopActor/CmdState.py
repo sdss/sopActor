@@ -17,7 +17,7 @@ def getDefaultArcTime(survey):
 def getDefaultFlatTime(survey):
     """Get the default flat time for this survey"""
     if survey == sopActor.BOSS or survey == sopActor.MANGA or sopActor.APOGEEMANGA:
-        return 30
+        return 25
     else:
         return 0
 
@@ -297,7 +297,7 @@ class GotoFieldCmd(CmdState):
         CmdState.__init__(self, 'gotoField',
                           ['slew', 'hartmann', 'calibs', 'guider', 'cleanup'],
                           keywords=dict(arcTime=4,
-                                        flatTime=30,
+                                        flatTime=25,
                                         guiderTime=5.0,
                                         guiderFlatTime=0.5))
         
@@ -333,7 +333,7 @@ class DoBossCalibsCmd(CmdState):
         CmdState.__init__(self, 'doBossCalibs',
                           ['bias', 'dark', 'flat', 'arc', 'cleanup'],
                           keywords=dict(darkTime=900.0,
-                                        flatTime=30.0,
+                                        flatTime=25.0,
                                         arcTime=4.0,
                                         guiderFlatTime=0.5))
     

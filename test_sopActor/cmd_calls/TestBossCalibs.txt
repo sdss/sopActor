@@ -47,7 +47,7 @@ mcp ne.off
 [test_do_boss_calibs_one_flat]
 mcp ff.on
 
-boss exposure flat itime=30 noreadout
+boss exposure flat itime=25 noreadout
 guider flat time=0.5
 
 boss exposure   readout
@@ -58,7 +58,7 @@ mcp ne.off
 [test_do_boss_calibs_two_flat]
 mcp ff.on
 
-boss exposure flat itime=30 noreadout
+boss exposure flat itime=25 noreadout
 guider flat time=0.5
 
 boss exposure   readout
@@ -66,7 +66,7 @@ mcp ne.off
 mcp hgcd.off
 mcp ff.on
 
-boss exposure flat itime=30 noreadout
+boss exposure flat itime=25 noreadout
 guider flat time=0.5
 
 boss exposure   readout
@@ -79,7 +79,7 @@ apogee shutter close
 
 mcp ff.on
 
-boss exposure flat itime=30 noreadout
+boss exposure flat itime=25 noreadout
 guider flat time=0.5
 
 boss exposure   readout
@@ -90,7 +90,7 @@ mcp ne.off
 [test_do_boss_calibs_one_flat_coobserve_gangPodium]
 mcp ff.on
 
-boss exposure flat itime=30 noreadout
+boss exposure flat itime=25 noreadout
 guider flat time=0.5
 
 boss exposure   readout
@@ -102,7 +102,7 @@ mcp ne.off
 mcp ff.on
 mcp ffs.close
 
-boss exposure flat itime=30 noreadout
+boss exposure flat itime=25 noreadout
 guider flat time=0.5
 
 boss exposure   readout
@@ -173,7 +173,7 @@ boss exposure dark itime=900
 
 mcp ff.on
 
-boss exposure flat itime=30 noreadout
+boss exposure flat itime=25 noreadout
 guider flat time=0.5
 
 boss exposure   readout
@@ -201,7 +201,7 @@ boss exposure dark itime=900
 
 mcp ff.on
 
-boss exposure flat itime=30 noreadout
+boss exposure flat itime=25 noreadout
 guider flat time=0.5
 
 boss exposure   readout
@@ -209,7 +209,7 @@ mcp ne.off
 mcp hgcd.off
 mcp ff.on
 
-boss exposure flat itime=30 noreadout
+boss exposure flat itime=25 noreadout
 guider flat time=0.5
 
 boss exposure   readout
@@ -236,7 +236,7 @@ mcp ne.off
 [test_do_boss_calibs_flat_arc_fail_on_hgcd]
 mcp ff.on
 
-boss exposure flat itime=30 noreadout
+boss exposure flat itime=25 noreadout
 guider flat time=0.5
 
 boss exposure   readout
@@ -247,7 +247,7 @@ mcp hgcd.on
 [test_do_boss_calibs_two_flat_fail_on_readout]
 mcp ff.on
 
-boss exposure flat itime=30 noreadout
+boss exposure flat itime=25 noreadout
 guider flat time=0.5
 
 mcp ff.on

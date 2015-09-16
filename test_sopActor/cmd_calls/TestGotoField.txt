@@ -115,7 +115,7 @@ mcp hgcd.off
 mcp ff.on
 boss exposure   readout
 
-boss exposure flat itime=30 noreadout
+boss exposure flat itime=25 noreadout
 guider flat time=0.5
 # Though exposure readout is independent of the guider preconditions,
 # it could happen later because it is start()ed instead of run()ed.
@@ -154,7 +154,7 @@ mcp hgcd.off
 mcp ff.on
 boss exposure   readout
 
-boss exposure flat itime=30 noreadout
+boss exposure flat itime=25 noreadout
 
 mcp ff.off
 boss exposure   readout
@@ -238,7 +238,7 @@ mcp hgcd.off
 mcp ff.on
 boss exposure   readout
 
-boss exposure flat itime=30 noreadout
+boss exposure flat itime=25 noreadout
 guider flat time=0.5
 
 mcp ff.off
@@ -267,7 +267,7 @@ mcp hgcd.off
 mcp ff.on
 boss exposure   readout
 
-boss exposure flat itime=30 noreadout
+boss exposure flat itime=25 noreadout
 guider flat time=0.5
 
 # Though exposure readout is independent of the guider preconditions,
@@ -305,7 +305,7 @@ mcp hgcd.off
 mcp ff.on
 boss exposure   readout
 
-boss exposure flat itime=30 noreadout
+boss exposure flat itime=25 noreadout
 guider flat time=0.5
 # Though exposure readout is independent of the guider preconditions,
 # it could happen later because it is start()ed instead of run()ed.
