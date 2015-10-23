@@ -377,7 +377,17 @@ class DoApogeeScienceCmd(CmdState):
                                         comment=""))
     def reset_nonkeywords(self):
         self.expType = "object"
+        self.base_expTime = self.keywords['expTime'] # save it for "set_apogee_expTime"
         super(DoApogeeScienceCmd,self).reset_nonkeywords()
+
+    def set_apogee_expTime(self, value):
+        """Set the default expTime to the new value, or the base if None."""
+        if value is None or value == 'None':
+            self.keywords['expTime'] = self.base_expTime
+            self.expTime = self.base_expTime
+        else:
+            self.keywords['expTime'] = value
+            self.expTime = value
 
     def getUserKeys(self):
         msg = []

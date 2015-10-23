@@ -281,6 +281,25 @@ class TestDoApogeeScience(CmdStateTester,unittest.TestCase):
         self.cmdState.aborted = True
         self.assertFalse(self.cmdState.exposures_remain())
 
+    def test_set_apogee_expTime_None(self):
+        self.cmdState.set_apogee_expTime(None)
+        self.assertEqual(self.cmdState.expTime,500)
+        self.assertEqual(self.cmdState.keywords['expTime'],500)
+        self.cmdState.set_apogee_expTime('None')
+        self.assertEqual(self.cmdState.expTime,500)
+        self.assertEqual(self.cmdState.keywords['expTime'],500)
+
+    def test_set_apogee_expTime_1000(self):
+        self.cmdState.set_apogee_expTime(1000)
+        self.assertEqual(self.cmdState.expTime,1000)
+        self.assertEqual(self.cmdState.keywords['expTime'],1000)
+
+    def test_set_apogee_expTime_None_after_other_value(self):
+        self.cmdState.set_apogee_expTime(1000)
+        self.cmdState.set_apogee_expTime(None)
+        self.assertEqual(self.cmdState.expTime,500)
+        self.assertEqual(self.cmdState.keywords['expTime'],500)
+
 
 class TestDoApogeeSkyFlats(CmdStateTester,unittest.TestCase):
     def setUp(self):
