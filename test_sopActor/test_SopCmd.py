@@ -236,6 +236,11 @@ class TestUpdateCartridge(SopCmdTester,unittest.TestCase):
         self.assertEqual(sop.keyVarDict['surveyCommands'].getValue(), expected['surveyCommands'])
         self.assertEqual(sop.keyVarDict['survey'].getValue(), (survey,surveyMode))
 
+    def test_updateCartridge_none(self):
+        sopTester.updateModel('guider',TestHelper.guiderState['noneLoaded'])
+        expected = {}
+        expected['surveyCommands'] = TestHelper.sopEmptyCommands['surveyCommands']
+        self._updateCartridge(-1,'UNKNOWN','None',expected)
     def test_updateCartridge_boss(self):
         sopTester.updateModel('guider',TestHelper.guiderState['bossLoaded'])
         expected = {}
@@ -258,12 +263,22 @@ class TestUpdateCartridge(SopCmdTester,unittest.TestCase):
         expected = {}
         expected['surveyCommands'] = TestHelper.sopApogeeCommands['surveyCommands']
         self._updateCartridge(1,'APOGEE','None',expected)
+        self.assertEqual(self.actorState.doApogeeScience.expTime,500)
 
     def test_updateCartridge_apogee2(self):
         sopTester.updateModel('guider',TestHelper.guiderState['apogeeLoaded'])
         expected = {}
         expected['surveyCommands'] = TestHelper.sopApogeeCommands['surveyCommands']
         self._updateCartridge(1,'APOGEE-2','None',expected)
+        self.assertEqual(self.actorState.doApogeeScience.expTime,500)
+
+    def test_updateCartridge_apogee2_long(self):
+        sopTester.updateModel('guider',TestHelper.guiderState['apogeeLoaded'])
+        sopTester.updateModel('platedb',TestHelper.platedbState['apogeeLead1000s'])
+        expected = {}
+        expected['surveyCommands'] = TestHelper.sopApogeeCommands['surveyCommands']
+        self._updateCartridge(1,'APOGEE-2','None',expected)
+        self.assertEqual(self.actorState.doApogeeScience.expTime,1000)
 
     def test_updateCartridge_apogeemanga(self):
         sopTester.updateModel('guider',TestHelper.guiderState['apogeemangaDitherLoaded'])
@@ -279,6 +294,17 @@ class TestUpdateCartridge(SopCmdTester,unittest.TestCase):
         expected['surveyCommands'] = TestHelper.sopBossCommands['surveyCommands']
         self._updateCartridge(11,'BOSS','None',expected)
 
+class TestUpdateApogeeDesign(SopCmdTester,unittest.TestCase):
+    def _update_apogee_design(self,expect):
+        self.actorState.doApogeeScience.expTime = -9999
+        self.sopCmd.update_apogee_design(self.actorState)
+        self.assertEqual(self.actorState.doApogeeScience.expTime,expect)
+    def test_update_apogee_design_None(self):
+        sopTester.updateModel('platedb',TestHelper.platedbState['apogeeLead'])
+        self._update_apogee_design(500)
+    def test_update_apogee_design_1000(self):
+        sopTester.updateModel('platedb',TestHelper.platedbState['apogeeLead1000s'])
+        self._update_apogee_design(1000)
 
 class TestStatus(SopCmdTester,unittest.TestCase):
     def _status(self, nInfo, args=''):

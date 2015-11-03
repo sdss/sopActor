@@ -382,13 +382,13 @@ class DoApogeeScienceCmd(CmdState):
 
     def set_apogee_expTime(self, value):
         """Set the default expTime to the new value, or the base if None."""
-        if value is None or value == 'None':
+        if value is None:
             self.keywords['expTime'] = self.base_expTime
             self.expTime = self.base_expTime
         else:
             self.keywords['expTime'] = value
             self.expTime = value
-
+            
     def getUserKeys(self):
         msg = []
         msg.append('%s_index=%d,%d' % (self.name,self.index,self.ditherPairs))

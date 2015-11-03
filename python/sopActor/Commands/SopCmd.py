@@ -1140,33 +1140,29 @@ class SopCmd(object):
         cmd.warn('text="loadCartridge fired cart=%s survey=%s surveyMode=%s"' % (cartridge, survey, surveyMode))
         cmd.inform('survey=%s,%s'%(qstr(sopState.surveyText[0]),qstr(sopState.surveyText[1])))
 
+        sopState.validCommands = ['gotoField',
+                                  'gotoStow', 'gotoInstrumentChange', 'gotoAll60', 'gotoStow60']
         if survey is sopActor.BOSS:
             sopState.gotoField.setStages(['slew', 'hartmann', 'calibs', 'guider', 'cleanup'])
-            sopState.validCommands = ['gotoField',
-                                      'doBossCalibs', 'doBossScience',
-                                      'gotoInstrumentChange']
+            sopState.validCommands += ['doBossCalibs', 'doBossScience',]
         elif survey is sopActor.APOGEE:
+            self.update_apogee_design(sopState)
             sopState.gotoField.setStages(['slew', 'guider', 'cleanup'])
-            sopState.validCommands = ['gotoField',
-                                      'doApogeeScience', 'doApogeeSkyFlats',
-                                      'gotoGangChange', 'gotoInstrumentChange', 'doApogeeDomeFlat']
+            sopState.validCommands += ['doApogeeScience', 'doApogeeSkyFlats',
+                                      'gotoGangChange', 'doApogeeDomeFlat']
         elif survey is sopActor.MANGA:
             sopState.gotoField.setStages(['slew', 'hartmann', 'calibs', 'guider', 'cleanup'])
-            sopState.validCommands = ['gotoField',
-                                      'doBossCalibs',
-                                      'doMangaDither','doMangaSequence',
-                                      'gotoInstrumentChange']
+            sopState.validCommands += ['doBossCalibs',
+                                      'doMangaDither','doMangaSequence',]
             if surveyMode is sopActor.MANGADITHER:
                 sopState.doMangaSequence.set_mangaDither()
             if surveyMode is sopActor.MANGASTARE:
                 sopState.doMangaSequence.set_mangaStare()
         elif survey is sopActor.APOGEEMANGA:
             sopState.gotoField.setStages(['slew', 'hartmann', 'calibs', 'guider', 'cleanup'])
-            sopState.validCommands = ['gotoField',
-                                      'doBossCalibs',
+            sopState.validCommands += ['doBossCalibs',
                                       'doApogeeMangaDither','doApogeeMangaSequence',
-                                      'doApogeeSkyFlats', 'gotoGangChange',
-                                      'gotoInstrumentChange', 'doApogeeDomeFlat']
+                                      'doApogeeSkyFlats', 'gotoGangChange', 'doApogeeDomeFlat']
             if surveyMode is sopActor.APOGEELEAD:
                 sopState.doApogeeMangaDither.set_apogeeLead()
                 sopState.doApogeeMangaSequence.set_apogeeLead()
@@ -1178,11 +1174,14 @@ class SopCmd(object):
                 sopState.doApogeeMangaSequence.set_mangaStare()
         else:
             sopState.gotoField.setStages(['slew', 'guider', 'cleanup'])
-            sopState.validCommands = ['gotoStow', 'gotoInstrumentChange',
-                                      'gotoAll60', 'gotoStow60']
 
         if status:
             self.status(cmd, threads=False, finish=False)
+
+    def update_apogee_design(self,sopState):
+        """Update the APOGEE design parameters, including expTime, from the platedb keyword."""
+        apogeeDesign = sopState.models['platedb'].keyVarDict['apogeeDesign']
+        sopState.doApogeeScience.set_apogee_expTime(apogeeDesign[1])
 
     def classifyCartridge(self, cmd, cartridge, plateType, surveyMode):
         """
