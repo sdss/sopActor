@@ -1,5 +1,6 @@
 * text=auto !eol
 etc/sop.cfg -text
+etc/sopActor.module -text
 python/sopActor/CmdState.py -text
 python/sopActor/Commands/SopCmd.py -text
 python/sopActor/Commands/__init__.py -text
