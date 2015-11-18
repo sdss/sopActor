@@ -71,6 +71,10 @@ class SopTester(TestHelper.ActorTester):
         myGlobals.bypass = Bypass()
         self._clear_bypasses()
 
+        # because we use bcast and cmdr in sop often (whether we should is a separate question)
+        self.actor.bcast = self.cmd
+        self.actor.cmdr = self.cmd
+
         # so we can call sopCmds, but init things silently.
         self.cmd.verbose = False
         self.sopCmd = SopCmd.SopCmd(self.actor)
