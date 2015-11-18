@@ -1,4 +1,5 @@
 * text=auto !eol
+/README.rst -text
 etc/config.ini -text
 etc/sop.cfg -text
 etc/sopActor.module -text
