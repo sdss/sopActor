@@ -21,7 +21,7 @@ class TestKeywords(sopTester.SopTester,unittest.TestCase):
         self.keywords = {'a':1,'b':2}
         self.cmdState = sopActor.CmdState.CmdState('tester',self.stages,keywords=self.keywords)
         super(TestKeywords,self).setUp()
-        
+
     def test_reset_keywords(self):
         self.cmdState.a = 100
         self.cmdState.b = 200
@@ -69,14 +69,14 @@ class CmdStateTester(sopTester.SopTester):
         self.cmdState.setStageState(stage,state)
         self.assertEqual(self.cmdState.stages[stage],state)
         self.assertEqual(self.cmd.levels.count('i'),1)
-    
+
     def test_setStageState_badStage(self):
         with self.assertRaises(AssertionError):
             self.cmdState.setStageState('not_a_state!',self.ok_state)
     def test_setStageState_badState(self):
         with self.assertRaises(AssertionError):
             self.cmdState.setStageState(self.ok_stage,'bad')
-    
+
     def test_setCommandState_running(self):
         """
         setCommandState outputs 3 or 4 inform level commands:
@@ -112,7 +112,7 @@ class CmdStateTester(sopTester.SopTester):
         result,text = self.cmdState.isSlewingDisabled_BOSS()
         self.assertFalse(result)
         self.assertEqual(text,'; exposureState=READING')
-    
+
     def _isSlewingDisabled_because_exposing(self, survey, nExp, state):
         self.cmdState.cmd = self.cmd
         result = self.cmdState.isSlewingDisabled()
@@ -201,6 +201,19 @@ class TestGotoField(CmdStateTester,unittest.TestCase):
         self._fake_boss_exposing()
         super(TestGotoField,self).test_abort()
         self.assertEqual(self.cmd.calls, ['boss exposure stop','tcc axis stop'])
+
+
+class TestGotoPosition(CmdStateTester, unittest.TestCase):
+    """Tests the GotoPosition command."""
+
+    def setUp(self):
+        super(TestGotoPosition, self).setUp()
+        self.cmdState = sopActor.CmdState.GotoPositionCmd()
+        self.ok_stage = 'slew'
+
+    def test_abort(self):
+        super(TestGotoPosition, self).test_abort()
+        self.assertFalse(self.cmdState.doSlew)
 
 
 class TestDoBossCalibs(CmdStateTester,unittest.TestCase):
@@ -549,7 +562,7 @@ class TestDoApogeeMangaDither(CmdStateTester,unittest.TestCase):
         super(TestDoApogeeMangaDither,self).setUp()
         self.cmdState = sopActor.CmdState.DoApogeeMangaDitherCmd()
         self.ok_stage = 'dither'
-    
+
     def test_reset_nonkeywords(self):
         self.cmdState.readout = 100
         self.cmdState.reset_nonkeywords()
@@ -558,7 +571,7 @@ class TestDoApogeeMangaDither(CmdStateTester,unittest.TestCase):
     def test_isSlewingDisabled_because_exposing(self):
         sopTester.updateModel('boss',TestHelper.bossState['integrating'])
         self._isSlewingDisabled_because_exposing('APOGEE&MaNGA',1,'INTEGRATING')
-    
+
     def test_isSlewingDisabled_False(self):
         sopTester.updateModel('boss',TestHelper.bossState['reading'])
         self._isSlewingDisabled_False()
@@ -590,7 +603,5 @@ class TestDoApogeeMangaDither(CmdStateTester,unittest.TestCase):
 
 if __name__ == '__main__':
     verbosity = 2
-    
+
     unittest.main(verbosity=verbosity)
-
-

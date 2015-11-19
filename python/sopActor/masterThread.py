@@ -23,10 +23,10 @@ class SopPrecondition(Precondition):
     def required(self):
         """
         If the system is not in the desired state, return True, otherwise False.
-        
-        Thus, self.required() will tell you whether you have to run the 
+
+        Thus, self.required() will tell you whether you have to run the
         command to get the system into the desired state.
-        Also accounts for lamp warm-up time, so if the lamp was turned on 
+        Also accounts for lamp warm-up time, so if the lamp was turned on
         and enough time has passed, it is ok, but if not, require (the full time).
         """
 
@@ -75,7 +75,7 @@ class SopPrecondition(Precondition):
             elif self.msgId == Msg.MANGA_DITHER:
                 dither = self.kwargs.get('dither')
                 return not self.atCorrectMangaDither(dither)
-            
+
         return True
     #
     # Commands to get state from e.g. the MCP
@@ -141,7 +141,7 @@ class SopPrecondition(Precondition):
             on += i
 
         return (True if on == 4 else False), (time.time() - status.timestamp)
-    
+
     def isDecentered(self):
         """Return true if the guider currently has decenter mode active."""
         decenter = myGlobals.actorState.models["guider"].keyVarDict["decenter"]
@@ -269,7 +269,7 @@ def prep_for_arc(multiCmd,precondition=False):
         multiCmd.append(sopActor.FF_LAMP  , Msg.LAMP_ON, on=False)
         multiCmd.append(sopActor.HGCD_LAMP, Msg.LAMP_ON, on=True)
         multiCmd.append(sopActor.NE_LAMP  , Msg.LAMP_ON, on=True)
-        
+
 def prep_quick_hartmann(multiCmd):
     """Prepare for quick Hartmanns, which don't need the HgCd lamps fully warm."""
     multiCmd.append(SopPrecondition(sopActor.FFS      , Msg.FFS_MOVE, open=False))
@@ -430,16 +430,16 @@ def guider_start(cmd, cmdState, actorState, finish=True):
     cmdState.setStageState("guider", "running")
     multiCmd = SopMultiCommand(cmd, actorState.timeout + cmdState.guiderTime,
                                cmdState.name+".guider")
-    
+
     multiCmd.append(sopActor.GUIDER, Msg.START, on=True,
                     expTime=cmdState.guiderTime, clearCorrections=True)
     prep_for_science(multiCmd, precondition=True)
     prep_guider_decenter_off(multiCmd)
-    
+
     failMsg = "failed to start the guider"
     if not handle_multiCmd(multiCmd, cmd, cmdState, 'guider', failMsg, finish=finish):
         return False
-    
+
     show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand="gotoField")
     return True
 #...
@@ -495,7 +495,7 @@ def apogee_dome_flat(cmd, cmdState, actorState, multiCmd, failMsg="failed to tak
 
 def do_boss_science(cmd, cmdState, actorState):
     """Start a BOSS science sequence."""
-    
+
     finishMsg = "Your Nobel Prize is a little closer!"
     failMsg = ""            # message to use if we've failed
     stageName = 'expose'
@@ -526,7 +526,7 @@ def do_boss_science(cmd, cmdState, actorState):
 
 def do_apogee_science(cmd, cmdState, actorState, finishMsg=None):
     """Start an APOGEE science sequence."""
-    
+
     expType = cmdState.expType
     if finishMsg is None:
         finishMsg = "Your Nobel Prize is a little closer!"
@@ -545,12 +545,12 @@ def do_apogee_science(cmd, cmdState, actorState, finishMsg=None):
                         expType=expType, comment=cmdState.comment)
         prep_for_science(multiCmd,precondition=True)
         prep_apogee_shutter(multiCmd,open=True)
-        
+
         if not multiCmd.run():
             failMsg = "Failed to take an %s exposure" % (expType)
             break
         cmdState.took_exposure()
-    
+
     # Did we break out of that loop?
     if failMsg:
         return fail_command(cmd, cmdState, failMsg)
@@ -559,7 +559,7 @@ def do_apogee_science(cmd, cmdState, actorState, finishMsg=None):
 
 def do_one_manga_dither(cmd, cmdState, actorState):
     """Start a single MaNGA dithered exposure."""
-    
+
     dither = cmdState.dither
     expTime = cmdState.expTime
     readout = cmdState.readout
@@ -572,7 +572,7 @@ def do_one_manga_dither(cmd, cmdState, actorState):
                     expTime=expTime, expType="science", readout=readout)
     prep_for_science(multiCmd, precondition=True)
     prep_manga_dither(multiCmd, dither=dither, precondition=True)
-    
+
     return multiCmd.run()
 #...
 
@@ -592,18 +592,18 @@ def do_manga_dither(cmd, cmdState, actorState):
 
 def do_manga_sequence(cmd, cmdState, actorState):
     """Start a MaNGA dither sequence, consisting of multiple dither sets."""
-    
+
     def do_cals_now(index):
         """Return True if it is time to do calibrations."""
         return index%arcExp == 0
-    
+
     finishMsg = "Your Nobel Prize is a little closer!"
     failMsg = ""            # message to use if we've failed
     arcExp = 3 # number of exposures to take between arcs
     pendingReadout = False
     # set at start, and then update after each exposure.
     dither = cmdState.ditherSeq[cmdState.index]
-    
+
     while cmdState.exposures_remain():
         ditherState = actorState.doMangaDither
         ditherState.reinitialize(cmd)
@@ -633,10 +633,10 @@ def do_manga_sequence(cmd, cmdState, actorState):
         if not multiCmd.run():
             failMsg = "failed to readout exposure/change dither position"
             break
-        
+
     show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
     deactivate_guider_decenter(cmd, cmdState, actorState, 'dither')
-    
+
     if pendingReadout:
         multiCmd = SopMultiCommand(cmd, actorState.timeout + readoutDuration,
                                    cmdState.name+".readout",
@@ -649,7 +649,7 @@ def do_manga_sequence(cmd, cmdState, actorState):
         if pendingReadout and not multiCmd.run():
             cmd.error('text="Failed to readout last exposure"')
         return fail_command(cmd, cmdState, failMsg)
-    
+
     finish_command(cmd,cmdState,actorState,finishMsg)
 #...
 
@@ -679,7 +679,7 @@ def do_one_apogeemanga_dither(cmd, cmdState, actorState):
     prep_for_science(multiCmd, precondition=True)
     prep_apogee_shutter(multiCmd,open=True)
     prep_manga_dither(multiCmd, dither=mangaDither, precondition=True)
-    
+
     cmdState.setStageState(stageName, 'running')
     return multiCmd.run()
 #...
@@ -701,7 +701,7 @@ def do_apogeemanga_dither(cmd, cmdState, actorState):
 
 def do_apogeemanga_sequence(cmd, cmdState, actorState):
     """Complete an APOGEE/MaNGA co-observing dither sequence."""
-    
+
     finishMsg = "Your Nobel Prize is a little closer!"
     failMsg = ""            # message to use if we've failed
     pendingReadout = False
@@ -751,7 +751,7 @@ def do_apogeemanga_sequence(cmd, cmdState, actorState):
 
     show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
     deactivate_guider_decenter(cmd, cmdState, actorState, 'dither')
-    
+
     if pendingReadout:
         multiCmd = SopMultiCommand(cmd, actorState.timeout + readoutDuration,
                                    cmdState.name+".readout",
@@ -764,12 +764,12 @@ def do_apogeemanga_sequence(cmd, cmdState, actorState):
         if pendingReadout and not multiCmd.run():
             cmd.error('text="Failed to readout last exposure"')
         return fail_command(cmd, cmdState, failMsg)
-    
+
     finish_command(cmd,cmdState,actorState,finishMsg)
 
 def do_boss_calibs(cmd, cmdState, actorState):
     """Start a BOSS instrument calibration sequence (flats, arcs, Hartmanns)"""
-    
+
     ffsInitiallyOpen = SopPrecondition(None).ffsAreOpen()
     pendingReadout = False
     finishMsg = "Your calibration data are ready."
@@ -809,11 +809,11 @@ def do_boss_calibs(cmd, cmdState, actorState):
             else:
                 failMsg = "Impossible condition: exposure type is not arc or flat!"
                 break
-            
+
             if not multiCmd.run():
                 failMsg = "Failed to prepare for %s" % expType
                 break
-        
+
         # Queue the exposure
         timeout = flushDuration + expTime + actorState.timeout
         if expType in ("bias", "dark"):
@@ -826,7 +826,7 @@ def do_boss_calibs(cmd, cmdState, actorState):
             timeout += myGlobals.warmupTime[sopActor.HGCD_LAMP]
 
         multiCmd = SopMultiCommand(cmd, timeout, cmdState.name+'.expose')
-        
+
         if expType in ("bias", "dark"):
             pendingReadout = False
             multiCmd.append(sopActor.BOSS, Msg.EXPOSE,
@@ -856,12 +856,12 @@ def do_boss_calibs(cmd, cmdState, actorState):
         if not multiCmd.run():
             failMsg = "Failed to take %s exposure" % expType
             break
-        
+
         if not update_exp_counts(cmdState,expType):
             failMsg = "Impossible condition: unknown exposure type when determining exposures remaining!"
             break
     #endwhile
-    
+
     # Did we break out of the while loop?
     if failMsg:
         if pendingReadout:
@@ -881,7 +881,7 @@ def do_boss_calibs(cmd, cmdState, actorState):
         pendingReadout = False
     multiCmd.append(sopActor.FFS, Msg.FFS_MOVE, open=ffsInitiallyOpen)
     prep_lamps_off(multiCmd)
-    
+
     failMsg = "BOSS calibs cleanup/FFS move failed"
     longFailMsg = "Failed to cleanup after BOSS calibs; check BOSS and FFS state."
     if not handle_multiCmd(multiCmd,cmd,cmdState,'cleanup',failMsg,longFailMsg):
@@ -921,7 +921,7 @@ def goto_field_apogeemanga(cmd, cmdState, actorState, slewTimeout):
 
 def goto_field_apogee(cmd, cmdState, actorState, slewTimeout):
     """Process a goto field sequence for an APOGEE plate."""
-    
+
     if cmdState.doSlew:
         multiCmd = start_slew(cmd, cmdState, actorState, slewTimeout)
         # NOTE: the FFS should remain closed during APOGEE slews,
@@ -930,26 +930,26 @@ def goto_field_apogee(cmd, cmdState, actorState, slewTimeout):
         if cmdState.doGuider and cmdState.doGuiderFlat:
             prep_apogee_shutter(multiCmd,open=False)
             prep_lamps_for_flat(multiCmd,precondition=True)
-        
+
         if not _run_slew(cmd,cmdState,actorState,multiCmd):
             return False
 
     # For APOGEE plates (no gotofield calibs), take the guider flat while slewing.
     if cmdState.doGuider and cmdState.doGuiderFlat:
         guider_flat(cmd, cmdState, actorState, 'slew', apogeeShutter=True)
-    
+
     if cmdState.doGuider:
         return guider_start(cmd, cmdState, actorState)
-    
+
     return True
 #...
 
 def goto_field_boss(cmd, cmdState, actorState, slewTimeout):
     """Process a goto field sequence for a BOSS plate."""
-    
+
     pendingReadout = False
     stageName = ''
-    
+
     doGuiderFlat = True if (cmdState.doGuiderFlat and cmdState.doGuider and cmdState.guiderFlatTime > 0) else False
     doingCalibs = False
     if cmdState.doSlew:
@@ -959,13 +959,13 @@ def goto_field_boss(cmd, cmdState, actorState, slewTimeout):
             prep_for_arc(multiCmd)
         elif doGuiderFlat or cmdState.flatTime > 0:
             prep_for_flat(multiCmd)
-        
+
         if not _run_slew(cmd,cmdState,actorState,multiCmd):
             return False
-        
+
         cmdState.setStageState(stageName, 'done')
         show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
-    
+
     # We're on the field: start with a hartmann
     if cmdState.doHartmann:
         stageName = 'hartmann'
@@ -976,15 +976,15 @@ def goto_field_boss(cmd, cmdState, actorState, slewTimeout):
         multiCmd.append(sopActor.BOSS, Msg.HARTMANN)
         if not handle_multiCmd(multiCmd,cmd,cmdState,stageName,"Failed to take hartmann sequence"):
             return False
-        
+
         show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
-    
+
     # Calibs: arc then flat (and guider flat if we're going to guide)
     if cmdState.doCalibs:
         stageName = 'calibs'
         doingCalibs = True
         cmdState.setStageState(stageName, 'running')
-        
+
         # Arcs first
         if cmdState.arcTime > 0:
             timeout = actorState.timeout + myGlobals.warmupTime[sopActor.HGCD_LAMP]
@@ -992,7 +992,7 @@ def goto_field_boss(cmd, cmdState, actorState, slewTimeout):
             prep_for_arc(multiCmd,precondition=True)
             if not handle_multiCmd(multiCmd,cmd,cmdState,stageName,"Failed to prepare for arcs"):
                 return False
-            
+
             # Now take the exposure: separate from above so we can check to see
             # if the arc stage was aborted/cancelled/stopped before the exposure started.
             if cmdState.arcTime > 0:
@@ -1006,7 +1006,7 @@ def goto_field_boss(cmd, cmdState, actorState, slewTimeout):
                     cmdState.setStageState(stageName, 'failed')
                     return fail_command(cmd, cmdState, "failed to take arcs")
             show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
-    
+
         # Now the flats
         if cmdState.flatTime > 0:
             multiCmd = SopMultiCommand(cmd,
@@ -1015,12 +1015,12 @@ def goto_field_boss(cmd, cmdState, actorState, slewTimeout):
             if pendingReadout:
                 multiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
                 pendingReadout = False
-            
+
             if cmdState.flatTime > 0 or doGuiderFlat:
                 prep_for_flat(multiCmd)
             if not handle_multiCmd(multiCmd,cmd,cmdState,'calibs',"Failed to prepare for flats"):
                 return False
-            
+
             # Now take the exposure, separate from the above to catch aborts/stops.
             if cmdState.flatTime > 0 or doGuiderFlat:
                 multiCmd = SopMultiCommand(cmd, cmdState.flatTime + actorState.timeout + 30,
@@ -1045,7 +1045,7 @@ def goto_field_boss(cmd, cmdState, actorState, slewTimeout):
             cmdState.didFlat = True
             cmdState.doGuiderFlat = False # since we just did it.
             show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
-    
+
     # Readout any pending data and prepare to guide
     if pendingReadout:
         readoutMultiCmd = SopMultiCommand(cmd, readoutDuration + actorState.timeout,
@@ -1056,9 +1056,9 @@ def goto_field_boss(cmd, cmdState, actorState, slewTimeout):
     else:
         if doingCalibs:
             cmdState.setStageState(stageName, 'done')
-    
+
         readoutMultiCmd = None
-    
+
     failedCmd = None
     if cmdState.doGuider:
         if cmdState.doGuiderFlat:
@@ -1077,7 +1077,7 @@ def goto_field_boss(cmd, cmdState, actorState, slewTimeout):
             failedCmd = 'cleanup'
         else:
             cmdState.setStageState('cleanup', 'done')
-    
+
     failMsg = ''
     # catch a guider or cleanup failure.
     if failedCmd is not None:
@@ -1094,27 +1094,58 @@ def goto_field_boss(cmd, cmdState, actorState, slewTimeout):
 
     if failMsg:
         return fail_command(cmd, cmdState, failMsg)
-    
+
     # all done, everything succeeded!
     return True
 #...
 
+def goto_position(cmd, cmdState, actorState):
+    """Goes to a certain (az, alt, rot) position."""
+
+    finishMsg = "On position."
+
+    multiCmd = SopMultiCommand(cmd, actorState.timeout + 100,
+                               cmdState.name + ".slew")
+    cmdState.setStageState('slew', 'running')
+
+    # Heading towards the instrument change pos.
+    az = cmdState.az
+    alt = cmdState.alt
+    rot = cmdState.rot
+
+    slewDuration = 60
+    multiCmd = MultiCommand(cmd, slewDuration + actorState.timeout, None)
+
+    # Start with an axis init, in case the axes are not clear.
+    multiCmd.append(SopPrecondition(sopActor.TCC, Msg.AXIS_INIT))
+
+    multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState,
+                    az=az, alt=alt, rot=rot)
+
+    if not handle_multiCmd(multiCmd, cmd, cmdState, 'slew',
+                           'Failed to slew to position az={0}, alt={1}, '
+                           'rot={2}'.format(az, alt, rot)):
+        return
+
+    finish_command(cmd, cmdState, actorState, finishMsg)
+
+
 def goto_field(cmd, cmdState, actorState):
     """Start a goto field sequence, with behavior depending on the current survey."""
-    
+
     # Slew to field
     slewTimeout = 180
     finishMsg = "On field."
-    
+
     show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand="gotoField")
-    
+
     if actorState.survey == sopActor.APOGEE:
         success = goto_field_apogee(cmd, cmdState, actorState, slewTimeout)
     elif actorState.survey == sopActor.BOSS or actorState.survey == sopActor.MANGA:
         success = goto_field_boss(cmd, cmdState, actorState, slewTimeout)
     elif actorState.survey == sopActor.APOGEEMANGA:
         success = goto_field_apogeemanga(cmd, cmdState, actorState, slewTimeout)
-    
+
     # if not success: we've already failed the command.
     if success:
         finish_command(cmd,cmdState,actorState,finishMsg)
@@ -1151,7 +1182,7 @@ def goto_gang_change(cmd, cmdState, actorState):
     Goto gang change position at requested altitude, taking a dome flat on
     the way if we have an APOGEE cartridge, and the gang is plugged into it.
     """
-    
+
     finishMsg = "at gang change position"
     # Behavior varies depending on where the gang connector is.
     gangCart = actorState.apogeeGang.atCartridge()
@@ -1223,10 +1254,10 @@ def hartmann(cmd, cmdState, actorState):
     """Take two arc exposures with the left then the right Hartmann screens in."""
     ffsInitiallyOpen = SopPrecondition(None).ffsAreOpen()
     finishMsg = "Finished left/right Hartmann set."
-    
+
     hartmannTime = myGlobals.warmupTime[sopActor.NE_LAMP] + readoutDuration
     show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
-    # Turn on the lamps before we do anything: this way, we turn them both on, but can 
+    # Turn on the lamps before we do anything: this way, we turn them both on, but can
     # start exposing right away, since we don't need the full amount of light.
     doLamps(cmd, actorState, HgCd=True, Ne=True, openFFS=False)
     for stageName in ('left','right'):
@@ -1236,7 +1267,7 @@ def hartmann(cmd, cmdState, actorState):
         if not handle_multiCmd(multiCmd,cmd,cmdState,stageName,"Failed to take %s Hartmann"%stageName):
             return False
         show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
-    
+
     # cleanup
     stageName = 'cleanup'
     cmdState.setStageState(stageName, 'running')
@@ -1258,7 +1289,7 @@ def collimate_boss(cmd,cmdState,actorState):
     """Warm up arc lamps, take hartmanns and collimate using hartmannActor."""
     ffsInitiallyOpen = SopPrecondition(None).ffsAreOpen()
     finishMsg = "Finished collimating BOSS for afternoon checkout."
-    
+
     show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
     stageName = 'collimate'
     cmdState.setStageState(stageName, "running")
@@ -1275,7 +1306,7 @@ def collimate_boss(cmd,cmdState,actorState):
     multiCmd.append(sopActor.BOSS, Msg.HARTMANN, args="ignoreResiduals noSubFrame")
     if not handle_multiCmd(multiCmd,cmd,cmdState,stageName,"Failed to collimate BOSS for afternoon checkout"):
         return
-        
+
     show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
 
     # cleanup
@@ -1317,6 +1348,10 @@ def main(actor, queues):
 
                 return
 
+            elif msg.type == Msg.GOTO_POSITION:
+                cmd,cmdState,actorState = preprocess_msg(msg)
+                goto_position(cmd, cmdState, actorState)
+
             elif msg.type == Msg.DO_BOSS_CALIBS:
                 cmd,cmdState,actorState = preprocess_msg(msg)
                 do_boss_calibs(cmd, cmdState, actorState)
@@ -1324,7 +1359,7 @@ def main(actor, queues):
             elif msg.type == Msg.DO_BOSS_SCIENCE:
                 cmd,cmdState,actorState = preprocess_msg(msg)
                 do_boss_science(cmd, cmdState, actorState)
-                      
+
             elif msg.type == Msg.DO_APOGEE_EXPOSURES:
                 cmd,cmdState,actorState = preprocess_msg(msg)
                 # Make sure we'd get light!
@@ -1335,7 +1370,7 @@ def main(actor, queues):
             elif msg.type == Msg.DO_MANGA_DITHER:
                 cmd,cmdState,actorState = preprocess_msg(msg)
                 do_manga_dither(cmd, cmdState, actorState)
-            
+
             elif msg.type == Msg.DO_MANGA_SEQUENCE:
                 cmd,cmdState,actorState = preprocess_msg(msg)
                 do_manga_sequence(cmd, cmdState, actorState)
@@ -1343,7 +1378,7 @@ def main(actor, queues):
             elif msg.type == Msg.DO_APOGEEMANGA_DITHER:
                 cmd,cmdState,actorState = preprocess_msg(msg)
                 do_apogeemanga_dither(cmd, cmdState, actorState)
-            
+
             elif msg.type == Msg.DO_APOGEEMANGA_SEQUENCE:
                 cmd,cmdState,actorState = preprocess_msg(msg)
                 do_apogeemanga_sequence(cmd, cmdState, actorState)
@@ -1351,7 +1386,7 @@ def main(actor, queues):
             elif msg.type == Msg.GOTO_FIELD:
                 cmd,cmdState,actorState = preprocess_msg(msg)
                 goto_field(cmd, cmdState, actorState)
-            
+
             elif msg.type == Msg.DO_APOGEE_SKY_FLATS:
                 cmd,cmdState,actorState = preprocess_msg(msg)
                 do_apogee_sky_flats(cmd, cmdState, actorState)
@@ -1377,7 +1412,7 @@ def main(actor, queues):
             elif msg.type == Msg.COLLIMATE_BOSS:
                 cmd,cmdState,actorState = preprocess_msg(msg)
                 collimate_boss(cmd, cmdState, actorState)
-            
+
             elif msg.type == Msg.DITHERED_FLAT:
                 """Take a set of nStep dithered flats, moving the collimator by nTick between exposures"""
 
@@ -1471,4 +1506,3 @@ def main(actor, queues):
             actor.bcast.diag('text="%s alive"' % threadName)
         except Exception, e:
             sopActor.handle_bad_exception(actor,e,threadName,msg)
-

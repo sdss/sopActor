@@ -1,0 +1,7 @@
+[test_goto_60_60_60]
+
+tcc axis status
+
+tcc axis init
+
+tcc track 60.000000, 60.000000 mount/rottype=mount/rotangle=60.000000
