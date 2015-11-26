@@ -527,9 +527,6 @@ class TestGotoPosition(MasterThreadTester):
                        didFail=False, alt=30., az=121., rot=0.):
         """Helper method to launch GotoPosition tests."""
 
-        # Do I need this?
-        # sopTester.updateModel('tcc', TestHelper.tccState['tracking'])
-
         cmdState = self.actorState.gotoPosition
         cmdState.reinitialize(self.cmd)
         cmdState.az = az
@@ -539,7 +536,12 @@ class TestGotoPosition(MasterThreadTester):
         self._check_cmd(nCall, nInfo, nWarn, nErr, finish, didFail)
 
     def test_goto_60_60_60(self):
+        """Goes to az=alt=rot=60 deg."""
         self._goto_position(3, 11, 0, 0, az=60, alt=60, rot=60)
+
+    def test_goto_12_34_56(self):
+        """Goes to "random" position, az=12, alt=34, rot=56 deg."""
+        self._goto_position(3, 11, 0, 0, az=12, alt=34, rot=56)
 
 
 class TestBossScience(MasterThreadTester):
