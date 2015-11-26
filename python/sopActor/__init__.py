@@ -46,6 +46,7 @@ except NameError:
     class TCC(): pass                       # command the TCC
     class APOGEE_SCRIPT(): pass
     class SCRIPT(): pass
+    class SLEW(): pass                      # Slew the telescope.
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

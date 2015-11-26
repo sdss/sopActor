@@ -467,31 +467,6 @@ def deactivate_guider_decenter(cmd, cmdState, actorState, stageName):
         return False
     return True
 
-def apogee_dome_flat(cmd, cmdState, actorState, multiCmd, failMsg="failed to take APOGEE flat"):
-    """
-    Take an APOGEE dome flat: shutter open, FFS closed, FFlamp on very briefly.
-    Doesn't "finish", because it is used in the middle of goto_gang_change;
-    Return True if success, fail the cmd and return False if not.
-    """
-
-    if not is_gang_at_cart(cmd, cmdState, actorState):
-        return False
-
-    prep_apogee_shutter(multiCmd,open=True)
-    multiCmd.append(SopPrecondition(sopActor.FFS, Msg.FFS_MOVE, open=False))
-    multiCmd.append(sopActor.APOGEE_SCRIPT, Msg.POST_FLAT, cmdState=cmdState)
-    if not handle_multiCmd(multiCmd, cmd, cmdState, 'domeFlat', failMsg, finish=True):
-        return False
-
-    # per ticket #2379, we always want to close the APOGEE shuter after dome flats.
-    multiCmd = SopMultiCommand(cmd, actorState.timeout, '')
-    multiCmd.append(sopActor.APOGEE, Msg.APOGEE_SHUTTER, open=False)
-    if not multiCmd.run():
-        cmdState.setStageState('domeFlat', 'failed')
-        return fail_command(cmd, cmdState, ': '.join((failMsg,'error closing apogee shutter')), finish=True)
-
-    return True
-#...
 
 def do_boss_science(cmd, cmdState, actorState):
     """Start a BOSS science sequence."""
@@ -1097,37 +1072,6 @@ def goto_field_boss(cmd, cmdState, actorState, slewTimeout):
 
     # all done, everything succeeded!
     return True
-#...
-
-def goto_position(cmd, cmdState, actorState):
-    """Goes to a certain (az, alt, rot) position."""
-
-    finishMsg = "On position."
-
-    multiCmd = SopMultiCommand(cmd, actorState.timeout + 100,
-                               cmdState.name + ".slew")
-    cmdState.setStageState('slew', 'running')
-
-    # Heading towards the instrument change pos.
-    az = cmdState.az
-    alt = cmdState.alt
-    rot = cmdState.rot
-
-    slewDuration = 60
-    multiCmd = MultiCommand(cmd, slewDuration + actorState.timeout, None)
-
-    # Start with an axis init, in case the axes are not clear.
-    multiCmd.append(SopPrecondition(sopActor.TCC, Msg.AXIS_INIT))
-
-    multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState,
-                    az=az, alt=alt, rot=rot)
-
-    if not handle_multiCmd(multiCmd, cmd, cmdState, 'slew',
-                           'Failed to slew to position az={0}, alt={1}, '
-                           'rot={2}'.format(az, alt, rot)):
-        return
-
-    finish_command(cmd, cmdState, actorState, finishMsg)
 
 
 def goto_field(cmd, cmdState, actorState):
@@ -1175,80 +1119,7 @@ def do_apogee_sky_flats(cmd, cmdState, actorState):
             return
 
     do_apogee_science(cmd, cmdState, actorState, finishMsg="APOGEE Sky Flats finished.")
-#...`
 
-def goto_gang_change(cmd, cmdState, actorState):
-    """
-    Goto gang change position at requested altitude, taking a dome flat on
-    the way if we have an APOGEE cartridge, and the gang is plugged into it.
-    """
-
-    finishMsg = "at gang change position"
-    # Behavior varies depending on where the gang connector is.
-    gangCart = actorState.apogeeGang.atCartridge()
-
-    if cmdState.doDomeFlat:
-        multiCmd = SopMultiCommand(cmd, actorState.timeout + 100,
-                                   cmdState.name+".domeFlat")
-        cmdState.setStageState('domeFlat', 'running')
-        # if the gang connector is at the cartridge, we should do cals.
-        if gangCart and actorState.survey != sopActor.BOSS:
-            cmd.inform('text="scheduling dome flat: %s"' % (actorState.survey))
-            if not apogee_dome_flat(cmd, cmdState, actorState, multiCmd, failMsg="failed to take flat before gang change"):
-                return
-        else:
-            gangAt = actorState.apogeeGang.getPos()
-            cmd.inform('text="Skipping flat with %s and %s"' % (gangAt, actorState.survey))
-            cmdState.setStageState('domeFlat', 'idle')
-
-    if cmdState.doSlew:
-        multiCmd = SopMultiCommand(cmd, actorState.timeout + 100,
-                                   cmdState.name+".slew")
-        cmdState.setStageState('slew', 'running')
-        # Close the FFS, to prevent excess light incase of slews past the moon, etc.
-        multiCmd.append(SopPrecondition(sopActor.FFS, Msg.FFS_MOVE, open=False))
-
-        tccDict = actorState.models["tcc"].keyVarDict
-        if gangCart:
-            # Heading towards the instrument change pos.
-            az = 121
-            alt = cmdState.alt
-            rot = 0
-
-            # Try to move the rotator as far as we can while the altitude is moving.
-            thisAlt = tccDict['axePos'][1]
-            thisRot = tccDict['axePos'][2]
-            dRot = rot-thisRot
-            if dRot != 0:
-                dAlt = alt-thisAlt
-                dAltTime = abs(dAlt) / 1.5 #deg/sec
-                dRotTime = abs(dRot) / 2.0 #deg/sec
-                dCanRot = dRot * min(1.0, dAltTime/dRotTime)
-                rot = thisRot + dCanRot
-        else:
-            # Nod up: going to the commanded altitude, leaving az and rot where they are.
-            az = tccDict['axePos'][0]
-            alt = cmdState.alt
-            rot = tccDict['axePos'][2]
-
-        slewDuration = 60
-        multiCmd = MultiCommand(cmd, slewDuration + actorState.timeout, None)
-
-        # start with an axis init, in case the axes are not clear.
-        multiCmd.append(SopPrecondition(sopActor.TCC, Msg.AXIS_INIT))
-        # if the gang is at the cart, we need to close the apogee shutter during
-        # the slew, no matter which survey is leading.
-        if actorState.apogeeGang.atCartridge():
-            prep_apogee_shutter(multiCmd,open=False)
-            # used to do darks on the way to the field.
-            # multiCmd.append(sopActor.APOGEE_SCRIPT, Msg.APOGEE_PARK_DARKS)
-        multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState, az=az, alt=alt, rot=rot)
-
-        if not handle_multiCmd(multiCmd,cmd,cmdState,"slew","Failed to slew to gang change"):
-            return
-
-    finish_command(cmd,cmdState,actorState,finishMsg)
-#...
 
 def hartmann(cmd, cmdState, actorState):
     """Take two arc exposures with the left then the right Hartmann screens in."""
@@ -1348,10 +1219,6 @@ def main(actor, queues):
 
                 return
 
-            elif msg.type == Msg.GOTO_POSITION:
-                cmd,cmdState,actorState = preprocess_msg(msg)
-                goto_position(cmd, cmdState, actorState)
-
             elif msg.type == Msg.DO_BOSS_CALIBS:
                 cmd,cmdState,actorState = preprocess_msg(msg)
                 do_boss_calibs(cmd, cmdState, actorState)
@@ -1390,20 +1257,6 @@ def main(actor, queues):
             elif msg.type == Msg.DO_APOGEE_SKY_FLATS:
                 cmd,cmdState,actorState = preprocess_msg(msg)
                 do_apogee_sky_flats(cmd, cmdState, actorState)
-
-            elif msg.type == Msg.DO_APOGEE_DOME_FLAT:
-                cmd,cmdState,actorState = preprocess_msg(msg)
-                name = 'apogeeDomeFlat'
-                finishMsg = "Dome flat done."
-                # 50 seconds is the read time for this exposure.
-                multiCmd = MultiCommand(cmd, actorState.timeout + 50, name)
-                # the dome flat command sends a fail msg if it fails.
-                if apogee_dome_flat(cmd, cmdState, actorState, multiCmd):
-                    finish_command(cmd, cmdState, actorState, finishMsg)
-
-            elif msg.type == Msg.GOTO_GANG_CHANGE:
-                cmd,cmdState,actorState = preprocess_msg(msg)
-                goto_gang_change(cmd, cmdState, actorState)
 
             elif msg.type == Msg.HARTMANN:
                 cmd,cmdState,actorState = preprocess_msg(msg)

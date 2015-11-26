@@ -34,6 +34,7 @@ class SopCmdTester(sopTester.SopTester):
         myGlobals.actorState.queues = {}
         myGlobals.actorState.queues[sopActor.MASTER] = Queue('master')
         myGlobals.actorState.queues[sopActor.TCC] = Queue('tcc')
+        myGlobals.actorState.queues[sopActor.SLEW] = Queue('slew')
         self.cmd.verbose = False # don't spam initial loadCart messages
         self.cmd.clear_msgs()
         self.cmd.verbose = self.verbose
@@ -361,7 +362,7 @@ class TestGotoGangChange(SopCmdTester,unittest.TestCase):
         stages = build_active_stages(allStages, expect.get('stages',allStages))
 
         self._update_cart(nCart, survey)
-        queue = myGlobals.actorState.queues[sopActor.MASTER]
+        queue = myGlobals.actorState.queues[sopActor.SLEW]
         msg = self._run_cmd('gotoGangChange %s'%(args),queue)
         self.assertEqual(msg.type,sopActor.Msg.GOTO_GANG_CHANGE)
         self.assertEqual(msg.cmdState.alt,expect.get('alt',45))
@@ -393,7 +394,7 @@ class TestGotoGangChange(SopCmdTester,unittest.TestCase):
 
     def test_gotoGangChange_modify(self):
         """Cannot modify this command, so fail and nothing should change."""
-        queue = myGlobals.actorState.queues[sopActor.MASTER]
+        queue = myGlobals.actorState.queues[sopActor.SLEW]
         # create something we can modify.
         msg = self._run_cmd('gotoGangChange alt=10', queue)
         msgNew = self._run_cmd('gotoGangChange alt=20', queue, empty=True)
@@ -736,7 +737,7 @@ class TestGotoPosition(SopCmdTester, unittest.TestCase):
         allStages = ['slew']
         stages = build_active_stages(allStages, expect.get('stages',
                                                            allStages))
-        queue = myGlobals.actorState.queues[sopActor.MASTER]
+        queue = myGlobals.actorState.queues[sopActor.SLEW]
         msg = self._run_cmd('%s %s' % (cmd, args), queue)
         self.assertEqual(msg.type, sopActor.Msg.GOTO_POSITION)
         self.assertEqual(msg.cmdState.alt, expect.get('alt'))
@@ -1003,7 +1004,7 @@ class TestDoApogeeSkyFlats(SopCmdTester,unittest.TestCase):
 class TestDoApogeeDomeFlat(SopCmdTester,unittest.TestCase):
     def test_doApogeeDomeFlat(self):
         stages = ['domeFlat']
-        queue = myGlobals.actorState.queues[sopActor.MASTER]
+        queue = myGlobals.actorState.queues[sopActor.SLEW]
         msg = self._run_cmd('doApogeeDomeFlat',queue)
         self.assertEqual(msg.type,sopActor.Msg.DO_APOGEE_DOME_FLAT)
         stages = dict(zip(stages,['idle']*len(stages)))
@@ -1015,7 +1016,7 @@ class TestDoApogeeDomeFlat(SopCmdTester,unittest.TestCase):
         self.assertTrue(self.actorState.aborting)
 
     def test_doApogeeDomeFlat_modify(self):
-        queue = myGlobals.actorState.queues[sopActor.MASTER]
+        queue = myGlobals.actorState.queues[sopActor.SLEW]
         # create something we can modify.
         self._run_cmd('doApogeeDomeFlat', queue)
         msgNew = self._run_cmd('doApogeeDomeFlat', queue, empty=True)

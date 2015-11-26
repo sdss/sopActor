@@ -808,7 +808,7 @@ class SopCmd(object):
         activeStages = ['slew']
         cmdState.setupCommand(cmd, activeStages)
 
-        sopState.queues[sopActor.MASTER].put(
+        sopState.queues[sopActor.SLEW].put(
             Msg.GOTO_POSITION, cmd, replyQueue=self.replyQueue,
             actorState=sopState, cmdState=cmdState)
 
@@ -896,8 +896,8 @@ class SopCmd(object):
         if cmdState.doDomeFlat: activeStages.append('domeFlat')
         cmdState.setupCommand(cmd, activeStages)
 
-        sopState.queues[sopActor.MASTER].put(Msg.GOTO_GANG_CHANGE, cmd, replyQueue=self.replyQueue,
-                                             actorState=sopState, cmdState=cmdState)
+        sopState.queues[sopActor.SLEW].put(Msg.GOTO_GANG_CHANGE, cmd, replyQueue=self.replyQueue,
+                                           actorState=sopState, cmdState=cmdState)
 
     def doApogeeDomeFlat(self, cmd):
         """Take an APOGEE dome flat, with FFS closed and FFlamps on."""
@@ -919,9 +919,9 @@ class SopCmd(object):
 
         cmdState.reinitialize(cmd)
 
-        sopState.queues[sopActor.MASTER].put(Msg.DO_APOGEE_DOME_FLAT, cmd, replyQueue=self.replyQueue,
-                                               actorState=sopState, cmdState=cmdState,
-                                               survey=sopState.survey)
+        sopState.queues[sopActor.SLEW].put(Msg.DO_APOGEE_DOME_FLAT, cmd, replyQueue=self.replyQueue,
+                                           actorState=sopState, cmdState=cmdState,
+                                           survey=sopState.survey)
 
     def runScript(self, cmd):
         """ Run the named script from the SOPACTOR_DIR/scripts directory. """
