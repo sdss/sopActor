@@ -150,26 +150,26 @@ class TestGotoGangChange(SlewThreadTester):
         myGlobals.actorState.survey = sopActor.APOGEE
         sopTester.updateModel('mcp', TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee', TestHelper.apogeeState['B_open'])
-        self._goto_gang_change(6, 22, 0, 0)
+        self._goto_gang_change(7, 22, 0, 0)
 
     def test_goto_gang_change_apogee_closed(self):
         """Tests A closed."""
         myGlobals.actorState.survey = sopActor.APOGEE
         sopTester.updateModel('mcp', TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee', TestHelper.apogeeState['A_closed'])
-        self._goto_gang_change(7, 22, 0, 0)
+        self._goto_gang_change(8, 22, 0, 0)
 
     def test_goto_gang_change_apogee_gang_podium(self):
         """Tests B open, all off."""
         myGlobals.actorState.survey = sopActor.APOGEE
         sopTester.updateModel('apogee', TestHelper.apogeeState['B_open'])
         sopTester.updateModel('mcp', TestHelper.mcpState['all_off'])
-        self._goto_gang_change(3, 14, 0, 0)
+        self._goto_gang_change(4, 14, 0, 0)
 
     def test_goto_gang_change_boss(self):
         """Tests BOSS."""
         myGlobals.actorState.survey = sopActor.BOSS
-        self._goto_gang_change(3, 14, 0, 0)
+        self._goto_gang_change(4, 14, 0, 0)
 
     def test_goto_gang_change_apogee_noSlew(self):
         """Tests B open, doSlew False."""
@@ -191,7 +191,7 @@ class TestGotoGangChange(SlewThreadTester):
         cmdState.reinitialize(self.cmd)
         cmdState.doDomeFlat = False
         slewThread.goto_gang_change(self.cmd, cmdState, myGlobals.actorState)
-        self._check_cmd(4, 11, 0, 0, True)
+        self._check_cmd(5, 11, 0, 0, True)
 
     def test_goto_gang_change_apogee_bypass_gangToCart(self):
         """Tests bypass gangToCart.
@@ -204,7 +204,7 @@ class TestGotoGangChange(SlewThreadTester):
         myGlobals.actorState.survey = sopActor.APOGEE
         sopTester.updateModel('mcp', TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee', TestHelper.apogeeState['B_open'])
-        self._goto_gang_change(6, 22, 3, 0)
+        self._goto_gang_change(7, 22, 3, 0)
 
     def test_goto_gang_change_apogee_bypass_gangToPodium(self):
         """Tests bypass gangToPodium.
@@ -216,7 +216,7 @@ class TestGotoGangChange(SlewThreadTester):
         myGlobals.actorState.survey = sopActor.APOGEE
         sopTester.updateModel('mcp', TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee', TestHelper.apogeeState['B_open'])
-        self._goto_gang_change(3, 14, 3, 0)
+        self._goto_gang_change(4, 14, 3, 0)
 
     def test_goto_gang_change_apogee_fails_domeflat(self):
         """Tests shutter open, FFS close, expose -> fail."""
@@ -252,11 +252,11 @@ class TestGotoPosition(SlewThreadTester):
 
     def test_goto_60_60_60(self):
         """Goes to az=alt=rot=60 deg."""
-        self._goto_position(3, 11, 0, 0, az=60, alt=60, rot=60)
+        self._goto_position(4, 11, 0, 0, az=60, alt=60, rot=60)
 
     def test_goto_12_34_56(self):
         """Goes to "random" position, az=12, alt=34, rot=56 deg."""
-        self._goto_position(3, 11, 0, 0, az=12, alt=34, rot=56)
+        self._goto_position(4, 11, 0, 0, az=12, alt=34, rot=56)
 
 
 if __name__ == '__main__':

@@ -57,6 +57,8 @@ def goto_position(cmd, cmdState, actorState):
     multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState,
                     az=az, alt=alt, rot=rot)
 
+    multiCmd.append(sopActor.TCC, Msg.AXIS_STOP, actorState=actorState)
+
     if not master.handle_multiCmd(multiCmd, cmd, cmdState, 'slew',
                                   'Failed to slew to position az={0}, alt={1},'
                                   ' rot={2}'.format(az, alt, rot)):
@@ -186,6 +188,8 @@ def goto_gang_change(cmd, cmdState, actorState, failMsg=None):
 
         multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState,
                         az=az, alt=alt, rot=rot)
+
+        multiCmd.append(sopActor.TCC, Msg.AXIS_STOP, actorState=actorState)
 
         doMultiCmd = master.handle_multiCmd(multiCmd, cmd, cmdState,
                                             'slew',
