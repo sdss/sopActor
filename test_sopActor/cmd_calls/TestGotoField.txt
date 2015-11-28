@@ -134,6 +134,8 @@ tcc axis init
 
 tcc track 0.000000, 0.000000 icrs /rottype=object/rotang=0/rotwrap=mid
 
+[test_goto_field_cartridge_mismatch]
+
 [test_goto_field_boss_hartmann]
 mcp ne.on
 

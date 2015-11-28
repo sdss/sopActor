@@ -1083,6 +1083,17 @@ def goto_field(cmd, cmdState, actorState):
 
     show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand="gotoField")
 
+    # Compares MCP and guider to make sure there is no cart mismatch.
+    models = myGlobals.actorState.models
+    instrumentNum = models['mcp'].keyVarDict['instrumentNum'][0]
+    guiderCartLoaded = models['guider'].keyVarDict['cartridgeLoaded'][0]
+
+    if instrumentNum != guiderCartLoaded:
+        failMsg = ('guider cart is {0} while MCP cart is {1}.'
+                   .format(guiderCartLoaded, instrumentNum))
+        fail_command(cmd, cmdState, failMsg)
+        return
+
     if actorState.survey == sopActor.APOGEE:
         success = goto_field_apogee(cmd, cmdState, actorState, slewTimeout)
     elif actorState.survey == sopActor.BOSS or actorState.survey == sopActor.MANGA:
