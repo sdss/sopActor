@@ -9,3 +9,6 @@ commands for observing tasks like "gotoField", "doBossScience",
 Flowcharts that diagram how the commands work are available in the
 ``operations/general/documentation`` package, and should be updated when one of
 the commands changes.
+
+Configuation (e.g. hosts/ports/logging directories) are found in the ``etc/``
+directory.
