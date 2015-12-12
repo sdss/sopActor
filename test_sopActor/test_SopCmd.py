@@ -87,30 +87,30 @@ class TestBypass(SopCmdTester,unittest.TestCase):
             self.actorState.surveyMode == survey[1]
         self._check_cmd(nCalls,nInfo,nWarn,0,True)
     def test_bypass_isBoss(self):
-        self._bypass_set('isBoss', 58, 3, 1, ['eBOSS',None])
+        self._bypass_set('isBoss', 53, 3, 1, ['eBOSS',None])
     def test_bypass_isApogee(self):
-        self._bypass_set('isApogee', 58, 3, 1, ['APOGEE',None])
+        self._bypass_set('isApogee', 53, 3, 1, ['APOGEE',None])
     def test_bypass_isMangaStare(self):
-        self._bypass_set('isMangaStare', 58, 3, 1, ['MaNGA','MaNGA stare'])
+        self._bypass_set('isMangaStare', 53, 3, 1, ['MaNGA','MaNGA stare'])
     def test_bypass_isMangaDither(self):
-        self._bypass_set('isMangaDither', 58, 3, 1, ['MaNGA','MaNGA dither'])
+        self._bypass_set('isMangaDither', 53, 3, 1, ['MaNGA','MaNGA dither'])
     def test_bypass_isApogeeLead(self):
-        self._bypass_set('isApogeeLead', 58, 3, 1, ['APGOEE-2&MaNGA','APOGEE lead'])
+        self._bypass_set('isApogeeLead', 53, 3, 1, ['APGOEE-2&MaNGA','APOGEE lead'])
     def test_bypass_isApogeeMangaDither(self):
-        self._bypass_set('isApogeeMangaDither', 58, 3, 1, ['APGOEE-2&MaNGA','MaNGA dither'])
+        self._bypass_set('isApogeeMangaDither', 53, 3, 1, ['APGOEE-2&MaNGA','MaNGA dither'])
     def test_bypass_isApogeeMangaStare(self):
-        self._bypass_set('isApogeeMangaStare', 58, 3, 1, ['APGOEE-2&MaNGA','MaNGA stare'])
+        self._bypass_set('isApogeeMangaStare', 53, 3, 1, ['APGOEE-2&MaNGA','MaNGA stare'])
 
     def test_bypass_gangToCart(self):
-        self._bypass_set('gangToCart', 57, 4)
+        self._bypass_set('gangToCart', 52, 4)
     def test_bypass_gangToPodium(self):
-        self._bypass_set('gangToPodium', 57, 4)
+        self._bypass_set('gangToPodium', 52, 4)
 
     def test_bypass_axes(self):
-        self._bypass_set('axes', 57, 1)
+        self._bypass_set('axes', 52, 1)
 
     def test_bypass_slewToField(self):
-        self._bypass_set('slewToField', 57, 1)
+        self._bypass_set('slewToField', 52, 1)
 
     def test_not_bypassable(self):
         self._clear_bypasses()
@@ -312,12 +312,12 @@ class TestStatus(SopCmdTester,unittest.TestCase):
         self._run_cmd('status %s'%args, None)
         self._check_cmd(0,nInfo,0,0,True)
     def test_status(self):
-        self._status(58)
+        self._status(53)
     def test_status_geek(self):
-        self._status(60,args='geek')
+        self._status(55,args='geek')
     def test_status_noFinish(self):
         self.sopCmd.status(self.cmd,finish=False)
-        self._check_cmd(0,58,0,0,False)
+        self._check_cmd(0,53,0,0,False)
 
     def _oneCommand(self, nInfo, oneCommand):
         """
@@ -351,9 +351,9 @@ class TestStatus(SopCmdTester,unittest.TestCase):
     def test_doApogeeMangaSequence(self):
         self._oneCommand(5,'doApogeeMangaSequence')
     def test_gotoStow(self):
-        self._oneCommand(3,'gotoStow')
+        self._oneCommand(1,'gotoStow')
     def test_gotoInstrumentChange(self):
-        self._oneCommand(3,'gotoInstrumentChange')
+        self._oneCommand(1,'gotoInstrumentChange')
 
 
 class TestGotoGangChange(SopCmdTester,unittest.TestCase):
