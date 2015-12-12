@@ -111,7 +111,7 @@ class TestBypass(unittest.TestCase):
     def test_get_bypass_list_empty(self):
         result = self.bypass.get_bypass_list()
         self.assertEqual(result[0], sorted(TestHelper.sopState['ok']['bypassNames']))
-        self.assertEqual(result[1], TestHelper.sopState['ok']['bypassed'])
+        self.assertEqual(result[1], [0]*len(TestHelper.sopState['ok']['bypassNames']))
 
     def test_get_bypass_list_two_set(self):
         isSet = ('axes','gangToPodium', 'lamp_ff')
