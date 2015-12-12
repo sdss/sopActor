@@ -796,8 +796,8 @@ class SopCmd(object):
             return
 
         if self.modifiable(cmd, cmdState):
-            # Modify running gotoGangChange command
-            cmd.fail('text="Cannot modify gotoGangChange."')
+            # Modify running gotoPosition command
+            cmd.fail('text="Cannot modify {0}."'.format(name))
             return
 
         cmdState.reinitialize(cmd, output=False)
