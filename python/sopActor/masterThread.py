@@ -1089,6 +1089,10 @@ def goto_field(cmd, cmdState, actorState):
         success = goto_field_boss(cmd, cmdState, actorState, slewTimeout)
     elif actorState.survey == sopActor.APOGEEMANGA:
         success = goto_field_apogeemanga(cmd, cmdState, actorState, slewTimeout)
+    else:
+        success = False
+        failMsg = "Do not know survey: %s"%actorState.survey
+        fail_command(cmd, cmdState, failMsg)
 
     # if not success: we've already failed the command.
     if success:

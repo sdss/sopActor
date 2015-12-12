@@ -1,6 +1,9 @@
 [test_start_slew]
 # This doesn't send any commands.
 
+[test_goto_field_unknown]
+# This should not send any commands.
+
 [test_goto_field_apogee]
 # Because the axis init happens as a precondition along with the lamp on
 # and is preceeded by axis status, we have to make these a block,

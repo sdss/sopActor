@@ -148,6 +148,13 @@ class TestGotoField(MasterThreadTester):
         self.assertEqual(result.timeout, self.timeout+myGlobals.actorState.timeout)
         self._check_cmd(0,3,0,0,False)
 
+    def test_goto_field_unknown(self):
+        sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
+        cmdState = self.actorState.gotoField
+        self.actorState.survey = sopActor.UNKNOWN
+        masterThread.goto_field(self.cmd,cmdState,myGlobals.actorState)
+        self._check_cmd(0, 3, 0, 0, True, True)
+
     def _goto_feld_apogee(self, nCall, nInfo, nWarn, nErr, cmdState):
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
         masterThread.goto_field_apogee(self.cmd,cmdState,myGlobals.actorState,self.timeout)
