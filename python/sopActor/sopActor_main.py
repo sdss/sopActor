@@ -22,6 +22,7 @@ import ffsThread
 import lampThreads
 import tccThread
 import scriptThread
+import slewThread
 
 from sopActor import *
 from bypass import Bypass
@@ -142,6 +143,7 @@ class Sop(actorcore.Actor.Actor):
                                                  ("wht",     sopActor.WHT_LAMP,  None,          lampThreads.wht_main),
                                                  ("ffs",     sopActor.FFS,       ffsThread,     ffsThread.main),
                                                  ("tcc",     sopActor.TCC,       tccThread,     tccThread.main),
+                                                 ('slew',    sopActor.SLEW,      slewThread,    slewThread.main)
                                                  ]:
             if restartThreads and tname not in restartThreads:
                 continue

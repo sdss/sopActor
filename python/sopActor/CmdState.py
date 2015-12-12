@@ -24,10 +24,10 @@ def getDefaultFlatTime(survey):
 class CmdState(object):
     """
     A class that's intended to hold command state data.
-    
+
     Specify the various sub-stages of the command to allow stage states to be
     output for each of those sub-stages.
-    
+
     When creating a new CmdState subclass, specify keywords with their default values
     for uncomplicated things (e.g. exposure time), and set class variables and define
     getUserKeys to output more complicated things (e.g. nExposures done vs. requested).
@@ -65,11 +65,11 @@ class CmdState(object):
         """Reset all the keywords to their default values."""
         for k, v in self.keywords.iteritems():
             setattr(self, k, v)
-    
+
     def reset_nonkeywords(self):
         """Reset all non-keyword values to their defaults."""
         self.index = 0
-    
+
     def set(self, name, value):
         """Sets self.name == value. if Value is None, use the default value."""
         assert name in self.keywords, qstr("%s is not in keyword list: %s"%(name,str(self.keywords)))
@@ -77,7 +77,7 @@ class CmdState(object):
             setattr(self,name,value)
         else:
             setattr(self,name,self.keywords[name])
-    
+
     def _getCmd(self, cmd=None):
         """Return the best cmd handler available."""
         if cmd:
@@ -85,13 +85,13 @@ class CmdState(object):
         if self.cmd:
             return self.cmd
         return myGlobals.actorState.actor.bcast
-    
+
     def setStages(self, allStages):
         """Set the list of stages that are applicable, and make them idle."""
         self.allStages = allStages
         self.stages = dict(zip(allStages, ["idle"] * len(allStages)))
         self.activeStages = allStages
-    
+
     def reinitialize(self,cmd=None,stages=None,output=True):
         """Re-initialize this cmdState, keeping the stages list as is."""
         self.stateText="OK"
@@ -157,7 +157,7 @@ class CmdState(object):
 
     def getUserKeys(self):
         return []
-    
+
     def genStateKeys(self, cmd=None):
         cmd = self._getCmd(cmd)
 
@@ -180,7 +180,7 @@ class CmdState(object):
 
         if userKeys:
             cmd.inform(";".join(userKeys))
-        
+
     def genKeys(self, cmd=None, trimKeys=False):
         """Output all our keywords."""
         if not trimKeys or trimKeys == self.name:
@@ -268,6 +268,20 @@ class GotoGangChangeCmd(CmdState):
         super(GotoGangChangeCmd,self).abort()
 
 
+class GotoPositionCmd(CmdState):
+    def __init__(self):
+        CmdState.__init__(self, 'gotoPosition', ['slew'],
+                          keywords=dict(alt=30, az=121, rot=0))
+
+    def reset_nonkeywords(self):
+        self.doSlew = True
+
+    def abort(self):
+        self.stop_tcc()
+        self.doSlew = False
+        super(GotoPositionCmd, self).abort()
+
+
 class DoApogeeDomeFlatCmd(CmdState):
     def __init__(self):
         CmdState.__init__(self, 'doApogeeDomeFlat',
@@ -300,7 +314,7 @@ class GotoFieldCmd(CmdState):
                                         flatTime=25,
                                         guiderTime=5.0,
                                         guiderFlatTime=0.5))
-        
+
     def reset_nonkeywords(self):
         self.fakeAz = None
         self.fakeAlt = None
@@ -336,13 +350,13 @@ class DoBossCalibsCmd(CmdState):
                                         flatTime=25.0,
                                         arcTime=4.0,
                                         guiderFlatTime=0.5))
-    
+
     def reset_nonkeywords(self):
         self.nBias = 0; self.nBiasDone = 0;
         self.nDark = 0; self.nDarkDone = 0;
         self.nFlat = 0; self.nFlatDone = 0;
         self.nArc = 0; self.nArcDone = 0;
-    
+
     def exposures_remain(self):
         """Return True if there are any exposures left to be taken."""
         if self.aborted:
@@ -388,7 +402,7 @@ class DoApogeeScienceCmd(CmdState):
         else:
             self.keywords['expTime'] = value
             self.expTime = value
-            
+
     def getUserKeys(self):
         msg = []
         msg.append('%s_index=%d,%d' % (self.name,self.index,self.ditherPairs))
@@ -496,7 +510,7 @@ class DoMangaSequenceCmd(CmdState):
                                         dithers='NSE',
                                         count=3))
         self.reset_ditherSeq()
-        
+
     def reset_nonkeywords(self):
         super(DoMangaSequenceCmd,self).reset_nonkeywords()
 
@@ -519,12 +533,12 @@ class DoMangaSequenceCmd(CmdState):
     def reset_ditherSeq(self):
         """Reset dither sequence based on dithers and count."""
         self.ditherSeq = self.dithers*self.count
-        
+
     def getUserKeys(self):
         msg = []
         msg.append("%s_ditherSeq=%s,%s" % (self.name, self.ditherSeq, self.index))
         return msg
-    
+
     def exposures_remain(self):
         """Return True if there are any exposures left to be taken."""
         if self.aborted:
@@ -621,7 +635,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
         self.mangaExpTime=0
         self.apogeeExpTime=0
         self.reset_ditherSeq()
-    
+
     def set_apogeeLead(self):
         """Setup to use this for APOGEE lead observations."""
         self.keywords=dict(mangaDithers='CC',
@@ -658,12 +672,12 @@ class DoApogeeMangaSequenceCmd(CmdState):
     def reset_nonkeywords(self):
         super(DoApogeeMangaSequenceCmd,self).reset_nonkeywords()
         self.reset_ditherSeq()
-    
+
     def reset_ditherSeq(self):
         """Reset dither sequence based on dithers,count parameters."""
         self.mangaDitherSeq = self.mangaDithers*self.count
         # Note: Two APOGEE exposures are taken for each MaNGA exposure.
-        
+
     def getUserKeys(self):
         msg = []
         msg.append("%s_ditherSeq=%s,%s" % (self.name, self.mangaDitherSeq, self.index))

@@ -34,11 +34,12 @@ class SopCmdTester(sopTester.SopTester):
         myGlobals.actorState.queues = {}
         myGlobals.actorState.queues[sopActor.MASTER] = Queue('master')
         myGlobals.actorState.queues[sopActor.TCC] = Queue('tcc')
+        myGlobals.actorState.queues[sopActor.SLEW] = Queue('slew')
         self.cmd.verbose = False # don't spam initial loadCart messages
         self.cmd.clear_msgs()
         self.cmd.verbose = self.verbose
         self._clear_bypasses()
-    
+
     def _pre_command(self, command, queue):
         """Run a text command in advance, without being verbose and clearing any messages."""
         self.cmd.verbose = False
@@ -55,7 +56,7 @@ class SopCmdTester(sopTester.SopTester):
         actorState.threads[tid] = threading.Thread(target=sopTester.FakeThread, name=tname, args=[actorState.actor,actorState.queues])
         actorState.threads[tid].daemon = True
         actorState.threads[tid].start()
-    
+
     def _stop_thread(self, queue, tid):
         """Stop thread tid associated with queue, and cleanup."""
         queue.put(sopActor.Msg(sopActor.Msg.EXIT, self.cmd))
@@ -142,7 +143,7 @@ class TestClassifyCartridge(SopCmdTester,unittest.TestCase):
         self.assertEqual(sopState.survey,expect[0])
         self.assertEqual(sopState.surveyMode,expect[1])
         self.assertEqual(sopState.surveyText,expect[2])
-    
+
     def test_classifyCartridge_bad(self):
         expect = [sopActor.UNKNOWN,None, ['UNKNOWN','None']]
         self._classifyCartridge(-1,'unknown',None,expect)
@@ -361,14 +362,14 @@ class TestGotoGangChange(SopCmdTester,unittest.TestCase):
         stages = build_active_stages(allStages, expect.get('stages',allStages))
 
         self._update_cart(nCart, survey)
-        queue = myGlobals.actorState.queues[sopActor.MASTER]
+        queue = myGlobals.actorState.queues[sopActor.SLEW]
         msg = self._run_cmd('gotoGangChange %s'%(args),queue)
         self.assertEqual(msg.type,sopActor.Msg.GOTO_GANG_CHANGE)
         self.assertEqual(msg.cmdState.alt,expect.get('alt',45))
         self.assertEqual(msg.cmdState.stages,stages)
         self.assertEqual(msg.cmdState.doSlew,expect.get('doSlew',True))
         self.assertEqual(msg.cmdState.doDomeFlat,expect.get('doDomeFlat',True))
-    
+
     def test_gotoGangChange_ok(self):
         sopTester.updateModel('guider',TestHelper.guiderState['apogeeLoaded'])
         expect = {'stages':['domeFlat', 'slew'],'alt':15}
@@ -393,7 +394,7 @@ class TestGotoGangChange(SopCmdTester,unittest.TestCase):
 
     def test_gotoGangChange_modify(self):
         """Cannot modify this command, so fail and nothing should change."""
-        queue = myGlobals.actorState.queues[sopActor.MASTER]
+        queue = myGlobals.actorState.queues[sopActor.SLEW]
         # create something we can modify.
         msg = self._run_cmd('gotoGangChange alt=10', queue)
         msgNew = self._run_cmd('gotoGangChange alt=20', queue, empty=True)
@@ -461,7 +462,7 @@ class TestDoMangaSequence(SopCmdTester,unittest.TestCase):
         self._check_levels(*cmd_levels)
         self.assertEqual(msg.cmdState.stages,stages)
         self.assertEqual(msg.cmdState.ditherSeq,expect['ditherSeq'])
-    
+
     def test_doMangaSequence_default(self):
         expect = {'expTime':900,
                   'ditherSeq':'NSE'*3}
@@ -647,7 +648,7 @@ class TestGotoField(SopCmdTester,unittest.TestCase):
         self.assertEqual(msg.cmdState.didFlat,expect.get('didFlat',False))
         self.assertEqual(msg.cmdState.doGuiderFlat,expect.get('doGuiderFlat',True))
         self.assertEqual(msg.cmdState.doGuider,expect.get('doGuider',True))
-    
+
     def test_gotoField_boss_default(self):
         stages = ['slew','hartmann','calibs','guider','cleanup']
         expect = {'ra':10,'dec':20}
@@ -729,36 +730,40 @@ class TestGotoField(SopCmdTester,unittest.TestCase):
         self.assertEqual(msg.cmdState.doCalibs, False)
 
 
-class TestGotoPosition(SopCmdTester,unittest.TestCase):
-    """
-    goto stow and instrumentChange are funny, because they all happen inside SopCmd.
-    To deal with this, we have to fake the tcc thread, and check the issued commands.
-    """
-    def _gotoPosition(self, cmdStr, az, alt, rot):
-        queue = myGlobals.actorState.queues[sopActor.TCC]
-        self._start_thread(queue, sopActor.TCC, 'tcc')
-        self.cmd.rawCmd = cmdStr
-        self.actor.runActorCmd(self.cmd)
-        cmds = ['tcc sopActor.AXIS_INIT',
-                'tcc sopActor.SLEW alt={0} az={1} rot={2}',
-                'tcc sopActor.AXIS_STOP']
-        cmds[1] = cmds[1].format(alt,az,rot)
-        self.test_calls = [cmds,] # remember: test_calls is a nested list.
-        self._check_cmd(3,9,0,0,True)
-        self._stop_thread(queue, sopActor.TCC)
+class TestGotoPosition(SopCmdTester, unittest.TestCase):
+    """Tests various commands that use gotoPosition."""
+
+    def _gotoPosition(self, cmd, args, expect):
+        allStages = ['slew']
+        stages = build_active_stages(allStages, expect.get('stages',
+                                                           allStages))
+        queue = myGlobals.actorState.queues[sopActor.SLEW]
+        msg = self._run_cmd('%s %s' % (cmd, args), queue)
+        self.assertEqual(msg.type, sopActor.Msg.GOTO_POSITION)
+        self.assertEqual(msg.cmdState.alt, expect.get('alt'))
+        self.assertEqual(msg.cmdState.az, expect.get('az'))
+        self.assertEqual(msg.cmdState.rot, expect.get('rot'))
+        self.assertEqual(msg.cmdState.stages, stages)
+
+    def test_gotoAll60(self):
+        expect = {'stages': ['slew'], 'alt': 60, 'rot': 60, 'az': 60}
+        cmd = 'gotoAll60'
+        self._gotoPosition(cmd, '', expect)
 
     def test_gotoInstrumentChange(self):
-        sopTester.updateModel('tcc', TestHelper.tccState['tracking'])
-        self._gotoPosition('gotoInstrumentChange', 121, 90, 0)
+        expect = {'stages': ['slew'], 'alt': 90, 'rot': 0, 'az': 121}
+        cmd = 'gotoInstrumentChange'
+        self._gotoPosition(cmd, '', expect)
+
     def test_gotoStow(self):
-        sopTester.updateModel('tcc', TestHelper.tccState['tracking'])
-        self._gotoPosition('gotoStow', 121, 30, 0)
-    def test_goto606060(self):
-        sopTester.updateModel('tcc', TestHelper.tccState['tracking'])
-        self._gotoPosition('gotoAll60', 60, 60, 60)
-    def test_goto12160(self):
-        sopTester.updateModel('tcc', TestHelper.tccState['tracking'])
-        self._gotoPosition('gotoStow60', 121, 60, 0)
+        expect = {'stages': ['slew'], 'alt': 30, 'rot': 0, 'az': 121}
+        cmd = 'gotoStow'
+        self._gotoPosition(cmd, '', expect)
+
+    def test_gotoStow60(self):
+        expect = {'stages': ['slew'], 'alt': 60, 'rot': 00, 'az': 121}
+        cmd = 'gotoStow60'
+        self._gotoPosition(cmd, '', expect)
 
 
 class TestDoBossScience(SopCmdTester,unittest.TestCase):
@@ -825,7 +830,7 @@ class TestDoBossCalibs(SopCmdTester,unittest.TestCase):
         self.assertEqual(msg.cmdState.nDark,expect.get('nDark',0))
         self.assertEqual(msg.cmdState.nFlat,expect.get('nFlat',0))
         self.assertEqual(msg.cmdState.nArc,expect.get('nArc',0))
-    
+
     def test_doBossCalibs_bias(self):
         stages = ['bias','cleanup']
         expect = {'nBias':2}
@@ -894,12 +899,12 @@ class TestHartmann(SopCmdTester,unittest.TestCase):
         stages = dict(zip(stages,['idle']*len(stages)))
         self.assertEqual(msg.cmdState.stages,stages)
         self.assertEqual(msg.cmdState.expTime,expect['expTime'])
-    
+
     def test_hartmann_default(self):
         stages = ['left','right','cleanup']
         expect = {'expTime':4}
         self._hartmann(expect,stages,'')
-    
+
     def test_hartmann_expTime5(self):
         stages = ['left','right','cleanup']
         expect = {'expTime':5}
@@ -999,7 +1004,7 @@ class TestDoApogeeSkyFlats(SopCmdTester,unittest.TestCase):
 class TestDoApogeeDomeFlat(SopCmdTester,unittest.TestCase):
     def test_doApogeeDomeFlat(self):
         stages = ['domeFlat']
-        queue = myGlobals.actorState.queues[sopActor.MASTER]
+        queue = myGlobals.actorState.queues[sopActor.SLEW]
         msg = self._run_cmd('doApogeeDomeFlat',queue)
         self.assertEqual(msg.type,sopActor.Msg.DO_APOGEE_DOME_FLAT)
         stages = dict(zip(stages,['idle']*len(stages)))
@@ -1011,7 +1016,7 @@ class TestDoApogeeDomeFlat(SopCmdTester,unittest.TestCase):
         self.assertTrue(self.actorState.aborting)
 
     def test_doApogeeDomeFlat_modify(self):
-        queue = myGlobals.actorState.queues[sopActor.MASTER]
+        queue = myGlobals.actorState.queues[sopActor.SLEW]
         # create something we can modify.
         self._run_cmd('doApogeeDomeFlat', queue)
         msgNew = self._run_cmd('doApogeeDomeFlat', queue, empty=True)
@@ -1083,7 +1088,7 @@ class TestIsSlewingDisabled(SopCmdTester,unittest.TestCase):
 
 if __name__ == '__main__':
     verbosity = 2
-    
+
     suite = None
     # to test just one piece
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoGangChange)

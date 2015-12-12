@@ -24,7 +24,7 @@ except NameError:
     class APOGEEMANGA(): pass
     class ECAMERA(): pass
     class UNKNOWN(): pass
-    
+
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
 # Queue names; use classes so that the unique IDs are automatically generated
@@ -46,6 +46,7 @@ except NameError:
     class TCC(): pass                       # command the TCC
     class APOGEE_SCRIPT(): pass
     class SCRIPT(): pass
+    class SLEW(): pass                      # Slew the telescope.
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -75,6 +76,7 @@ except NameError:
         class DO_APOGEE_DOME_FLAT(): pass
         class MANGA_DITHER(): pass
         class GOTO_GANG_CHANGE(): pass
+        class GOTO_POSITION(): pass
         class DONE(): pass
         class EXIT(): pass
         class ENABLE(): pass
@@ -143,7 +145,7 @@ class Queue(_Queue.PriorityQueue):
         Put  messaage onto the queue, calling the superclass's put method
         Expects a Msg, otherwise tries to construct a Msg from its arguments
         """
-        
+
         if isinstance(arg0, Msg):
             msg = arg0
         else:
@@ -157,7 +159,7 @@ class Queue(_Queue.PriorityQueue):
 
     def flush(self):
         """flush the queue"""
-    
+
         while True:
             try:
                 msg = self.get(timeout=0)
