@@ -322,6 +322,22 @@ class TestGotoField(MasterThreadTester):
         cmdState.reinitialize(self.cmd)
         self._goto_field_apogeemanga(26,106,0,0,cmdState)
 
+    def test_goto_field_cartridge_mismatch(self):
+        """Tests gotoField if there is a mismatch between MCP and guider."""
+
+        sopTester.updateModel('guider', TestHelper.guiderState['bossLoaded'])
+
+        mcpState = TestHelper.mcpState['boss_science']
+        mcpState.update({'instrumentNum': [15]})
+        sopTester.updateModel('mcp', mcpState)
+
+        cmdState = self.actorState.gotoField
+        cmdState.reinitialize(self.cmd)
+
+        masterThread.goto_field(self.cmd, cmdState, myGlobals.actorState)
+        self._check_cmd(0, 13, 0, 0, finish=True, didFail=True)
+
+
 class TestApogeeSkyFlats(MasterThreadTester):
     """do_apogee_sky_flats tests"""
     def _do_apogee_sky_flats(self,nCall,nInfo,nWarn,nErr, didFail=False):
