@@ -778,7 +778,7 @@ class SopCmd(object):
         sopState.queues[sopActor.MASTER].put(Msg.GOTO_FIELD, cmd, replyQueue=self.replyQueue,
                                              actorState=sopState, cmdState=cmdState)
 
-    def gotoPosition(self, cmd, name, cmdState, az, alt, rot):
+    def gotoPosition(self, cmd, name, az, alt, rot):
         """Goto a specified alt/az/[rot] position, named 'name'."""
 
         sopState = myGlobals.actorState
@@ -788,7 +788,7 @@ class SopCmd(object):
         blocked = self.isSlewingDisabled(cmd)
         if blocked:
             cmd.fail('text=%s' %
-                     (qstr('will not go to position: {0}' % (blocked))))
+                     (qstr('will not {0}: {1}'.format(name, blocked))))
             return
 
         if 'stop' in keywords or 'abort' in keywords:
@@ -815,54 +815,22 @@ class SopCmd(object):
     def gotoInstrumentChange(self, cmd):
         """Go to the instrument change position: alt=90 az=121 rot=0"""
 
-        sopState = myGlobals.actorState
-
-        blocked = self.isSlewingDisabled(cmd)
-        if blocked:
-            cmd.fail('text=%s' % (qstr('will not go to instrument change (121,90): %s' % (blocked))))
-            return
-
-        sopState.gotoInstrumentChange.reinitialize(cmd)
-        self.gotoPosition(cmd, "instrument change", sopState.gotoInstrumentChange, 121, 90, 0)
+        self.gotoPosition(cmd, "instrument change", 121, 90, 0)
 
     def gotoStow(self, cmd):
         """Go to the stow position: alt=30, az=121, rot=0"""
 
-        sopState = myGlobals.actorState
-
-        blocked = self.isSlewingDisabled(cmd)
-        if blocked:
-            cmd.fail('text=%s' % (qstr('will not go to stow (121,30) position: %s' % (blocked))))
-            return
-
-        sopState.gotoStow.reinitialize(cmd)
-        self.gotoPosition(cmd, "stow", sopState.gotoStow, 121, 30, 0)
+        self.gotoPosition(cmd, "stow", 121, 30, 0)
 
     def gotoAll60(self, cmd):
         """Go to the startup check position: alt=60, az=60, rot=60"""
 
-        sopState = myGlobals.actorState
-
-        blocked = self.isSlewingDisabled(cmd)
-        if blocked:
-            cmd.fail('text=%s' % (qstr('will not go to all sixty (60,60,60) position: %s' % (blocked))))
-            return
-
-        sopState.gotoAll60.reinitialize(cmd)
-        self.gotoPosition(cmd, "stow", sopState.gotoAll60, 60, 60, 60)
+        self.gotoPosition(cmd, "stow", 60, 60, 60)
 
     def gotoStow60(self, cmd):
         """Go to the resting position: alt=60, az=121, rot=0"""
 
-        sopState = myGlobals.actorState
-
-        blocked = self.isSlewingDisabled(cmd)
-        if blocked:
-            cmd.fail('text=%s' % (qstr('will not go to stow-60 (121,60) position: %s' % (blocked))))
-            return
-
-        sopState.gotoStow60.reinitialize(cmd)
-        self.gotoPosition(cmd, "stow", sopState.gotoStow60, 121, 60, 0)
+        self.gotoPosition(cmd, "stow", 121, 60, 0)
 
     def gotoGangChange(self, cmd):
         """Go to the gang connector change position"""
@@ -1101,11 +1069,6 @@ class SopCmd(object):
         sopState.doApogeeDomeFlat = CmdState.DoApogeeDomeFlatCmd()
         sopState.hartmann = CmdState.HartmannCmd()
         sopState.collimateBoss = CmdState.CollimateBossCmd()
-
-        sopState.gotoInstrumentChange = CmdState.CmdState('gotoInstrumentChange',["slew"])
-        sopState.gotoStow = CmdState.CmdState('gotoStow',["slew"])
-        sopState.gotoAll60 = CmdState.CmdState('gotoAll60',["slew"])
-        sopState.gotoStow60 = CmdState.CmdState('gotoStow60',["slew"])
 
         self.updateCartridge(-1,'None','None')
         sopState.guiderState.setLoadedNewCartridgeCallback(self.updateCartridge)
