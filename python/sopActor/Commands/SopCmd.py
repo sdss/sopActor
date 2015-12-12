@@ -1022,12 +1022,7 @@ class SopCmd(object):
         sopState.doApogeeDomeFlat.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.hartmann.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.collimateBoss.genKeys(cmd=cmd, trimKeys=oneCommand)
-
-        # commands with no state
-        sopState.gotoStow.genKeys(cmd=cmd, trimKeys=oneCommand)
-        sopState.gotoInstrumentChange.genKeys(cmd=cmd, trimKeys=oneCommand)
-        sopState.gotoAll60.genKeys(cmd=cmd, trimKeys=oneCommand)
-        sopState.gotoStow60.genKeys(cmd=cmd, trimKeys=oneCommand)
+        sopState.gotoPosition.genKeys(cmd=cmd, trimKeys=oneCommand)
 
         # TBD: threads arg is only used with "geek" option, apparently?
         # TBD: I guess its useful for live debugging of the threads.
