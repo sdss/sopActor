@@ -1106,7 +1106,8 @@ class SopCmd(object):
             sopState.gotoField.setStages(['slew', 'hartmann', 'calibs', 'guider', 'cleanup'])
             sopState.validCommands += ['doBossCalibs', 'doBossScience',]
         elif survey is sopActor.APOGEE:
-            self.update_apogee_design(sopState)
+            apogeeDesign = self.update_apogee_design(sopState)
+            sopState.doApogeeScience.set_apogee_expTime(apogeeDesign[1])
             sopState.gotoField.setStages(['slew', 'guider', 'cleanup'])
             sopState.validCommands += ['doApogeeScience', 'doApogeeSkyFlats',
                                       'gotoGangChange', 'doApogeeDomeFlat']
@@ -1124,8 +1125,11 @@ class SopCmd(object):
                                       'doApogeeMangaDither','doApogeeMangaSequence',
                                       'doApogeeSkyFlats', 'gotoGangChange', 'doApogeeDomeFlat']
             if surveyMode is sopActor.APOGEELEAD:
-                sopState.doApogeeMangaDither.set_apogeeLead()
-                sopState.doApogeeMangaSequence.set_apogeeLead()
+                apogeeDesign = self.update_apogee_design(sopState)
+                sopState.doApogeeMangaDither.set_apogeeLead(
+                    apogeeExpTime=apogeeDesign[1])
+                sopState.doApogeeMangaSequence.set_apogeeLead(
+                    apogeeExpTime=apogeeDesign[1])
             if surveyMode is sopActor.MANGADITHER:
                 sopState.doApogeeMangaDither.set_manga()
                 sopState.doApogeeMangaSequence.set_mangaDither()
@@ -1140,8 +1144,8 @@ class SopCmd(object):
 
     def update_apogee_design(self,sopState):
         """Update the APOGEE design parameters, including expTime, from the platedb keyword."""
-        apogeeDesign = sopState.models['platedb'].keyVarDict['apogeeDesign']
-        sopState.doApogeeScience.set_apogee_expTime(apogeeDesign[1])
+
+        return sopState.models['platedb'].keyVarDict['apogeeDesign']
 
     def classifyCartridge(self, cmd, cartridge, plateType, surveyMode):
         """

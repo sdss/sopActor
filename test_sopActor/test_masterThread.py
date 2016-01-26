@@ -543,11 +543,13 @@ class TestMangaScience(MasterThreadTester):
 
 
 class TestApogeeMangaScience(MasterThreadTester):
-    def _do_one_apogeemanga_dither(self, nCall, nInfo, nWarn, nErr, mangaDither):
+    def _do_one_apogeemanga_dither(self, nCall, nInfo, nWarn, nErr, mangaDither,
+                                   apogee_long=False):
         self._update_cart(1, 'APOGEE&MaNGA')
         cmdState = self.actorState.doApogeeMangaDither
         cmdState.reinitialize(self.cmd)
         cmdState.mangaDither = mangaDither
+        cmdState.apogee_long = apogee_long
         masterThread.do_one_apogeemanga_dither(self.cmd, cmdState, myGlobals.actorState)
         self._check_cmd(nCall,nInfo,nWarn,nErr,False)
     def test_do_one_apogeemanga_dither_at_BC(self):
@@ -566,11 +568,16 @@ class TestApogeeMangaScience(MasterThreadTester):
         mangaDither = 'C'
         self._do_one_apogeemanga_dither(5,18,0,0, mangaDither)
 
-    def _do_apogeemanga_dither(self, nCall, nInfo, nWarn, nErr, mangaDither, didFail=False, surveyMode='MaNGA dither'):
+    def _do_apogeemanga_dither(self, nCall, nInfo, nWarn, nErr, mangaDither,
+                               didFail=False, surveyMode='MaNGA dither',
+                               apogee_long=False):
         self._update_cart(1, 'APOGEE&MaNGA', surveyMode=surveyMode)
         cmdState = self.actorState.doApogeeMangaDither
         cmdState.reinitialize(self.cmd)
         cmdState.mangaDither = mangaDither
+        cmdState.apogee_long = apogee_long
+        if surveyMode == 'APOGEE lead' and apogee_long:
+            cmdState.set_apogeeLead(apogeeExpTime=1000.)
         masterThread.do_apogeemanga_dither(self.cmd, cmdState, myGlobals.actorState)
         self._check_cmd(nCall,nInfo,nWarn,nErr,finish=True,didFail=didFail)
     def test_do_apogeemanga_dither_at_BC(self):
@@ -587,6 +594,8 @@ class TestApogeeMangaScience(MasterThreadTester):
         """See ticket #2107 for the bug that this tickles."""
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
+        sopTester.updateModel('platedb',
+                              TestHelper.platedbState['apgoeemangaDither'])
         self._update_cart(1, 'APOGEE&MaNGA', 'MaNGA dither')
         mangaDither = 'N'
         cmdState = self.actorState.doApogeeMangaSequence
@@ -600,6 +609,12 @@ class TestApogeeMangaScience(MasterThreadTester):
         self.cmd.verbose = self.verbose
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         self._do_apogeemanga_dither(7,36,0,0, mangaDither)
+    def test_do_apogeemanga_dither_apogee_lead_long_exposure(self):
+        sopTester.updateModel('mcp', TestHelper.mcpState['apogee_science'])
+        sopTester.updateModel('apogee', TestHelper.apogeeState['B_open'])
+        mangaDither = 'C'
+        self._do_apogeemanga_dither(7, 36, 0, 0, mangaDither,
+                                    surveyMode='APOGEE lead', apogee_long=True)
 
     def test_do_apogeemanga_dither_guider_dither_fails(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
@@ -608,26 +623,46 @@ class TestApogeeMangaScience(MasterThreadTester):
         mangaDither = 'N'
         self._do_apogeemanga_dither(3,21,0,1, mangaDither, didFail=True)
 
+    def test_do_apogeemanga_dither_fails_long_exposure(self):
+        sopTester.updateModel('mcp', TestHelper.mcpState['apogee_science'])
+        sopTester.updateModel('apogee', TestHelper.apogeeState['B_open'])
+        self.cmd.failOn = 'boss exposure science itime=900'
+        self.cmd.failOnCount = 2
+        mangaDither = 'C'
+        self._do_apogeemanga_dither(7, 28, 0, 1, mangaDither, didFail=True,
+                                    apogee_long=True, surveyMode='APOGEE lead')
+
 
     def _do_apogeemanga_sequence(self,nCall,nInfo,nWarn,nErr, mangaDithers,
-                                  count, didFail=False, surveyMode='MaNGA dither'):
+                                  count, didFail=False, surveyMode='MaNGA dither',
+                                  apogee_long=False):
         self._update_cart(1, 'APOGEE&MaNGA', surveyMode)
         cmdState = self.actorState.doApogeeMangaSequence
         cmdState.reinitialize(self.cmd)
         cmdState.count = count
         cmdState.mangaDithers = mangaDithers
         cmdState.reset_ditherSeq()
+
+        # Takes care of APOGEE long exposures
+        cmdState.apogee_long = apogee_long
+        if surveyMode == 'APOGEE lead' and apogee_long:
+            cmdState.set_apogeeLead(apogeeExpTime=1000.)
+
         masterThread.do_apogeemanga_sequence(self.cmd, cmdState, myGlobals.actorState)
         self._check_cmd(nCall,nInfo,nWarn,nErr,True,didFail=didFail)
     def test_do_apogeemanga_sequence_count_1(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
+        sopTester.updateModel('platedb',
+                              TestHelper.platedbState['apgoeemangaDither'])
         mangaDithers = 'NSE'
         count = 1
         self._do_apogeemanga_sequence(20,101,0,0, mangaDithers, count)
     def test_do_apogeemanga_sequence_count_2_shutter_closed_at_A(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['A_closed'])
+        sopTester.updateModel('platedb',
+                              TestHelper.platedbState['apgoeemangaDither'])
         mangaDithers = 'NSE'
         count = 2
         self._do_apogeemanga_sequence(39,179,0,0, mangaDithers, count)
@@ -637,12 +672,23 @@ class TestApogeeMangaScience(MasterThreadTester):
         mangaDithers = 'NSE'
         count = 1
         self._do_apogeemanga_sequence(0,6,0,0, mangaDithers, count, didFail=True)
-    def test_do_apogeemanga_sequence_apogee_lead_count1(self):
+    def test_do_apogeemanga_sequence_apogee_lead_count1_CC(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
+        sopTester.updateModel('platedb',
+                              TestHelper.platedbState['apgoeemangaDither'])
         mangaDithers = 'CC'
         count = 1
         self._do_apogeemanga_sequence(10,65,0,0, mangaDithers, count, surveyMode='APOGEE lead')
+
+    def test_do_apogeemanga_sequence_apogee_lead_count1_CC_long_exposure(self):
+        sopTester.updateModel('mcp', TestHelper.mcpState['apogee_science'])
+        sopTester.updateModel('apogee', TestHelper.apogeeState['B_open'])
+        mangaDithers = 'CC'
+        count = 1
+        self._do_apogeemanga_sequence(7, 45, 0, 0, mangaDithers, count,
+                                      surveyMode='APOGEE lead',
+                                      apogee_long=True)
 
 
 class TestBossCalibs(MasterThreadTester):

@@ -49,9 +49,31 @@ apogee expose time=450.0 object=object
 
 guider decenter off
 
+[test_do_apogeemanga_dither_apogee_lead_long_exposure]
+guider decenter on
+
+apogee expose time=1000.0 object=object
+boss exposure science itime=900
+apogee dither namedpos=A
+apogee expose time=1000.0 object=object
+boss exposure science itime=900
+
+guider decenter off
+
 [test_do_apogeemanga_dither_guider_dither_fails]
 guider decenter on
 guider mangaDither ditherPos=N
+
+guider decenter off
+
+[test_do_apogeemanga_dither_fails_long_exposure]
+guider decenter on
+
+apogee expose time=1000.0 object=object
+boss exposure science itime=900
+apogee dither namedpos=A
+apogee expose time=1000.0 object=object
+boss exposure science itime=900
 
 guider decenter off
 
@@ -138,7 +160,7 @@ guider decenter off
 
 [test_do_apogeemanga_sequence_gang_podium]
 
-[test_do_apogeemanga_sequence_apogee_lead_count1]
+[test_do_apogeemanga_sequence_apogee_lead_count1_CC]
 guider decenter on
 
 apogee expose time=500.0 object=object
@@ -153,4 +175,13 @@ apogee expose time=500.0 object=object
 
 guider decenter off
 
+[test_do_apogeemanga_sequence_apogee_lead_count1_CC_long_exposure]
+guider decenter on
 
+apogee expose time=1000.0 object=object
+boss exposure science itime=900
+apogee dither namedpos=A
+apogee expose time=1000.0 object=object
+boss exposure science itime=900
+
+guider decenter off

@@ -589,15 +589,24 @@ class DoApogeeMangaDitherCmd(CmdState):
                                         mangaDither='C',
                                         comment=''))
 
+        self.apogee_long = False
+
     def reset_nonkeywords(self):
         self.readout = True
 
-    def set_apogeeLead(self):
+    def set_apogeeLead(self, apogeeExpTime=None):
         """Setup to use this for APOGEE lead observations."""
         self.keywords=dict(mangaDither='C',
                            comment='')
+
+        self.mangaDither = 'C'
         self.mangaExpTime=900.0
-        self.apogeeExpTime=500.0
+
+        if apogeeExpTime is None or apogeeExpTime <= 500:
+            self.apogeeExpTime = 500.
+        else:
+            self.apogee_long = True
+            self.apogeeExpTime = 1000.
 
     def set_manga(self):
         """Setup to use this for MaNGA (stare or dither) observations."""
@@ -634,15 +643,25 @@ class DoApogeeMangaSequenceCmd(CmdState):
                                         comment=''))
         self.mangaExpTime=0
         self.apogeeExpTime=0
+        self.apogee_long = False
         self.reset_ditherSeq()
 
-    def set_apogeeLead(self):
+    def set_apogeeLead(self, apogeeExpTime=None):
         """Setup to use this for APOGEE lead observations."""
         self.keywords=dict(mangaDithers='CC',
                            count=2,
                            comment='')
+
+        self.mangaDithers = 'CC'
+        self.count = 2
         self.mangaExpTime=900.0
-        self.apogeeExpTime=500.0
+
+        if apogeeExpTime is None or apogeeExpTime <= 500:
+            self.apogeeExpTime = 500.
+        else:
+            self.apogee_long = True
+            self.apogeeExpTime = 1000.
+
         self.readout = True
         if not (self.cmd and self.cmd.isAlive()):
             self.reset_ditherSeq()
@@ -688,6 +707,8 @@ class DoApogeeMangaSequenceCmd(CmdState):
         """Return True if there are any exposures left to be taken."""
         if self.aborted:
             return False
+        elif self.apogee_long:
+            return self.index < len(self.mangaDitherSeq) / 2
         else:
             return self.index < len(self.mangaDitherSeq)
 

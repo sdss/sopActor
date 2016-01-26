@@ -179,18 +179,21 @@ class TestClassifyCartridge(SopCmdTester,unittest.TestCase):
         self._classifyCartridge(2,'MaNGA','MaNGA stare',expect)
     def test_classifyCartridge_apogee_lead(self):
         sopTester.updateModel('guider',TestHelper.guiderState['apogeeLeadLoaded'])
+        sopTester.updateModel('platedb',TestHelper.platedbState['apogeeLead'])
         expect = [sopActor.APOGEEMANGA,sopActor.APOGEELEAD, ['APOGEE-2&MaNGA','APOGEE lead']]
         self._classifyCartridge(3,'APOGEE-2&MaNGA','APOGEE lead',expect)
         expect = [sopActor.APOGEEMANGA,sopActor.APOGEELEAD, ['APOGEE&MaNGA','APOGEE lead']]
         self._classifyCartridge(3,'APOGEE&MaNGA','APOGEE lead',expect)
     def test_classifyCartridge_apogeemanga_dither(self):
         sopTester.updateModel('guider',TestHelper.guiderState['apogeemangaDitherLoaded'])
+        sopTester.updateModel('platedb',TestHelper.platedbState['apgoeemangaDither'])
         expect = [sopActor.APOGEEMANGA,sopActor.MANGADITHER, ['APOGEE-2&MaNGA','MaNGA dither']]
         self._classifyCartridge(3,'APOGEE-2&MaNGA','MaNGA dither',expect)
         expect = [sopActor.APOGEEMANGA,sopActor.MANGADITHER, ['APOGEE&MaNGA','MaNGA dither']]
         self._classifyCartridge(3,'APOGEE&MaNGA','MaNGA dither',expect)
     def test_classifyCartridge_apogeemanga_stare(self):
         sopTester.updateModel('guider',TestHelper.guiderState['apogeemangaStareLoaded'])
+        sopTester.updateModel('platedb',TestHelper.platedbState['apgoeemangaStare'])
         expect = [sopActor.APOGEEMANGA,sopActor.MANGASTARE, ['APOGEE-2&MaNGA','MaNGA stare']]
         self._classifyCartridge(3,'APOGEE-2&MaNGA','MaNGA stare',expect)
         expect = [sopActor.APOGEEMANGA,sopActor.MANGASTARE, ['APOGEE&MaNGA','MaNGA stare']]
@@ -281,8 +284,44 @@ class TestUpdateCartridge(SopCmdTester,unittest.TestCase):
         self._updateCartridge(1,'APOGEE-2','None',expected)
         self.assertEqual(self.actorState.doApogeeScience.expTime,1000)
 
+    def test_updateCartridge_apogeemanga_long(self):
+        sopTester.updateModel(
+            'guider', TestHelper.guiderState['apogeeLeadLoaded'])
+        sopTester.updateModel(
+            'platedb', TestHelper.platedbState['apogeeLead1000s'])
+
+        expected = {}
+        expected['surveyCommands'] = \
+            TestHelper.sopApogeeMangaCommands['surveyCommands']
+
+        self._updateCartridge(1, 'APOGEE-2&MaNGA', 'APOGEE lead', expected)
+
+        self.assertEqual(
+            self.actorState.doApogeeMangaDither.apogeeExpTime, 1000)
+        self.assertEqual(
+            self.actorState.doApogeeMangaSequence.apogeeExpTime, 1000)
+
+    def test_updateCartridge_apogeemanga_exp_None(self):
+        sopTester.updateModel(
+            'guider', TestHelper.guiderState['apogeeLeadLoaded'])
+        sopTester.updateModel(
+            'platedb', TestHelper.platedbState['apogeeLead'])
+
+        expected = {}
+        expected['surveyCommands'] = \
+            TestHelper.sopApogeeMangaCommands['surveyCommands']
+
+        self._updateCartridge(1, 'APOGEE-2&MaNGA', 'APOGEE lead', expected)
+
+        self.assertEqual(
+            self.actorState.doApogeeMangaDither.apogeeExpTime, 500)
+        self.assertEqual(
+            self.actorState.doApogeeMangaSequence.apogeeExpTime, 500)
+
     def test_updateCartridge_apogeemanga(self):
         sopTester.updateModel('guider',TestHelper.guiderState['apogeemangaDitherLoaded'])
+        sopTester.updateModel('platedb',
+                              TestHelper.platedbState['apgoeemangaDither'])
         expected = {}
         expected['surveyCommands'] = TestHelper.sopApogeeMangaCommands['surveyCommands']
         self._updateCartridge(1,'APOGEE-2&MaNGA','MaNGA dither',expected)
@@ -296,10 +335,11 @@ class TestUpdateCartridge(SopCmdTester,unittest.TestCase):
         self._updateCartridge(11,'BOSS','None',expected)
 
 class TestUpdateApogeeDesign(SopCmdTester,unittest.TestCase):
-    def _update_apogee_design(self,expect):
+    def _update_apogee_design(self, expect, survey='APOGEE',
+                              surveyMode='None', bypassed=False):
         self.actorState.doApogeeScience.expTime = -9999
-        self.sopCmd.update_apogee_design(self.actorState)
-        self.assertEqual(self.actorState.doApogeeScience.expTime,expect)
+        self.sopCmd.updateCartridge(1, survey, surveyMode, bypassed=bypassed)
+        self.assertEqual(self.actorState.doApogeeScience.expTime, expect)
     def test_update_apogee_design_None(self):
         sopTester.updateModel('platedb',TestHelper.platedbState['apogeeLead'])
         self._update_apogee_design(500)
@@ -524,6 +564,8 @@ class TestDoApogeeMangaDither(SopCmdTester,unittest.TestCase):
         args = 'mangaDither=N'
         self._doApogeeMangaDither(expect,args)
     def test_doApogeeMangaDither_apogeeLead(self):
+        sopTester.updateModel('platedb',
+                              TestHelper.platedbState['apogeeLead'])
         self._update_cart(2, 'APOGEE-2&MaNGA', 'APOGEE lead')
         expect = {'mangaExpTime':900,
                   'apogeeExpTime':500,
@@ -561,6 +603,8 @@ class TestDoApogeeMangaSequence(SopCmdTester,unittest.TestCase):
         self.assertEqual(msg.cmdState.count,expect['count'])
 
     def test_doApogeeMangaSequence_mangaDither(self):
+        sopTester.updateModel('platedb',
+                              TestHelper.platedbState['apgoeemangaDither'])
         self._update_cart(2, 'APOGEE-2&MaNGA', 'MaNGA dither')
         expect = {'mangaExpTime':900,
                   'apogeeExpTime':450,
@@ -568,6 +612,8 @@ class TestDoApogeeMangaSequence(SopCmdTester,unittest.TestCase):
                   'count':2}
         self._doApogeeMangaSequence(expect)
     def test_doApogeeMangaSequence_mangaStare(self):
+        sopTester.updateModel('platedb',
+                              TestHelper.platedbState['apgoeemangaStare'])
         self._update_cart(2, 'APOGEE-2&MaNGA', 'MaNGA stare')
         expect = {'mangaExpTime':900,
                   'apogeeExpTime':450,
@@ -575,6 +621,8 @@ class TestDoApogeeMangaSequence(SopCmdTester,unittest.TestCase):
                   'count':2}
         self._doApogeeMangaSequence(expect)
     def test_doApogeeMangaSequence_apogeeLead(self):
+        sopTester.updateModel('platedb',
+                              TestHelper.platedbState['apogeeLead'])
         self._update_cart(2, 'APOGEE-2&MaNGA', 'APOGEE lead')
         expect = {'mangaExpTime':900,
                   'apogeeExpTime':500,
@@ -582,6 +630,8 @@ class TestDoApogeeMangaSequence(SopCmdTester,unittest.TestCase):
                   'count':2}
         self._doApogeeMangaSequence(expect)
     def test_doApogeeMangaSequence_apogeeLead_CCC_count1(self):
+        sopTester.updateModel('platedb',
+                              TestHelper.platedbState['apogeeLead'])
         self._update_cart(2, 'APOGEE-2&MaNGA', 'APOGEE lead')
         expect = {'mangaExpTime':900,
                   'apogeeExpTime':500,
@@ -1053,11 +1103,15 @@ class TestIsSlewingDisabled(SopCmdTester,unittest.TestCase):
         self.cmdState = self.actorState.doMangaSequence
         self._slewing_is_disabled('slewing disallowed for MaNGA,')
     def test_slewing_disabled_apogeemanga_dither(self):
+        sopTester.updateModel('platedb',
+                              TestHelper.platedbState['apgoeemangaDither'])
         self._update_cart(2, 'APOGEE-2&MaNGA')
         sopTester.updateModel('boss',TestHelper.bossState['integrating'])
         self.cmdState = self.actorState.doApogeeMangaDither
         self._slewing_is_disabled('slewing disallowed for APOGEE&MaNGA,')
     def test_slewing_disabled_apogeemanga_sequence(self):
+        sopTester.updateModel('platedb',
+                              TestHelper.platedbState['apgoeemangaDither'])
         self._update_cart(2, 'APOGEE-2&MaNGA')
         sopTester.updateModel('boss',TestHelper.bossState['integrating'])
         self.cmdState = self.actorState.doApogeeMangaSequence
@@ -1095,7 +1149,7 @@ if __name__ == '__main__':
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestDoMangaDither)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoMangaSequence)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoApogeeMangaSequence)
-    # suite = unittest.TestLoader().loadTestsFromTestCase(TestClassifyCartridge)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestClassifyCartridge)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestUpdateCartridge)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestHartmann)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoField)

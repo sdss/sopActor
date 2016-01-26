@@ -539,6 +539,33 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
         self.assertEqual(self.cmdState.mangaExpTime, 900)
         self.assertEqual(self.cmdState.apogeeExpTime, 500)
 
+    def test_set_apogee_expTime_None(self):
+        self.cmdState.apogeeExpTime = -9999
+        self.cmdState.set_apogeeLead()
+        self.assertEqual(self.cmdState.apogeeExpTime, 500)
+
+        self.assertEqual(self.cmdState.count, 2)
+        self.assertEqual(self.cmdState.keywords['mangaDithers'], 'CC')
+        self.assertEqual(self.cmdState.mangaDitherSeq, 'CCCC')
+
+    def test_set_apogee_expTime_1000(self):
+        self.cmdState.apogeeExpTime = -9999
+        self.cmdState.set_apogeeLead(apogeeExpTime=1000)
+        self.assertEqual(self.cmdState.apogeeExpTime, 1000)
+
+        self.assertEqual(self.cmdState.count, 2)
+        self.assertEqual(self.cmdState.keywords['mangaDithers'], 'CC')
+        self.assertEqual(self.cmdState.mangaDitherSeq, 'CCCC')
+
+        self.cmdState.index = len(self.cmdState.mangaDitherSeq) - 1
+        self.assertFalse(self.cmdState.exposures_remain())
+
+    def test_set_apogee_expTime_None_after_other_value(self):
+        self.cmdState.apogeeExpTime = -9999
+        self.cmdState.set_apogeeLead(apogeeExpTime=1000)
+        self.cmdState.set_apogeeLead()
+        self.assertEqual(self.cmdState.apogeeExpTime, 500)
+
     def test_abort(self):
         self._fake_boss_exposing()
         super(TestDoApogeeMangaSequence,self).test_abort()
@@ -584,6 +611,22 @@ class TestDoApogeeMangaDither(CmdStateTester,unittest.TestCase):
         self.cmdState.set_manga()
         self.assertEqual(self.cmdState.mangaExpTime, 900)
         self.assertEqual(self.cmdState.apogeeExpTime, 450)
+
+    def test_set_apogee_expTime_None(self):
+        self.cmdState.apogeeExpTime = -9999
+        self.cmdState.set_apogeeLead()
+        self.assertEqual(self.cmdState.apogeeExpTime, 500)
+
+    def test_set_apogee_expTime_1000(self):
+        self.cmdState.apogeeExpTime = -9999
+        self.cmdState.set_apogeeLead(apogeeExpTime=1000)
+        self.assertEqual(self.cmdState.apogeeExpTime, 1000)
+
+    def test_set_apogee_expTime_None_after_other_value(self):
+        self.cmdState.apogeeExpTime = -9999
+        self.cmdState.set_apogeeLead(apogeeExpTime=1000)
+        self.cmdState.set_apogeeLead()
+        self.assertEqual(self.cmdState.apogeeExpTime, 500)
 
     def test_isSlewingDisabled_no_cmd(self):
         self._isSlewingDisabled_no_cmd()

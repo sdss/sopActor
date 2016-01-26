@@ -651,6 +651,10 @@ def do_one_apogeemanga_dither(cmd, cmdState, actorState):
     multiCmd.append(sopActor.APOGEE, Msg.APOGEE_DITHER_SET,
                     expTime=apogeeExpTime,dithers=apogeeDithers,
                     expType="object", comment=cmdState.comment)
+    if cmdState.apogee_long:
+        multiCmd.append(sopActor.BOSS, Msg.EXPOSE,
+                        expTime=mangaExpTime, expType='science',
+                        readout=readout)
     prep_for_science(multiCmd, precondition=True)
     prep_apogee_shutter(multiCmd,open=True)
     prep_manga_dither(multiCmd, dither=mangaDither, precondition=True)
@@ -694,6 +698,7 @@ def do_apogeemanga_sequence(cmd, cmdState, actorState):
         ditherState.apogeeExpTime = cmdState.apogeeExpTime
         ditherState.mangaDither = mangaDither
         ditherState.readout = cmdState.readout
+        ditherState.apogee_long = cmdState.apogee_long
         pendingReadout = not cmdState.readout
         stageName = 'expose'
         cmdState.setStageState(stageName, 'running')
