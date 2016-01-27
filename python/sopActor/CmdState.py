@@ -623,8 +623,11 @@ class DoApogeeMangaDitherCmd(CmdState):
     def isSlewingDisabled(self):
         """If slewing is disabled, return a string describing why, else False."""
         exp_state,exp_text = self.isSlewingDisabled_BOSS()
-        if (self.cmd and self.cmd.isAlive() and exp_state):
+        if self.cmd and self.cmd.isAlive():
             return "slewing disallowed for APOGEE&MaNGA, with 1 science exposures left%s"%exp_text
+        elif exp_state:
+            return ('slewing disallowed. BOSS exposure in unsafe state{0}'
+                    .format(exp_text))
         else:
             return False
 
@@ -714,8 +717,11 @@ class DoApogeeMangaSequenceCmd(CmdState):
 
     def isSlewingDisabled(self):
         exp_state,exp_text = self.isSlewingDisabled_BOSS()
-        if (self.cmd and self.cmd.isAlive() and exp_state):
+        if self.cmd and self.cmd.isAlive():
             return "slewing disallowed for APOGEE&MaNGA, with a sequence in progress."
+        elif exp_state:
+            return ('slewing disallowed. BOSS exposure in unsafe state{0}'
+                    .format(exp_text))
         else:
             return False
 
