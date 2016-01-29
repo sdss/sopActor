@@ -603,6 +603,7 @@ class DoApogeeMangaDitherCmd(CmdState):
         self.mangaExpTime=900.0
 
         if apogeeExpTime is None or apogeeExpTime <= 500:
+            self.apogee_long = False
             self.apogeeExpTime = 500.
         else:
             self.apogee_long = True
@@ -657,6 +658,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
         self.mangaExpTime=900.0
 
         if apogeeExpTime is None or apogeeExpTime <= 500:
+            self.apogee_long = False
             self.apogeeExpTime = 500.
         else:
             self.apogee_long = True
