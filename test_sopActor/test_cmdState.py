@@ -106,24 +106,21 @@ class CmdStateTester(sopTester.SopTester):
         sopTester.updateModel('boss',TestHelper.bossState['integrating'])
         result,text = self.cmdState.isSlewingDisabled_BOSS()
         self.assertTrue(result)
-        self.assertEqual(text,'; exposureState=INTEGRATING')
+        self.assertEqual(text,'; BOSS_exposureState=INTEGRATING')
     def test_isSlewingDisabled_BOSS_no(self):
         sopTester.updateModel('boss',TestHelper.bossState['reading'])
         result,text = self.cmdState.isSlewingDisabled_BOSS()
         self.assertFalse(result)
-        self.assertEqual(text,'; exposureState=READING')
+        self.assertEqual(text,'; BOSS_exposureState=READING')
 
-    def _isSlewingDisabled_because_exposing(self, survey, nExp, state):
+    def _isSlewingDisabled_because_exposing(self, survey, nExp, state,
+                                            prefix=''):
         self.cmdState.cmd = self.cmd
         result = self.cmdState.isSlewingDisabled()
         self.assertIsInstance(result,str)
         self.assertIn('slewing disallowed for %s'%survey,result)
-        self.assertIn('with %d science exposures left; exposureState=%s'%(nExp,state),result)
-
-    def _isSlewingDisabled_True(self):
-        self.cmdState.cmd = self.cmd
-        result = self.cmdState.isSlewingDisabled()
-        self.assertTrue(result)
+        self.assertIn('with {0} science exposures left; {1}exposureState={2}'
+                      .format(nExp, prefix, state), result)
 
     def _isSlewingDisabled_False(self):
         self.cmdState.cmd = self.cmd
@@ -147,6 +144,36 @@ class CmdStateTester(sopTester.SopTester):
         self.cmdState.cmd.finished = True
         result = self.cmdState.isSlewingDisabled()
         self.assertFalse(result)
+
+    def _isSlewingDisabled_BOSS_APOGEE(self, bossState, apogeeState,
+                                       expect=None, index=0):
+        """Tests isSlewingDisabled for BOSS and APOGEE."""
+
+        self.cmdState.cmd = self.cmd
+        self.cmdState.index = index
+
+        if expect is None:
+            expect = (
+                'slewing disallowed for APOGEE&MaNGA, ',
+                'BOSS_exposureState={0}'.format(bossState.upper()),
+                'APOGEE_exposureState={0}'.format(apogeeState.capitalize())
+            )
+
+        sopTester.updateModel('boss', TestHelper.bossState[bossState])
+        sopTester.updateModel('apogee', TestHelper.apogeeState[apogeeState])
+
+        result = self.cmdState.isSlewingDisabled()
+
+        if result is False:
+            self.assertFalse(result)
+        else:
+            if isinstance(expect, str):
+                expect = [expect]
+            for expectItem in expect:
+                self.assertIsInstance(expectItem, str)
+                self.assertIn(expectItem, result)
+
+        return result
 
     @abc.abstractmethod
     def test_abort(self):
@@ -389,12 +416,14 @@ class TestDoBossScience(CmdStateTester,unittest.TestCase):
     def test_isSlewingDisabled_because_expLeft(self):
         self.cmdState.nExp = 3
         self.cmdState.index = 1
-        self._isSlewingDisabled_because_exposing('BOSS',2,'IDLE')
+        self._isSlewingDisabled_because_exposing('BOSS', 2, 'IDLE',
+                                                 prefix='BOSS_')
     def test_isSlewingDisabled_because_exposing(self):
         sopTester.updateModel('boss',TestHelper.bossState['integrating'])
         self.cmdState.nExp = 3
         self.cmdState.index = 2
-        self._isSlewingDisabled_because_exposing('BOSS',1,'INTEGRATING')
+        self._isSlewingDisabled_because_exposing('BOSS', 1, 'INTEGRATING',
+                                                 prefix='BOSS_')
     def test_isSlewingDisabled_False_reading_last_exposure(self):
         self.cmdState.nExp = 3
         self.cmdState.index = 2
@@ -473,7 +502,8 @@ class TestDoMangaDither(CmdStateTester,unittest.TestCase):
 
     def test_isSlewingDisabled_because_exposing(self):
         sopTester.updateModel('boss',TestHelper.bossState['integrating'])
-        self._isSlewingDisabled_because_exposing('MaNGA',1,'INTEGRATING')
+        self._isSlewingDisabled_because_exposing('MaNGA', 1, 'INTEGRATING',
+                                                 prefix='BOSS_')
     def test_isSlewingDisabled_False(self):
         sopTester.updateModel('boss',TestHelper.bossState['reading'])
         self._isSlewingDisabled_False()
@@ -513,30 +543,9 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
     def test_isSlewingDisabled_cmd_finished(self):
         self._isSlewingDisabled_cmd_finished()
 
-    def test_isSlewingDisabled_because_exposing(self):
-        sopTester.updateModel('boss',TestHelper.bossState['integrating'])
-        survey = 'APOGEE&MaNGA'
+    def test_isSlewingDisabled_because_alive_BOSS_integrating(self):
         self.cmdState.cmd = self.cmd
-        result = self.cmdState.isSlewingDisabled()
-        self.assertIsInstance(result,str)
-        self.assertIn('slewing disallowed for %s'%survey,result)
-        self.assertIn('with a sequence in progress.',result)
-
-    def test_isSlewingDisabled_True(self):
-        sopTester.updateModel('boss',TestHelper.bossState['reading'])
-        self._isSlewingDisabled_True()
-
-    def test_isSlewingDisabled_because_alive_APOGEE_science(self):
-        self.cmdState.cmd = self.cmd
-        result = self.cmdState.isSlewingDisabled()
-        self.assertIsInstance(result, str)
-        expect = ('slewing disallowed for APOGEE&MaNGA, '
-                  'with a sequence in progress')
-        self.assertIn(expect, result)
-
-    def test_isSlewingDisabled_because_alive_BOSS_reading(self):
-        self.cmdState.cmd = self.cmd
-        sopTester.updateModel('boss', TestHelper.bossState['reading'])
+        sopTester.updateModel('boss', TestHelper.bossState['integrating'])
         result = self.cmdState.isSlewingDisabled()
         self.assertIsInstance(result, str)
         expect = ('slewing disallowed for APOGEE&MaNGA, '
@@ -580,7 +589,8 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
         self.assertEqual(self.cmdState.mangaDitherSeq, 'CCCC')
 
         self.cmdState.index = len(self.cmdState.mangaDitherSeq) - 1
-        self.assertFalse(self.cmdState.exposures_remain())
+        self.assertTrue(self.cmdState.exposures_remain())
+        self.assertEqual(self.cmdState.nExposureRemain, 1)
 
     def test_set_apogee_expTime_None_after_other_value(self):
         self.cmdState.apogeeExpTime = -9999
@@ -610,6 +620,99 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
         self.cmdState.aborted = True
         self.assertFalse(self.cmdState.exposures_remain())
 
+    def test_no_exposures_remaining_apogee_long(self):
+        self.cmdState.apogee_long = True
+        self.cmdState.index = 2
+        self.cmdState.set_apogeeLead()
+        self.assertEqual(self.cmdState.nExposureRemain, 2)
+        self.assertTrue(self.cmdState.exposures_remain)
+
+    def test_no_exposures_remaining_apogee_long_last_exposure(self):
+        self.cmdState.apogee_long = True
+        self.cmdState.index = 4
+        self.cmdState.set_apogeeLead()
+        self.assertEqual(self.cmdState.nExposureRemain, 0)
+        self.assertTrue(self.cmdState.exposures_remain)
+
+    def test_apogee_long_single_exposure(self):
+        self.cmdState.set_apogeeLead(apogeeExpTime=1000)
+        self.cmdState.mangaDithers = 'C'
+        self.cmdState.count = 1
+        self.cmdState.reset_ditherSeq()
+
+        self.assertEqual(self.cmdState.apogeeExpTime, 1000)
+
+        self.assertEqual(self.cmdState.count, 1)
+        self.assertEqual(self.cmdState.mangaDithers, 'C')
+        self.assertEqual(self.cmdState.mangaDitherSeq, 'C')
+
+        self.assertEqual(self.cmdState.nExposureRemain, 1)
+
+        self.cmdState.cmd = self.cmd
+        self.assertFalse(self.cmdState.isSlewingDisabled())
+
+        sopTester.updateModel('boss', TestHelper.bossState['integrating'])
+        self.assertIsInstance(self.cmdState.isSlewingDisabled(), str)
+
+    def test_isSlewingDisabled_APOGEE_safe_BOSS_safe_mid_sequence(self):
+        bossState = 'idle'
+        apogeeState = 'done'
+        self._isSlewingDisabled_BOSS_APOGEE(bossState, apogeeState)
+
+    def test_isSlewingDisabled_APOGEE_safe_BOSS_unsafe_mid_sequence(self):
+        bossState = 'integrating'
+        apogeeState = 'done'
+        self._isSlewingDisabled_BOSS_APOGEE(bossState, apogeeState)
+
+    def test_isSlewingDisabled_APOGEE_unsafe_BOSS_safe_mid_sequence(self):
+        bossState = 'idle'
+        apogeeState = 'exposing'
+        self._isSlewingDisabled_BOSS_APOGEE(bossState, apogeeState)
+
+    def test_isSlewingDisabled_APOGEE_unsafe_BOSS_unsafe_mid_sequence(self):
+        bossState = 'integrating'
+        apogeeState = 'exposing'
+        self._isSlewingDisabled_BOSS_APOGEE(bossState, apogeeState)
+
+    def test_isSlewingDisabled_APOGEE_safe_BOSS_safe_end_sequence(self):
+        bossState = 'idle'
+        apogeeState = 'done'
+        self._isSlewingDisabled_BOSS_APOGEE(bossState, apogeeState,
+                                            expect=False, index=5)
+
+    def test_isSlewingDisabled_APOGEE_safe_BOSS_unsafe_end_sequence(self):
+        bossState = 'integrating'
+        apogeeState = 'done'
+        expect = ('slewing disallowed for APOGEE&MaNGA, '
+                  'with a sequence in progress; '
+                  'BOSS_exposureState=INTEGRATING; '
+                  'APOGEE_exposureState=Done; '
+                  '1 exposure(s) remaining')
+        self._isSlewingDisabled_BOSS_APOGEE(bossState, apogeeState,
+                                            expect=expect, index=5)
+
+    def test_isSlewingDisabled_APOGEE_unsafe_BOSS_safe_end_sequence(self):
+        bossState = 'idle'
+        apogeeState = 'exposing'
+        expect = ('slewing disallowed for APOGEE&MaNGA, '
+                  'with a sequence in progress; '
+                  'BOSS_exposureState=IDLE; '
+                  'APOGEE_exposureState=Exposing; '
+                  '1 exposure(s) remaining')
+        self._isSlewingDisabled_BOSS_APOGEE(bossState, apogeeState,
+                                            expect=expect, index=5)
+
+    def test_isSlewingDisabled_APOGEE_unsafe_BOSS_unsafe_end_sequence(self):
+        bossState = 'integrating'
+        apogeeState = 'exposing'
+        expect = ('slewing disallowed for APOGEE&MaNGA, '
+                  'with a sequence in progress; '
+                  'BOSS_exposureState=INTEGRATING; '
+                  'APOGEE_exposureState=Exposing; '
+                  '1 exposure(s) remaining')
+        self._isSlewingDisabled_BOSS_APOGEE(bossState, apogeeState,
+                                            expect=expect, index=5)
+
 
 class TestDoApogeeMangaDither(CmdStateTester,unittest.TestCase):
     def setUp(self):
@@ -625,28 +728,8 @@ class TestDoApogeeMangaDither(CmdStateTester,unittest.TestCase):
 
     def test_isSlewingDisabled_because_exposing(self):
         sopTester.updateModel('boss',TestHelper.bossState['integrating'])
-        self._isSlewingDisabled_because_exposing('APOGEE&MaNGA',1,'INTEGRATING')
-
-    def test_isSlewingDisabled_True(self):
-        sopTester.updateModel('boss',TestHelper.bossState['reading'])
-        self._isSlewingDisabled_True()
-
-    def test_isSlewingDisabled_because_alive_APOGEE_science(self):
-        self.cmdState.cmd = self.cmd
-        result = self.cmdState.isSlewingDisabled()
-        self.assertIsInstance(result, str)
-        expect = ('slewing disallowed for APOGEE&MaNGA, '
-                  'with 1 science exposures left')
-        self.assertIn(expect, result)
-
-    def test_isSlewingDisabled_because_alive_BOSS_reading(self):
-        self.cmdState.cmd = self.cmd
-        sopTester.updateModel('boss', TestHelper.bossState['reading'])
-        result = self.cmdState.isSlewingDisabled()
-        self.assertIsInstance(result, str)
-        expect = ('slewing disallowed for APOGEE&MaNGA, '
-                  'with 1 science exposures left')
-        self.assertIn(expect, result)
+        self._isSlewingDisabled_because_exposing(
+            'APOGEE&MaNGA', 1, 'INTEGRATING', prefix='BOSS_')
 
     def test_apogeeLead(self):
         self.cmdState.set_apogeeLead()
@@ -683,6 +766,26 @@ class TestDoApogeeMangaDither(CmdStateTester,unittest.TestCase):
         self._isSlewingDisabled_no_cmd()
     def test_isSlewingDisabled_cmd_finished(self):
         self._isSlewingDisabled_cmd_finished()
+
+    def test_isSlewingDisabled_APOGEE_safe_BOSS_safe(self):
+        bossState = 'idle'
+        apogeeState = 'done'
+        self._isSlewingDisabled_BOSS_APOGEE(bossState, apogeeState)
+
+    def test_isSlewingDisabled_APOGEE_safe_BOSS_unsafe(self):
+        bossState = 'integrating'
+        apogeeState = 'done'
+        self._isSlewingDisabled_BOSS_APOGEE(bossState, apogeeState)
+
+    def test_isSlewingDisabled_APOGEE_unsafe_BOSS_safe(self):
+        bossState = 'idle'
+        apogeeState = 'exposing'
+        self._isSlewingDisabled_BOSS_APOGEE(bossState, apogeeState)
+
+    def test_isSlewingDisabled_APOGEE_unsafe_BOSS_unsafe(self):
+        bossState = 'integrating'
+        apogeeState = 'exposing'
+        self._isSlewingDisabled_BOSS_APOGEE(bossState, apogeeState)
 
     def test_reinitialize(self):
         self.cmdState.readout = False

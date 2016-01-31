@@ -193,14 +193,29 @@ class CmdState(object):
         self.genKeys()
 
     def isSlewingDisabled_BOSS(self):
-        """Return True if the BOSS state is safe to start a slew."""
+        """Return False if the BOSS state is safe to start a slew."""
         safe_state = ('READING', 'IDLE', 'DONE', 'ABORTED')
         boss_state = myGlobals.actorState.models["boss"].keyVarDict["exposureState"][0]
-        text = "; exposureState=%s"%boss_state
+        text = "; BOSS_exposureState=%s"%boss_state
         if boss_state not in safe_state:
             return True, text
         else:
             return False, text
+
+    def isSlewingDisabled_APOGEE(self):
+        """Returns False if the APOGEE state is safe to start a slew."""
+
+        safe_state = ('DONE', 'STOPPED', 'FAILED')
+
+        apogee_state = (myGlobals.actorState.models['apogee']
+                        .keyVarDict['exposureState'][0])
+
+        apogee_status_text = '; APOGEE_exposureState={0}'.format(apogee_state)
+
+        if apogee_state.upper() not in safe_state:
+            return True, apogee_status_text
+        else:
+            return False, apogee_status_text
 
     def abort(self):
         """Abort this command by clearing relevant variables."""
@@ -625,12 +640,12 @@ class DoApogeeMangaDitherCmd(CmdState):
 
     def isSlewingDisabled(self):
         """If slewing is disabled, return a string describing why, else False."""
-        exp_state,exp_text = self.isSlewingDisabled_BOSS()
-        if self.cmd and self.cmd.isAlive():
-            return "slewing disallowed for APOGEE&MaNGA, with 1 science exposures left%s"%exp_text
-        elif exp_state:
-            return ('slewing disallowed. BOSS exposure in unsafe state{0}'
-                    .format(exp_text))
+        boss_disabled, boss_text = self.isSlewingDisabled_BOSS()
+        apogee_disabled, apogee_text = self.isSlewingDisabled_APOGEE()
+        if self.cmd and (boss_disabled or apogee_disabled):
+            return ('slewing disallowed for APOGEE&MaNGA, '
+                    'with 1 science exposures left{0}{1}'.format(boss_text,
+                                                                 apogee_text))
         else:
             return False
 
@@ -716,18 +731,37 @@ class DoApogeeMangaSequenceCmd(CmdState):
         """Return True if there are any exposures left to be taken."""
         if self.aborted:
             return False
-        elif self.apogee_long:
-            return self.index < len(self.mangaDitherSeq) / 2
         else:
             return self.index < len(self.mangaDitherSeq)
 
+    def took_exposure(self):
+        """Update keys after an exposure and output them."""
+
+        if self.apogee_long:
+            self.index += 2
+        else:
+            self.index += 1
+
+        self.genKeys()
+
+    @property
+    def nExposureRemain(self):
+        """Returns the number of exposures remaining."""
+
+        return len(self.mangaDitherSeq) - self.index
+
     def isSlewingDisabled(self):
-        exp_state,exp_text = self.isSlewingDisabled_BOSS()
-        if self.cmd and self.cmd.isAlive():
-            return "slewing disallowed for APOGEE&MaNGA, with a sequence in progress."
-        elif exp_state:
-            return ('slewing disallowed. BOSS exposure in unsafe state{0}'
-                    .format(exp_text))
+
+        boss_disabled, boss_text = self.isSlewingDisabled_BOSS()
+        apogee_disabled, apogee_text = self.isSlewingDisabled_APOGEE()
+
+        midSequence = self.exposures_remain() > 1
+
+        if (self.cmd and self.cmd.isAlive() and
+                (apogee_disabled or boss_disabled or midSequence)):
+            return ('slewing disallowed for APOGEE&MaNGA, with a sequence in '
+                    'progress{0}{1}; {2} exposure(s) remaining'
+                    .format(boss_text, apogee_text, self.nExposureRemain))
         else:
             return False
 
