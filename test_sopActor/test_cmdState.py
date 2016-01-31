@@ -588,6 +588,12 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
         self.cmdState.set_apogeeLead()
         self.assertEqual(self.cmdState.apogeeExpTime, 500)
 
+    def test_set_apogee_long_False_after_True(self):
+        self.cmdState.set_apogeeLead(apogeeExpTime=1000)
+        self.cmdState.set_apogeeLead()
+        self.assertEqual(self.cmdState.apogeeExpTime, 500)
+        self.assertEqual(self.cmdState.apogee_long, False)
+
     def test_abort(self):
         self._fake_boss_exposing()
         super(TestDoApogeeMangaSequence,self).test_abort()
@@ -666,6 +672,12 @@ class TestDoApogeeMangaDither(CmdStateTester,unittest.TestCase):
         self.cmdState.set_apogeeLead(apogeeExpTime=1000)
         self.cmdState.set_apogeeLead()
         self.assertEqual(self.cmdState.apogeeExpTime, 500)
+
+    def test_set_apogee_long_False_after_True(self):
+        self.cmdState.set_apogeeLead(apogeeExpTime=1000)
+        self.cmdState.set_apogeeLead()
+        self.assertEqual(self.cmdState.apogeeExpTime, 500)
+        self.assertEqual(self.cmdState.apogee_long, False)
 
     def test_isSlewingDisabled_no_cmd(self):
         self._isSlewingDisabled_no_cmd()

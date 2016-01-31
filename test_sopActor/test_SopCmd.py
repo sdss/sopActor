@@ -549,6 +549,7 @@ class TestDoApogeeMangaDither(SopCmdTester,unittest.TestCase):
         self.assertEqual(msg.cmdState.mangaExpTime,expect['mangaExpTime'])
         self.assertEqual(msg.cmdState.apogeeExpTime,expect['apogeeExpTime'])
         self.assertEqual(msg.cmdState.mangaDither,expect['mangaDither'])
+        return msg
 
     def test_doApogeeMangaDither_mangaDither(self):
         self._update_cart(2, 'APOGEE-2&MaNGA', 'MaNGA dither')
@@ -572,6 +573,31 @@ class TestDoApogeeMangaDither(SopCmdTester,unittest.TestCase):
                   'mangaDither':'C'}
         args = 'mangaDither=C'
         self._doApogeeMangaDither(expect,args)
+
+    def test_doApogeeMangaDither_apogeeLead_long(self):
+        sopTester.updateModel('platedb',
+                              TestHelper.platedbState['apogeeLead1000s'])
+        self._update_cart(2, 'APOGEE-2&MaNGA', 'APOGEE lead')
+        expect = {'mangaExpTime': 900,
+                  'apogeeExpTime': 1000,
+                  'mangaDither': 'C'}
+        args = 'mangaDither=C'
+        self._doApogeeMangaDither(expect, args)
+
+    def test_doApogeeMangaDither_after_apogeeLead_long(self):
+        sopTester.updateModel('platedb',
+                              TestHelper.platedbState['apogeeLead1000s'])
+        self._update_cart(2, 'APOGEE-2&MaNGA', 'APOGEE lead')
+
+        sopTester.updateModel('platedb',
+                              TestHelper.platedbState['apogeeLead'])
+        self._update_cart(2, 'APOGEE-2&MaNGA', 'APOGEE lead')
+        expect = {'mangaExpTime': 900,
+                  'apogeeExpTime': 500,
+                  'mangaDither': 'C'}
+        args = 'mangaDither=C'
+        msg = self._doApogeeMangaDither(expect, args)
+        self.assertEqual(msg.cmdState.apogee_long, False)
 
     def test_doApogeeMangaDither_abort(self):
         self.actorState.doApogeeMangaDither.cmd = self.cmd
@@ -601,6 +627,7 @@ class TestDoApogeeMangaSequence(SopCmdTester,unittest.TestCase):
         self.assertEqual(msg.cmdState.apogeeExpTime,expect['apogeeExpTime'])
         self.assertEqual(msg.cmdState.mangaDithers,expect['mangaDithers'])
         self.assertEqual(msg.cmdState.count,expect['count'])
+        return msg
 
     def test_doApogeeMangaSequence_mangaDither(self):
         sopTester.updateModel('platedb',
@@ -666,6 +693,21 @@ class TestDoApogeeMangaSequence(SopCmdTester,unittest.TestCase):
         self.assertEqual(msg.cmdState.count,2)
         self.assertEqual(msg.cmdState.mangaDitherSeq,'NSENSE')
         self.assertTrue(self.cmd.didFail)
+
+    def test_doApogeeMangaSequence_after_apogeeLead_long(self):
+        sopTester.updateModel('platedb',
+                              TestHelper.platedbState['apogeeLead1000s'])
+        self._update_cart(2, 'APOGEE-2&MaNGA', 'APOGEE lead')
+
+        sopTester.updateModel('platedb',
+                              TestHelper.platedbState['apogeeLead'])
+        self._update_cart(2, 'APOGEE-2&MaNGA', 'APOGEE lead')
+        expect = {'mangaExpTime':900,
+                  'apogeeExpTime':500,
+                  'mangaDithers':'CC',
+                  'count':2}
+        msg = self._doApogeeMangaSequence(expect)
+        self.assertEqual(msg.cmdState.apogee_long, False)
 
 
 class TestGotoField(SopCmdTester,unittest.TestCase):

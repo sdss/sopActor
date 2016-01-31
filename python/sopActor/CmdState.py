@@ -603,10 +603,13 @@ class DoApogeeMangaDitherCmd(CmdState):
         self.mangaExpTime=900.0
 
         if apogeeExpTime is None or apogeeExpTime <= 500:
+            self.apogee_long = False
             self.apogeeExpTime = 500.
+            self.keywords['apogeeExpTime'] = 500.
         else:
             self.apogee_long = True
             self.apogeeExpTime = 1000.
+            self.keywords['apogeeExpTime'] = 1000.
 
     def set_manga(self):
         """Setup to use this for MaNGA (stare or dither) observations."""
@@ -660,10 +663,13 @@ class DoApogeeMangaSequenceCmd(CmdState):
         self.mangaExpTime=900.0
 
         if apogeeExpTime is None or apogeeExpTime <= 500:
+            self.apogee_long = False
             self.apogeeExpTime = 500.
+            self.keywords['apogeeExpTime'] = 500.
         else:
             self.apogee_long = True
             self.apogeeExpTime = 1000.
+            self.keywords['apogeeExpTime'] = 1000.
 
         self.readout = True
         if not (self.cmd and self.cmd.isAlive()):
