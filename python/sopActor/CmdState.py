@@ -755,7 +755,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
         boss_disabled, boss_text = self.isSlewingDisabled_BOSS()
         apogee_disabled, apogee_text = self.isSlewingDisabled_APOGEE()
 
-        midSequence = self.exposures_remain() > 1
+        midSequence = self.exposures_remain() > 0
 
         if (self.cmd and self.cmd.isAlive() and
                 (apogee_disabled or boss_disabled or midSequence)):

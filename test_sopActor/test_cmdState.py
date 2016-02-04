@@ -649,6 +649,7 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
         self.assertEqual(self.cmdState.nExposureRemain, 1)
 
         self.cmdState.cmd = self.cmd
+        self.cmdState.index = 1
         self.assertFalse(self.cmdState.isSlewingDisabled())
 
         sopTester.updateModel('boss', TestHelper.bossState['integrating'])
@@ -678,7 +679,7 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
         bossState = 'idle'
         apogeeState = 'done'
         self._isSlewingDisabled_BOSS_APOGEE(bossState, apogeeState,
-                                            expect=False, index=5)
+                                            expect=False, index=6)
 
     def test_isSlewingDisabled_APOGEE_safe_BOSS_unsafe_end_sequence(self):
         bossState = 'integrating'
