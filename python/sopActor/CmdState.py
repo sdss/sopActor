@@ -630,8 +630,8 @@ class DoApogeeMangaDitherCmd(CmdState):
         """Setup to use this for MaNGA (stare or dither) observations."""
         self.keywords=dict(mangaDither='C',
                            comment='')
-        self.mangaExpTime=30.0
-        self.apogeeExpTime=60.0
+        self.mangaExpTime=900.0
+        self.apogeeExpTime=450.0
 
     def getUserKeys(self):
         msg = []
@@ -695,8 +695,8 @@ class DoApogeeMangaSequenceCmd(CmdState):
         self.keywords=dict(mangaDithers='NSE',
                            count=2,
                            comment='')
-        self.mangaExpTime=30.0
-        self.apogeeExpTime=60.0
+        self.mangaExpTime=900.0
+        self.apogeeExpTime=450.0
         self.readout = False
         if not (self.cmd and self.cmd.isAlive()):
             self.reset_ditherSeq()
