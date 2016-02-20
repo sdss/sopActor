@@ -608,6 +608,7 @@ class DoApogeeMangaDitherCmd(CmdState):
 
     def reset_nonkeywords(self):
         self.readout = True
+        self.apogee_long = False
 
     def set_apogeeLead(self, apogeeExpTime=None):
         """Setup to use this for APOGEE lead observations."""
@@ -718,6 +719,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
     def reset_nonkeywords(self):
         super(DoApogeeMangaSequenceCmd,self).reset_nonkeywords()
         self.reset_ditherSeq()
+        self.apogee_long = False
 
     def reset_ditherSeq(self):
         """Reset dither sequence based on dithers,count parameters."""
