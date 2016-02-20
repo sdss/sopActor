@@ -632,6 +632,7 @@ class DoApogeeMangaDitherCmd(CmdState):
                            comment='')
         self.mangaExpTime=900.0
         self.apogeeExpTime=450.0
+        self.apogee_long = False
 
     def getUserKeys(self):
         msg = []
@@ -698,6 +699,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
         self.mangaExpTime=900.0
         self.apogeeExpTime=450.0
         self.readout = False
+        self.apogee_long = False
         if not (self.cmd and self.cmd.isAlive()):
             self.reset_ditherSeq()
 
@@ -709,6 +711,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
         self.mangaExpTime=900.0
         self.apogeeExpTime=450.0
         self.readout = False
+        self.apogee_long = False
         if not (self.cmd and self.cmd.isAlive()):
             self.reset_ditherSeq()
 

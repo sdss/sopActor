@@ -655,6 +655,16 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
         sopTester.updateModel('boss', TestHelper.bossState['integrating'])
         self.assertIsInstance(self.cmdState.isSlewingDisabled(), str)
 
+    def test_set_manga_dither_after_apogee_lead_long(self):
+        self.cmdState.set_apogeeLead(apogeeExpTime=1000)
+        self.assertEqual(self.cmdState.apogeeExpTime, 1000)
+        self.assertEqual(self.cmdState.mangaExpTime, 900)
+        self.assertEqual(self.cmdState.apogee_long, True)
+        self.cmdState.set_mangaDither()
+        self.assertEqual(self.cmdState.mangaExpTime, 900)
+        self.assertEqual(self.cmdState.apogeeExpTime, 450)
+        self.assertEqual(self.cmdState.apogee_long, False)
+
     def test_isSlewingDisabled_APOGEE_safe_BOSS_safe_mid_sequence(self):
         bossState = 'idle'
         apogeeState = 'done'
@@ -761,6 +771,16 @@ class TestDoApogeeMangaDither(CmdStateTester,unittest.TestCase):
         self.cmdState.set_apogeeLead(apogeeExpTime=1000)
         self.cmdState.set_apogeeLead()
         self.assertEqual(self.cmdState.apogeeExpTime, 500)
+        self.assertEqual(self.cmdState.apogee_long, False)
+
+    def test_set_manga_dither_after_apogee_lead_long(self):
+        self.cmdState.set_apogeeLead(apogeeExpTime=1000)
+        self.assertEqual(self.cmdState.apogeeExpTime, 1000)
+        self.assertEqual(self.cmdState.mangaExpTime, 900)
+        self.assertEqual(self.cmdState.apogee_long, True)
+        self.cmdState.set_manga()
+        self.assertEqual(self.cmdState.mangaExpTime, 900)
+        self.assertEqual(self.cmdState.apogeeExpTime, 450)
         self.assertEqual(self.cmdState.apogee_long, False)
 
     def test_isSlewingDisabled_no_cmd(self):

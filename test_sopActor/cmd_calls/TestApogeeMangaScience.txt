@@ -185,3 +185,31 @@ apogee expose time=1000.0 object=object
 boss exposure science itime=900
 
 guider decenter off
+
+[test_do_manga_led_sequence_after_apogee_long_lead_sequence]
+guider decenter on
+guider mangaDither ditherPos=N
+
+apogee expose time=450.0 object=object
+boss exposure science itime=900 noreadout
+apogee dither namedpos=A
+apogee expose time=450.0 object=object
+
+boss exposure   readout
+guider mangaDither ditherPos=S
+
+apogee expose time=450.0 object=object
+boss exposure science itime=900 noreadout
+apogee dither namedpos=B
+apogee expose time=450.0 object=object
+
+boss exposure   readout
+guider mangaDither ditherPos=E
+
+apogee expose time=450.0 object=object
+boss exposure science itime=900 noreadout
+apogee dither namedpos=A
+apogee expose time=450.0 object=object
+
+boss exposure   readout
+guider decenter off

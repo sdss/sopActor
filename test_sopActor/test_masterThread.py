@@ -635,7 +635,7 @@ class TestApogeeMangaScience(MasterThreadTester):
 
     def _do_apogeemanga_sequence(self,nCall,nInfo,nWarn,nErr, mangaDithers,
                                   count, didFail=False, surveyMode='MaNGA dither',
-                                  apogee_long=False):
+                                  apogee_long=False, checkCall=True):
         self._update_cart(1, 'APOGEE&MaNGA', surveyMode)
         cmdState = self.actorState.doApogeeMangaSequence
         cmdState.reinitialize(self.cmd)
@@ -689,6 +689,40 @@ class TestApogeeMangaScience(MasterThreadTester):
         self._do_apogeemanga_sequence(7, 45, 0, 0, mangaDithers, count,
                                       surveyMode='APOGEE lead',
                                       apogee_long=True)
+
+    def test_do_manga_led_sequence_after_apogee_long_lead_sequence(self):
+
+        sopTester.updateModel('mcp', TestHelper.mcpState['apogee_science'])
+        sopTester.updateModel('apogee', TestHelper.apogeeState['B_open'])
+        sopTester.updateModel(
+            'platedb', TestHelper.platedbState['apogeeLead1000s'])
+
+        self._update_cart(1, 'APOGEE&MaNGA', 'APOGEE lead')
+        cmdState = self.actorState.doApogeeMangaSequence
+        cmdState.reinitialize(self.cmd)
+        cmdState.count = 1
+        cmdState.mangaDithers = 'CC'
+        cmdState.reset_ditherSeq()
+
+        # sopTester.updateModel('apogee', TestHelper.apogeeState['B_open'])
+        # sopTester.updateModel(
+        #     'platedb', TestHelper.platedbState['mangaDither'])
+
+        sopTester.updateModel(
+            'platedb', TestHelper.platedbState['mangaDither'])
+
+        self._update_cart(1, 'APOGEE&MaNGA', 'MaNGA dither')
+        cmdState = self.actorState.doApogeeMangaSequence
+        cmdState.reinitialize(self.cmd)
+        cmdState.count = 1
+        cmdState.mangaDithers = 'NSE'
+        cmdState.reset_ditherSeq()
+
+        masterThread.do_apogeemanga_sequence(self.cmd, cmdState,
+                                             myGlobals.actorState)
+        self._check_cmd(20, 101, 0, 0, True, didFail=False)
+
+        self.assertFalse(self.actorState.doApogeeMangaSequence.apogee_long)
 
 
 class TestBossCalibs(MasterThreadTester):
