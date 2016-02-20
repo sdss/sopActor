@@ -688,6 +688,17 @@ class TestApogeeMangaScience(MasterThreadTester):
         self._do_apogeemanga_sequence(7, 43, 0, 0, mangaDithers, count,
                                       surveyMode='APOGEE lead')
 
+    def test_do_apogeemanga_sequence_apogee_lead_count2_CC_long_exposure(self):
+        sopTester.updateModel('mcp', TestHelper.mcpState['apogee_science'])
+        sopTester.updateModel('apogee', TestHelper.apogeeState['B_open'])
+        sopTester.updateModel(
+            'platedb', TestHelper.platedbState['apogeeLead1000s'])
+
+        mangaDithers = 'CC'
+        count = 2
+        self._do_apogeemanga_sequence(12, 65, 0, 0, mangaDithers, count,
+                                      surveyMode='APOGEE lead')
+
     def test_do_manga_led_sequence_after_apogee_long_lead_sequence(self):
 
         sopTester.updateModel('mcp', TestHelper.mcpState['apogee_science'])
