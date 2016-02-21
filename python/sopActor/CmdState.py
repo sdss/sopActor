@@ -720,6 +720,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
         super(DoApogeeMangaSequenceCmd,self).reset_nonkeywords()
         self.reset_ditherSeq()
         self.apogee_long = False
+        print('I am being reset')
 
     def reset_ditherSeq(self):
         """Reset dither sequence based on dithers,count parameters."""

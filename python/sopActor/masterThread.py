@@ -641,6 +641,8 @@ def do_one_apogeemanga_dither(cmd, cmdState, actorState):
 
     apogeeDithers = get_next_apogee_dither_pair(actorState)
 
+    print('I am an exposure with apogee_long={0}'.format(cmdState.apogee_long))
+
     readout = cmdState.readout
     duration = flushDuration + expTime + actorState.timeout + guiderDecenterDuration
     if readout:
