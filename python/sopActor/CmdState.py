@@ -643,7 +643,8 @@ class DoApogeeMangaDitherCmd(CmdState):
         """If slewing is disabled, return a string describing why, else False."""
         boss_disabled, boss_text = self.isSlewingDisabled_BOSS()
         apogee_disabled, apogee_text = self.isSlewingDisabled_APOGEE()
-        if self.cmd and (boss_disabled or apogee_disabled):
+        if ((self.cmd and self.cmd.isAlive()) and
+                (boss_disabled or apogee_disabled)):
             return ('slewing disallowed for APOGEE&MaNGA, '
                     'with 1 science exposures left{0}{1}'.format(boss_text,
                                                                  apogee_text))
@@ -758,7 +759,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
         boss_disabled, boss_text = self.isSlewingDisabled_BOSS()
         apogee_disabled, apogee_text = self.isSlewingDisabled_APOGEE()
 
-        midSequence = self.exposures_remain() > 0
+        midSequence = self.exposures_remain()
 
         if (self.cmd and self.cmd.isAlive() and
                 (apogee_disabled or boss_disabled or midSequence)):
