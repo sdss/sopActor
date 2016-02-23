@@ -544,7 +544,7 @@ class DoMangaSequenceCmd(CmdState):
         self.keywords=dict(expTime=900.0,
                            dithers='CCC',
                            count=1)
-        self.count = 3
+        self.count = 1
         self.dithers = 'CCC'
         if not (self.cmd and self.cmd.isAlive()):
             self.reset_ditherSeq()
