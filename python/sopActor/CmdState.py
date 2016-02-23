@@ -630,6 +630,7 @@ class DoApogeeMangaDitherCmd(CmdState):
         """Setup to use this for MaNGA (stare or dither) observations."""
         self.keywords=dict(mangaDither='C',
                            comment='')
+        self.mangaDither = 'C'
         self.mangaExpTime=900.0
         self.apogeeExpTime=450.0
         self.apogee_long = False
@@ -697,6 +698,8 @@ class DoApogeeMangaSequenceCmd(CmdState):
         self.keywords=dict(mangaDithers='NSE',
                            count=2,
                            comment='')
+        self.count = 2
+        self.mangaDithers = 'NSE'
         self.mangaExpTime=900.0
         self.apogeeExpTime=450.0
         self.readout = False
@@ -709,6 +712,8 @@ class DoApogeeMangaSequenceCmd(CmdState):
         self.keywords=dict(mangaDithers='CCC',
                            count=2,
                            comment='')
+        self.count = 2
+        self.mangaDithers = 'CCC'
         self.mangaExpTime=900.0
         self.apogeeExpTime=450.0
         self.readout = False
