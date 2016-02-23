@@ -625,14 +625,13 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
         self.cmdState.index = 2
         self.cmdState.set_apogeeLead()
         self.assertEqual(self.cmdState.nExposureRemain, 2)
-        self.assertTrue(self.cmdState.exposures_remain)
+        self.assertTrue(self.cmdState.exposures_remain())
 
     def test_no_exposures_remaining_apogee_long_last_exposure(self):
-        self.cmdState.apogee_long = True
+        self.cmdState.set_apogeeLead(apogeeExpTime=1000)
         self.cmdState.index = 4
-        self.cmdState.set_apogeeLead()
         self.assertEqual(self.cmdState.nExposureRemain, 0)
-        self.assertTrue(self.cmdState.exposures_remain)
+        self.assertFalse(self.cmdState.exposures_remain())
 
     def test_apogee_long_single_exposure(self):
         self.cmdState.set_apogeeLead(apogeeExpTime=1000)
