@@ -21,7 +21,7 @@ from sopActor.multiCommand import MultiCommand
 
 # SDSS-IV plates should all be "APOGEE-2;MaNGA", but we need both,
 # for test plates drilled as part of SDSS-III.
-survey_dict = {'None':None, None:None, 'ecamera':sopActor.ECAMERA,
+survey_dict = {'UNKNOWN':sopActor.UNKNOWN, 'ecamera':sopActor.ECAMERA,
                'BOSS':sopActor.BOSS, 'eBOSS':sopActor.BOSS,
                'APOGEE':sopActor.APOGEE,'APOGEE-2':sopActor.APOGEE,
                'MaNGA':sopActor.MANGA,
@@ -1065,7 +1065,7 @@ class SopCmd(object):
         sopState.hartmann = CmdState.HartmannCmd()
         sopState.collimateBoss = CmdState.CollimateBossCmd()
 
-        self.updateCartridge(-1,'None','None')
+        self.updateCartridge(-1,'UNKNOWN','None')
         sopState.guiderState.setLoadedNewCartridgeCallback(self.updateCartridge)
 
     def updateCartridge(self, cartridge, plateType, surveyModeName, status=True, bypassed=False):
@@ -1098,7 +1098,7 @@ class SopCmd(object):
         survey = sopState.survey
 
         cmd.warn('text="loadCartridge fired cart=%s survey=%s surveyMode=%s"' % (cartridge, survey, surveyMode))
-        cmd.inform('survey=%s,%s'%(qstr(sopState.surveyText[0]),qstr(sopState.surveyText[1])))
+        cmd.inform("survey={0},{1}".format(*[qstr(x) for x in sopState.surveyText]))
 
         sopState.validCommands = ['gotoField',
                                   'gotoStow', 'gotoInstrumentChange', 'gotoAll60', 'gotoStow60']
@@ -1147,6 +1147,49 @@ class SopCmd(object):
 
         return sopState.models['platedb'].keyVarDict['apogeeDesign']
 
+    def update_plugged_instruments(self,sopState):
+        ''' Update the plugged instrument from the platedb keyword '''
+        pluggedInstruments = sopState.models['platedb'].keyVarDict['pluggedInstruments']
+        sopState.pluggedInstruments = pluggedInstruments.getValue()
+
+    def survey_bypasses(self, cmd, sopState):
+        """Set survey/surveyMode if a bypass is set and return True if so."""
+
+        bypass = myGlobals.bypass
+        sopState.survey = None
+        sopState.surveyMode = None
+
+        if bypass.get('isBoss'):
+            cmd.warn('text="We are lying about this being a BOSS cartridge"')
+            sopState.survey = sopActor.BOSS
+            sopState.surveyMode = None
+        elif bypass.get('isApogee'):
+            cmd.warn('text="We are lying about this being an APOGEE cartridge"')
+            sopState.survey = sopActor.APOGEE
+            sopState.surveyMode = None
+        elif bypass.get('isMangaStare'):
+            cmd.warn('text="We are lying about this being a MaNGA Stare cartridge"')
+            sopState.survey = sopActor.MANGA
+            sopState.surveyMode = sopActor.MANGASTARE
+        elif bypass.get('isMangaDither'):
+            cmd.warn('text="We are lying about this being a MaNGA Dither cartridge"')
+            sopState.survey = sopActor.MANGA
+            sopState.surveyMode = sopActor.MANGADITHER
+        elif bypass.get('isApogeeMangaStare'):
+            cmd.warn('text="We are lying about this being an APOGEE&MaNGA Stare cartridge"')
+            sopState.survey = sopActor.APOGEEMANGA
+            sopState.surveyMode = sopActor.MANGASTARE
+        elif bypass.get('isApogeeMangaDither'):
+            cmd.warn('text="We are lying about this being a APOGEE&MaNGA Dither cartridge"')
+            sopState.survey = sopActor.APOGEEMANGA
+            sopState.surveyMode = sopActor.MANGADITHER
+        elif bypass.get('isApogeeLead'):
+            cmd.warn('text="We are lying about this being an APOGEE&MaNGA, APOGEE Lead cartridge"')
+            sopState.survey = sopActor.APOGEEMANGA
+            sopState.surveyMode = sopActor.APOGEELEAD
+
+        return sopState.survey is not None
+
     def classifyCartridge(self, cmd, cartridge, plateType, surveyMode):
         """
         Set the survey and surveyMode for this cartridge in actorState.
@@ -1157,80 +1200,57 @@ class SopCmd(object):
             plateType (str): plateType keyword from the guider, used as a lookup into survey_dict
             surveyModeName (str): surveyMode keyword from the guider, used as a lookup into surveyMode_dict
         """
-        def surveyText_bypass():
+        def update_surveyText():
             sopState.surveyText = [survey_inv_dict[sopState.survey],
                                    surveyMode_inv_dict[sopState.surveyMode]]
 
-        bypass = myGlobals.bypass
         sopState = myGlobals.actorState
         sopState.surveyText = ['','']
 
-        if bypass.get('isBoss'):
-            cmd.warn('text="We are lying about this being a BOSS cartridge"')
-            sopState.survey = sopActor.BOSS
-            sopState.surveyMode = None
-            surveyText_bypass()
-            return
-        elif bypass.get('isApogee'):
-            cmd.warn('text="We are lying about this being an APOGEE cartridge"')
-            sopState.survey = sopActor.APOGEE
-            sopState.surveyMode = None
-            surveyText_bypass()
-            return
-        elif bypass.get('isMangaStare'):
-            cmd.warn('text="We are lying about this being a MaNGA Stare cartridge"')
-            sopState.survey = sopActor.MANGA
-            sopState.surveyMode = sopActor.MANGASTARE
-            surveyText_bypass()
-            return
-        elif bypass.get('isMangaDither'):
-            cmd.warn('text="We are lying about this being a MaNGA Dither cartridge"')
-            sopState.survey = sopActor.MANGA
-            sopState.surveyMode = sopActor.MANGADITHER
-            surveyText_bypass()
-            return
-        elif bypass.get('isApogeeMangaStare'):
-            cmd.warn('text="We are lying about this being an APOGEE&MaNGA Stare cartridge"')
-            sopState.survey = sopActor.APOGEEMANGA
-            sopState.surveyMode = sopActor.MANGASTARE
-            surveyText_bypass()
-            return
-        elif bypass.get('isApogeeMangaDither'):
-            cmd.warn('text="We are lying about this being a APOGEE&MaNGA Dither cartridge"')
-            sopState.survey = sopActor.APOGEEMANGA
-            sopState.surveyMode = sopActor.MANGADITHER
-            surveyText_bypass()
-            return
-        elif bypass.get('isApogeeLead'):
-            cmd.warn('text="We are lying about this being an APOGEE&MaNGA, APOGEE Lead cartridge"')
-            sopState.survey = sopActor.APOGEEMANGA
-            sopState.surveyMode = sopActor.APOGEELEAD
-            surveyText_bypass()
+        if self.survey_bypasses(cmd, sopState):
+            update_surveyText()
             return
 
         if cartridge <= 0:
             cmd.warn('text="We do not have a valid cartridge (id=%s)"' % (cartridge))
             sopState.survey = sopActor.UNKNOWN
             sopState.surveyMode = None
-            surveyText_bypass()
+            update_surveyText()
             return
 
-        # NOTE: not using .get() here so that I can send an error message if
-        # the key lookup fails.
+        # NOTE: don't use .get() here to send an error message if the key lookup fails.
+        # Set surveyText explicitly to exactly match the guider output.
         try:
             sopState.survey = survey_dict[plateType]
             sopState.surveyText[0] = plateType
         except KeyError:
             cmd.error('text=%s'%qstr("Do not understand plateType: %s."%plateType))
             sopState.survey = sopActor.UNKNOWN
-            sopState.surveyText[0] = 'UNKNOWN'
+            sopState.surveyText[0] = survey_inv_dict[sopState.survey]
+
         try:
             sopState.surveyMode = surveyMode_dict[surveyMode]
             sopState.surveyText[1] = surveyMode
         except KeyError:
             cmd.error('text=%s'%qstr("Do not understand surveyMode: %s."%surveyMode))
             sopState.surveyMode = None
-            sopState.surveyText[1] = 'None'
+            sopState.surveyText[1] = surveyMode_inv_dict[sopState.surveyMode]
+
+        # #2453 Check which instruments were plugged for APOGEE-MaNGA plates
+        self.update_plugged_instruments(sopState)
+        if sopState.survey == sopActor.APOGEEMANGA:
+            if sopState.pluggedInstruments == ('APOGEE',):
+                sopState.survey = sopActor.APOGEE
+                sopState.surveyMode = None
+                update_surveyText()
+            elif sopState.pluggedInstruments == ('BOSS',):
+                sopState.survey = sopActor.MANGA
+                sopState.surveyMode = sopActor.MANGADITHER
+                update_surveyText()
+            elif not sopState.pluggedInstruments:
+                sopState.survey = sopActor.UNKNOWN
+                sopState.surveyMode = None
+                update_surveyText()
 
     def doing_science(self,sopState):
         """Return True if any sort of science command is currently running."""
