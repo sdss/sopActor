@@ -715,7 +715,7 @@ class TestApogeeMangaScience(MasterThreadTester):
         sopTester.updateModel('mcp', TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee', TestHelper.apogeeState['B_open'])
         sopTester.updateModel(
-            'platedb', TestHelper.platedbState['mangaDither'])
+            'platedb', TestHelper.platedbState['apgoeemangaDither'])
 
         mangaDithers = 'NSE'
         count = 1
