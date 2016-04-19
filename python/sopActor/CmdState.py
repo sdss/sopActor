@@ -398,16 +398,19 @@ class DoBossCalibsCmd(CmdState):
 
 
 class DoApogeeScienceCmd(CmdState):
+
+    base_expTime = 500  # The exposure time for normal exposures
+
     def __init__(self):
         CmdState.__init__(self, 'doApogeeScience',
                           ['expose'],
                           keywords=dict(ditherPairs=4,
-                                        expTime=500.0,
+                                        expTime=self.base_expTime,
                                         comment=""))
+
     def reset_nonkeywords(self):
         self.expType = "object"
-        self.base_expTime = self.keywords['expTime'] # save it for "set_apogee_expTime"
-        super(DoApogeeScienceCmd,self).reset_nonkeywords()
+        super(DoApogeeScienceCmd, self).reset_nonkeywords()
 
     def set_apogee_expTime(self, value):
         """Set the default expTime to the new value, or the base if None."""

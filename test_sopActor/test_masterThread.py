@@ -457,6 +457,24 @@ class TestApogeeScience(MasterThreadTester):
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         self._do_apogee_science(3,29,0,0,ditherPairs=1)
 
+    def test_do_apogee_science_500s_after_1000s_cart7(self):
+        """Tests if expTime is set to 500s after a double length exposure."""
+
+        sopTester.updateModel('platedb',
+                              TestHelper.platedbState['apogeeLead1000sCart7'])
+        self._update_cart(7, 'APOGEE')
+        cmdState = self.actorState.doApogeeScience
+        cmdState.reinitialize(self.cmd)
+        self.assertEqual(cmdState.expTime, 1000)
+        self.assertEqual(cmdState.keywords['expTime'], 1000)
+
+        sopTester.updateModel('platedb',
+                              TestHelper.platedbState['apogeeLeadCart7'])
+        self._update_cart(7, 'APOGEE')
+        cmdState = self.actorState.doApogeeScience
+        cmdState.reinitialize(self.cmd)
+        self.assertEqual(cmdState.expTime, 500)
+        self.assertEqual(cmdState.keywords['expTime'], 500)
 
 class TestMangaScience(MasterThreadTester):
     """do_manga_* tests"""
