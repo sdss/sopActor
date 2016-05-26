@@ -1,6 +1,7 @@
 """sopActor masterThread"""
 import Queue, threading
 import time
+import copy
 
 from sopActor import Msg
 import sopActor
@@ -307,16 +308,33 @@ def prep_apogee_shutter(multiCmd,open=True):
     multiCmd.append(SopPrecondition(sopActor.APOGEE, Msg.APOGEE_SHUTTER, open=open))
 
 def prep_guider_decenter_on(multiCmd):
-    """Prepare for MaNGA dithers by activating decentered guiding."""
+    """Prepare for MaNGA dithers by activating decentered guiding.
+
+    Appends command to stack
+
+    Command: guider decenter on
+    """
     multiCmd.append(SopPrecondition(sopActor.GUIDER, Msg.DECENTER, on=True))
 
 def prep_guider_decenter_off(multiCmd):
-    """Prepare for on-center guiding by de-activating decentered guiding."""
+    """Prepare for on-center guiding by de-activating decentered guiding.
+
+    Appends command to stack
+
+    Command: guider decenter off
+    """
     multiCmd.append(SopPrecondition(sopActor.GUIDER, Msg.DECENTER, on=False))
 
 def prep_manga_dither(multiCmd, dither='C', precondition=False):
-    """Prepare for MaNGA exposures by dithering the guider."""
+    """Prepare for MaNGA exposures by dithering the guider.
+
+    Appends command to stack
+
+    Command: guider mangaDither ditherPos=N
+    """
+    # append guider decenter on
     prep_guider_decenter_on(multiCmd)
+    # append manga guider dither command
     if precondition:
         multiCmd.append(SopPrecondition(sopActor.GUIDER, Msg.MANGA_DITHER, dither=dither, timeout=guiderDecenterDuration))
     else:
@@ -533,19 +551,28 @@ def do_apogee_science(cmd, cmdState, actorState, finishMsg=None):
 #...
 
 def do_one_manga_dither(cmd, cmdState, actorState):
-    """Start a single MaNGA dithered exposure."""
+    """Start a single MaNGA dithered exposure.
+
+    Appends Manga dither commands to stack
+
+    Commands:
+    boss exposure science itime=900 noreadout
+    """
 
     dither = cmdState.dither
     expTime = cmdState.expTime
     readout = cmdState.readout
     show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
     duration = flushDuration + expTime + actorState.timeout + guiderDecenterDuration
+    print('doing one manga dither', cmdState.__dict__)
     if readout:
         duration += readoutDuration
     multiCmd = SopMultiCommand(cmd, duration, cmdState.name+".expose")
     multiCmd.append(sopActor.BOSS, Msg.EXPOSE,
                     expTime=expTime, expType="science", readout=readout)
+    # append ff lamp commands etc
     prep_for_science(multiCmd, precondition=True)
+    # append guider dithers
     prep_manga_dither(multiCmd, dither=dither, precondition=True)
 
     return multiCmd.run()
@@ -578,7 +605,8 @@ def do_manga_sequence(cmd, cmdState, actorState):
     pendingReadout = False
     # set at start, and then update after each exposure.
     dither = cmdState.ditherSeq[cmdState.index]
-
+    origCmdState = {'count': cmdState.count, 'dithers': cmdState.dithers, 'ditherSeq': cmdState.ditherSeq}
+    print('current beginning cmdState', cmdState.__dict__)
     while cmdState.exposures_remain():
         ditherState = actorState.doMangaDither
         ditherState.reinitialize(cmd)
@@ -586,38 +614,69 @@ def do_manga_sequence(cmd, cmdState, actorState):
         ditherState.dither = dither
         ditherState.readout = False
         pendingReadout = True
+        print('\nBEGINNING EXPOSURE {0}, {1}'.format(cmdState.current_dither(), cmdState.index))
+        print('ditherState', ditherState.__dict__)
+        print('exposures remaining', cmdState.exposures_remain(), cmdState.remaining_exposures(), cmdState.current_dither())
+        print('running cmdState - settting stage', cmdState.__dict__)
         stageName = 'expose'
         cmdState.setStageState(stageName, 'running')
+        # start one manga dither - appends boss expose command
         if not do_one_manga_dither(cmd, ditherState, actorState):
             cmdState.setStageState(stageName, 'failed')
             failMsg = "failed one dither of a MaNGA dither sequence"
             break
-
+        # finished - index the exposure count by 1
         cmdState.took_exposure()
 
+        print('running cmdState - just took exposure', cmdState.__dict__)
+
+        # Append to stack exposure readout command
+        # Command : boss exposure   readout
         multiCmd = SopMultiCommand(cmd, readoutDuration + actorState.timeout,
                                    cmdState.name+".readout")
         multiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
+
+        print("HERE IS WHERE WE CHECK COUNT AND DITHERS, APPEND OR REMOVE")
+        # hasStateChanged = cmdState.hasStateChanged(origCmdState)
+        # if hasStateChanged:
+        #     print('Command State has changed.  I must update')
+        #     if cmdState.count != origCmdState['count']:
+        #         print('change the ditherseq count')
+        #         cmdState.reset_ditherSeq()
+        #     elif cmdState.dithers != origCmdState['dithers']:
+        #         print('dithers have changed')
+
+        # move to a new dither position - append new guider dither commands
         try:
             dither = cmdState.ditherSeq[cmdState.index]
             prep_manga_dither(multiCmd, dither=dither, precondition=False)
         except IndexError:
             # We're at the end, so don't need to move to new dither position.
             pass
+        print('running cmdState - after dither update?', cmdState.__dict__)
+        print('end - exposures remaining', cmdState.exposures_remain(), cmdState.remaining_exposures(), cmdState.current_dither())
+
         pendingReadout = False
         if not multiCmd.run():
             failMsg = "failed to readout exposure/change dither position"
             break
 
+    # append guider decenter off command
     show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
     deactivate_guider_decenter(cmd, cmdState, actorState, 'dither')
 
+    print('finished cmdState', cmdState.__dict__)
+
+    # Append to stack exposure readout command
+    # Command : boss exposure   readout
     if pendingReadout:
         multiCmd = SopMultiCommand(cmd, actorState.timeout + readoutDuration,
                                    cmdState.name+".readout",
                                    sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
     else:
         multiCmd = SopMultiCommand(cmd, actorState.timeout,cmdState.name+'.cleanup')
+
+    print('finished cmdState - after multicommand', cmdState.__dict__)
 
     if failMsg:
         # handle the readout, but don't touch lamps, guider state, etc.

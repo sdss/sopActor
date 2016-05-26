@@ -416,9 +416,13 @@ class SopCmd(object):
             if "count" in keywords:
                 count = int(keywords["count"].values[0])
 
+            # Updating the dithers, count, and/or ditherSeq with new values
+            print('updating count from {0} to {1}'.format(cmdState.count, count))
             cmdState.dithers = dithers
+            print('old dithers {0}, old dither sequence {1}'.format(cmdState.dithers, cmdState.ditherSeq))
             cmdState.count = count
             cmdState.reset_ditherSeq()
+            print('new dithers {0}, new dither sequence {1}'.format(cmdState.dithers, cmdState.ditherSeq))
 
             if cmdState.index >= len(cmdState.ditherSeq):
                 cmd.warn('text="Modified exposure sequence is shorter than position in current sequence."')

@@ -515,26 +515,26 @@ class DoBossScienceCmd(CmdState):
     def abort(self):
         self.stop_boss_exposure()
         self.nExp = self.index
-        super(DoBossScienceCmd,self).abort()
+        super(DoBossScienceCmd, self).abort()
 
 
 class DoMangaSequenceCmd(CmdState):
     def __init__(self):
         CmdState.__init__(self, 'doMangaSequence',
-                          ['expose','calibs','dither'],
+                          ['expose', 'calibs', 'dither'],
                           keywords=dict(expTime=900.0,
                                         dithers='NSE',
                                         count=3))
         self.reset_ditherSeq()
 
     def reset_nonkeywords(self):
-        super(DoMangaSequenceCmd,self).reset_nonkeywords()
+        super(DoMangaSequenceCmd, self).reset_nonkeywords()
 
     def set_mangaDither(self):
         """Setup to use this for MaNGA dither observations."""
-        self.keywords=dict(expTime=900.0,
-                           dithers='NSE',
-                           count=3)
+        self.keywords = dict(expTime=900.0,
+                             dithers='NSE',
+                             count=3)
         self.count = 3
         self.dithers = 'NSE'
         if not (self.cmd and self.cmd.isAlive()):
@@ -542,9 +542,9 @@ class DoMangaSequenceCmd(CmdState):
 
     def set_mangaStare(self):
         """Setup to use this for MaNGA Stare observations."""
-        self.keywords=dict(expTime=900.0,
-                           dithers='CCC',
-                           count=1)
+        self.keywords = dict(expTime=900.0,
+                             dithers='CCC',
+                             count=1)
         self.count = 1
         self.dithers = 'CCC'
         if not (self.cmd and self.cmd.isAlive()):
@@ -566,6 +566,24 @@ class DoMangaSequenceCmd(CmdState):
         else:
             return self.index < len(self.ditherSeq)
 
+    def remaining_exposures(self):
+        ''' Return the number of remaining exposures '''
+        return len(self.ditherSeq) - self.index
+
+    def current_dither(self):
+        ''' Gets the current dither '''
+        try:
+            return self.ditherSeq[self.index]
+        except Exception as e:
+            return None
+
+    def hasStateChanged(self, oldstate):
+        ''' Check if the new state is different than old state '''
+        if type(oldstate) == dict:
+            return {'count': self.count, 'dithers': self.dithers, 'ditherSeq': self.ditherSeq} != oldstate
+        else:
+            return self.__dict__ != oldstate.__dict__
+
     def isSlewingDisabled(self):
         if (self.cmd and self.cmd.isAlive()):
             return "slewing disallowed for MaNGA, with a sequence in progress."
@@ -574,7 +592,7 @@ class DoMangaSequenceCmd(CmdState):
 
     def abort(self):
         self.stop_boss_exposure()
-        super(DoMangaSequenceCmd,self).abort()
+        super(DoMangaSequenceCmd, self).abort()
 
 
 class DoMangaDitherCmd(CmdState):
