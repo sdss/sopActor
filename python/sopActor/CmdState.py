@@ -159,6 +159,13 @@ class CmdState(object):
         return []
 
     def genStateKeys(self, cmd=None):
+        '''
+        Generates command info statements for commmand keys
+        Format: [commandName]_keyword = currentset_value, default_value
+        e.g.
+        doMangaSequence_count=1,3; doMangaSequence_dithers="NSE","NSE"
+        doMangaSequence_expTime=900.0,900.0; doMangaSequence_ditherSeq=NSE,0
+        '''
         cmd = self._getCmd(cmd)
 
         msg = []
@@ -184,7 +191,9 @@ class CmdState(object):
     def genKeys(self, cmd=None, trimKeys=False):
         """Output all our keywords."""
         if not trimKeys or trimKeys == self.name:
+            # [commandName]Stages and [commandName]State info statements (e.g. doMangaSequenceStages, doMangaSequenceState)
             self.genCommandKeys(cmd=cmd)
+            # invidual state keys
             self.genStateKeys(cmd=cmd)
 
     def took_exposure(self):

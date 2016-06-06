@@ -399,6 +399,8 @@ class SopCmd(object):
         sopState = myGlobals.actorState
         cmdState = sopState.doMangaSequence
         keywords = cmd.cmd.keywords
+        print('cmd', cmd, type(cmd))
+        print('keywords', keywords)
 
         if "stop" in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
             self.stop_cmd(cmd, cmdState, sopState, name)
@@ -434,12 +436,13 @@ class SopCmd(object):
 
         cmdState.reinitialize(cmd)
         expTime = keywords["expTime"].values[0] if "expTime" in keywords else None
-        cmdState.set('expTime',expTime)
+        cmdState.set('expTime', expTime)
         dither = keywords['dithers'].values[0] if "dithers" in keywords else None
-        cmdState.set('dithers',dither)
+        cmdState.set('dithers', dither)
         count = keywords['count'].values[0] if "count" in keywords else None
-        cmdState.set('count',count)
+        cmdState.set('count', count)
         cmdState.reset_ditherSeq()
+        print('end keywords', keywords)
 
         sopState.queues[sopActor.MASTER].put(Msg.DO_MANGA_SEQUENCE, cmd, replyQueue=self.replyQueue,
                                              actorState=sopState, cmdState=cmdState)
