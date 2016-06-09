@@ -1232,7 +1232,7 @@ if __name__ == '__main__':
     # to test just one piece
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestGotoGangChange)
     #suite = unittest.TestLoader().loadTestsFromTestCase(TestDoMangaDither)
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestDoMangaSequence)
+    # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoMangaSequence)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestDoApogeeMangaSequence)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestClassifyCartridge)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestUpdateCartridge)

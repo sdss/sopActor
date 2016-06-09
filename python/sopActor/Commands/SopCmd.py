@@ -144,7 +144,6 @@ class SopCmd(object):
         else:
             cmd.fail('text="No %s command is active"'%(name))
 
-
     def modifiable(self, cmd, cmdState):
         return cmdState.cmd and cmdState.cmd.isAlive()
 
@@ -399,8 +398,6 @@ class SopCmd(object):
         sopState = myGlobals.actorState
         cmdState = sopState.doMangaSequence
         keywords = cmd.cmd.keywords
-        print('cmd', cmd, type(cmd))
-        print('keywords', keywords)
 
         if "stop" in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
             self.stop_cmd(cmd, cmdState, sopState, name)
@@ -419,12 +416,9 @@ class SopCmd(object):
                 count = int(keywords["count"].values[0])
 
             # Updating the dithers, count, and/or ditherSeq with new values
-            print('updating count from {0} to {1}'.format(cmdState.count, count))
             cmdState.dithers = dithers
-            print('old dithers {0}, old dither sequence {1}'.format(cmdState.dithers, cmdState.ditherSeq))
             cmdState.count = count
             cmdState.reset_ditherSeq()
-            print('new dithers {0}, new dither sequence {1}'.format(cmdState.dithers, cmdState.ditherSeq))
 
             if cmdState.index >= len(cmdState.ditherSeq):
                 cmd.warn('text="Modified exposure sequence is shorter than position in current sequence."')
@@ -442,7 +436,6 @@ class SopCmd(object):
         count = keywords['count'].values[0] if "count" in keywords else None
         cmdState.set('count', count)
         cmdState.reset_ditherSeq()
-        print('end keywords', keywords)
 
         sopState.queues[sopActor.MASTER].put(Msg.DO_MANGA_SEQUENCE, cmd, replyQueue=self.replyQueue,
                                              actorState=sopState, cmdState=cmdState)
@@ -509,10 +502,10 @@ class SopCmd(object):
         cmdState.reinitialize(cmd)
 
         mangaDithers = keywords['mangaDithers'].values[0] if "mangaDithers" in keywords else None
-        cmdState.set('mangaDithers',mangaDithers)
+        cmdState.set('mangaDithers', mangaDithers)
 
         count = keywords["count"].values[0] if "count" in keywords else None
-        cmdState.set('count',count)
+        cmdState.set('count', count)
 
         cmdState.reset_ditherSeq()
 

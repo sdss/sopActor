@@ -159,7 +159,7 @@ guider decenter off
 
 
 
-[test_do_manga_sequence_updatecount]
+[test_do_manga_sequence_updatecount_1to2]
 guider decenter on
 
 guider mangaDither ditherPos=N
@@ -177,22 +177,8 @@ guider mangaDither ditherPos=E
 boss exposure science itime=900 noreadout
 
 boss exposure   readout
-guider mangaDither ditherPos=N
-
-boss exposure science itime=900 noreadout
-
-boss exposure   readout
-guider mangaDither ditherPos=S
-
-boss exposure science itime=900 noreadout
-
-boss exposure   readout
-guider mangaDither ditherPos=E
-
-boss exposure science itime=900 noreadout
-
-boss exposure   readout
 guider decenter off
+
 
 
 

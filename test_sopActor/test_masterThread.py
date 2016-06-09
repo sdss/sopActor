@@ -558,7 +558,7 @@ class TestMangaScience(MasterThreadTester):
         dither = 'S'
         self._do_manga_dither(4, 27, 0, 1, dither=dither, didFail=True)
 
-    def _do_manga_sequence(self, nCall, nInfo, nWarn, nErr, count, dithers='NSE', didFail=False, first=True):
+    def _do_manga_sequence(self, nCall, nInfo, nWarn, nErr, count, dithers='NSE', didFail=False, first=True, checkcmds=True):
         self._update_cart(1, 'MaNGA')
         cmdState = self.actorState.doMangaSequence
         if first:
@@ -567,7 +567,8 @@ class TestMangaScience(MasterThreadTester):
         cmdState.dithers = dithers
         cmdState.reset_ditherSeq()
         masterThread.do_manga_sequence(self.cmd, cmdState, myGlobals.actorState)
-        #self._check_cmd(nCall, nInfo, nWarn, nErr, True, didFail=didFail)
+        if checkcmds:
+            self._check_cmd(nCall, nInfo, nWarn, nErr, True, didFail=didFail)
         self.assertTrue(self.cmd.finished)
 
     def test_do_manga_sequence(self):
@@ -587,15 +588,6 @@ class TestMangaScience(MasterThreadTester):
         count = 2
         dithers = 'NSE'
         self._do_manga_sequence(20, 167, 0, 0, count, dithers)
-
-    def test_do_manga_sequence_updatecount(self):
-        sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
-        count = 1
-        dithers = 'NSE'
-        self._start_thread(self._do_manga_sequence(11, 95, 0, 0, count, dithers), name='sop_masterthread_onecount')
-        # update count
-        count = 2
-        self._do_manga_sequence(20, 167, 0, 0, count, dithers, first=False)
 
     # Spawn a new process
     def _start_thread(self, method, wait=2, mp=None, name='masterthread'):
