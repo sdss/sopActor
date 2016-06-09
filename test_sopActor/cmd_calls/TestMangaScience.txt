@@ -26,6 +26,8 @@ boss exposure science itime=900
 
 guider decenter off
 
+
+
 [test_do_manga_dither_fails_ffs]
 mcp ffs.open
 guider decenter on
@@ -39,6 +41,9 @@ guider decenter on
 guider mangaDither ditherPos=S
 
 guider decenter off
+
+
+
 
 [test_do_manga_sequence]
 guider decenter on
@@ -90,6 +95,9 @@ boss exposure science itime=900 noreadout
 boss exposure   readout
 guider decenter off
 
+
+
+
 [test_do_manga_sequence_one_set]
 guider decenter on
 
@@ -109,6 +117,70 @@ boss exposure science itime=900 noreadout
 
 boss exposure   readout
 guider decenter off
+
+
+
+
+[test_do_manga_sequence_two_sets]
+guider decenter on
+
+guider mangaDither ditherPos=N
+
+boss exposure science itime=900 noreadout
+
+boss exposure   readout
+guider mangaDither ditherPos=S
+
+boss exposure science itime=900 noreadout
+
+boss exposure   readout
+guider mangaDither ditherPos=E
+
+boss exposure science itime=900 noreadout
+
+boss exposure   readout
+guider mangaDither ditherPos=N
+
+boss exposure science itime=900 noreadout
+
+boss exposure   readout
+guider mangaDither ditherPos=S
+
+boss exposure science itime=900 noreadout
+
+boss exposure   readout
+guider mangaDither ditherPos=E
+
+boss exposure science itime=900 noreadout
+
+boss exposure   readout
+guider decenter off
+
+
+
+
+[test_do_manga_sequence_updatecount_1to2]
+guider decenter on
+
+guider mangaDither ditherPos=N
+
+boss exposure science itime=900 noreadout
+
+boss exposure   readout
+guider mangaDither ditherPos=S
+
+boss exposure science itime=900 noreadout
+
+boss exposure   readout
+guider mangaDither ditherPos=E
+
+boss exposure science itime=900 noreadout
+
+boss exposure   readout
+guider decenter off
+
+
+
 
 [test_do_manga_sequence_fails_exposure]
 guider decenter on

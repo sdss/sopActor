@@ -4,7 +4,7 @@ Test creating, modifying, and destroying the many different CmdStates.
 
 import unittest
 import abc
-
+import copy
 import sopActor
 
 from actorcore import TestHelper
@@ -455,10 +455,10 @@ class TestDoBossScience(CmdStateTester,unittest.TestCase):
         self.assertFalse(self.cmdState.exposures_remain())
 
 
-class TestDoMangaSequence(CmdStateTester,unittest.TestCase):
+class TestDoMangaSequence(CmdStateTester, unittest.TestCase):
     def setUp(self):
         self.userKeys = True
-        super(TestDoMangaSequence,self).setUp()
+        super(TestDoMangaSequence, self).setUp()
         self.cmdState = sopActor.CmdState.DoMangaSequenceCmd()
         self.ok_stage = 'dither'
 
@@ -469,13 +469,14 @@ class TestDoMangaSequence(CmdStateTester,unittest.TestCase):
 
     def test_isSlewingDisabled_no_cmd(self):
         self._isSlewingDisabled_no_cmd()
+
     def test_isSlewingDisabled_cmd_finished(self):
         self._isSlewingDisabled_cmd_finished()
 
     def test_abort(self):
         self._fake_boss_exposing()
-        super(TestDoMangaSequence,self).test_abort()
-        self.assertEqual(self.cmd.calls, ['boss exposure stop',])
+        super(TestDoMangaSequence, self).test_abort()
+        self.assertEqual(self.cmd.calls, ['boss exposure stop', ])
 
     def test_exposures_remain(self):
         self.assertTrue(self.cmdState.exposures_remain())
@@ -488,10 +489,52 @@ class TestDoMangaSequence(CmdStateTester,unittest.TestCase):
         self.cmdState.aborted = True
         self.assertFalse(self.cmdState.exposures_remain())
 
+    def _update_ditherSeq(self, count):
+        self.assertEqual(3, self.cmdState.count)
+        self.assertEqual(self.cmdState.dithers*3, self.cmdState.ditherSeq)
+        self.cmdState.count = count
+        self.cmdState.reset_ditherSeq()
+        self.assertEqual(count, self.cmdState.count)
+        self.assertEqual(self.cmdState.dithers*count, self.cmdState.ditherSeq)
 
-class TestDoMangaDither(CmdStateTester,unittest.TestCase):
+    def test_update_ditherSeq_count1(self):
+        self._update_ditherSeq(1)
+
+    def test_update_ditherSeq_count2(self):
+        self._update_ditherSeq(2)
+
+    def _has_state_changed_true(self, oldstate, as_dict=None):
+        self.cmdState.count = 1
+        self.cmdState.reset_ditherSeq()
+        haschanged = self.cmdState.hasStateChanged(oldstate)
+        self.assertTrue(haschanged)
+
+    def test_state_as_class_true(self):
+        oldstate = copy.copy(self.cmdState)
+        self._has_state_changed_true(oldstate)
+
+    def test_state_as_dict_true(self):
+        oldstate = {'count': self.cmdState.count, 'dithers': self.cmdState.dithers, 'ditherSeq': self.cmdState.ditherSeq}
+        self._has_state_changed_true(oldstate)
+
+    def _has_state_changed_false(self, as_dict=False):
+        if as_dict:
+            oldstate = {'count': self.cmdState.count, 'dithers': self.cmdState.dithers, 'ditherSeq': self.cmdState.ditherSeq}
+        else:
+            oldstate = copy.copy(self.cmdState)
+        haschanged = self.cmdState.hasStateChanged(oldstate)
+        self.assertFalse(haschanged)
+
+    def test_state_as_class_false(self):
+        self._has_state_changed_false()
+
+    def test_state_as_dict_false(self):
+        self._has_state_changed_false(as_dict=True)
+
+
+class TestDoMangaDither(CmdStateTester, unittest.TestCase):
     def setUp(self):
-        super(TestDoMangaDither,self).setUp()
+        super(TestDoMangaDither, self).setUp()
         self.cmdState = sopActor.CmdState.DoMangaDitherCmd()
         self.ok_stage = 'dither'
 
@@ -501,15 +544,17 @@ class TestDoMangaDither(CmdStateTester,unittest.TestCase):
         self.assertEqual(self.cmdState.readout, True)
 
     def test_isSlewingDisabled_because_exposing(self):
-        sopTester.updateModel('boss',TestHelper.bossState['integrating'])
+        sopTester.updateModel('boss', TestHelper.bossState['integrating'])
         self._isSlewingDisabled_because_exposing('MaNGA', 1, 'INTEGRATING',
                                                  prefix='BOSS_')
+
     def test_isSlewingDisabled_False(self):
-        sopTester.updateModel('boss',TestHelper.bossState['reading'])
+        sopTester.updateModel('boss', TestHelper.bossState['reading'])
         self._isSlewingDisabled_False()
 
     def test_isSlewingDisabled_no_cmd(self):
         self._isSlewingDisabled_no_cmd()
+
     def test_isSlewingDisabled_cmd_finished(self):
         self._isSlewingDisabled_cmd_finished()
 
@@ -520,8 +565,8 @@ class TestDoMangaDither(CmdStateTester,unittest.TestCase):
 
     def test_abort(self):
         self._fake_boss_exposing()
-        super(TestDoMangaDither,self).test_abort()
-        self.assertEqual(self.cmd.calls, ['boss exposure stop',])
+        super(TestDoMangaDither, self).test_abort()
+        self.assertEqual(self.cmd.calls, ['boss exposure stop', ])
 
 
 class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):

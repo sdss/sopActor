@@ -8,6 +8,8 @@ Particularly bad in this regard are the do_boss_calibs tests.
 """
 
 import unittest
+import threading
+import multiprocessing as multi
 
 from actorcore import TestHelper
 import sopTester
@@ -495,8 +497,10 @@ class TestApogeeScience(MasterThreadTester):
         self.assertEqual(cmdState.expTime, 1000)
         self.assertEqual(cmdState.keywords['expTime'], 1000)
 
+
 class TestMangaScience(MasterThreadTester):
     """do_manga_* tests"""
+
     def _do_one_manga_dither(self, nCall, nInfo, nWarn, nErr, dither='N', didFail=False):
         self._update_cart(1, 'MaNGA', 'MaNGA dither')
         cmdState = self.actorState.doMangaDither
@@ -504,31 +508,34 @@ class TestMangaScience(MasterThreadTester):
         cmdState.dither = dither
         success = masterThread.do_one_manga_dither(self.cmd, cmdState, myGlobals.actorState)
         self.assertEqual(success, not didFail)
-        self._check_cmd(nCall,nInfo,nWarn,nErr,False,didFail=didFail)
+        self._check_cmd(nCall, nInfo, nWarn, nErr, False, didFail=didFail)
+
     def test_do_one_manga_dither(self):
-        sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
+        sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
         dither = 'N'
-        self._do_one_manga_dither(3,19,0,0,dither=dither)
+        self._do_one_manga_dither(3, 19, 0, 0, dither=dither)
+
     def test_do_one_manga_dither_fails_exposure(self):
-        sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
+        sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
         self.cmd.failOn = 'boss exposure science itime=900'
         dither = 'N'
-        self._do_one_manga_dither(3,19,0,1,dither=dither,didFail=True)
-
+        self._do_one_manga_dither(3, 19, 0, 1, dither=dither, didFail=True)
 
     def _do_manga_dither(self, nCall, nInfo, nWarn, nErr, dither='N', didFail=False):
         cmdState = self.actorState.doMangaDither
         cmdState.reinitialize(self.cmd)
         cmdState.dither = dither
         masterThread.do_manga_dither(self.cmd, cmdState, myGlobals.actorState)
-        self._check_cmd(nCall,nInfo,nWarn,nErr,True,didFail=didFail)
+        self._check_cmd(nCall, nInfo, nWarn, nErr, True, didFail=didFail)
+
     def test_do_manga_dither(self):
-        sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
+        sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
         dither = 'N'
-        self._do_manga_dither(4,27,0,0,dither=dither)
+        self._do_manga_dither(4, 27, 0, 0, dither=dither)
+
     def test_do_manga_dither_after_sequence(self):
         """See ticket #2107 for the bug that this tickles."""
-        sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
+        sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
         dither = 'N'
         cmdState = self.actorState.doMangaSequence
         cmdState.reinitialize(self.cmd)
@@ -539,44 +546,67 @@ class TestMangaScience(MasterThreadTester):
         masterThread.do_apogeemanga_sequence(self.cmd, cmdState, myGlobals.actorState)
         self.cmd.reset()
         self.cmd.verbose = self.verbose
-        self._do_manga_dither(4,27,0,0,dither=dither)
+        self._do_manga_dither(4, 27, 0, 0, dither=dither)
 
     def test_do_manga_dither_fails_ffs(self):
         self.cmd.failOn = "mcp ffs.open"
         dither = 'S'
-        self._do_manga_dither(4,27,1,0,dither=dither, didFail=True)
+        self._do_manga_dither(4, 27, 1, 0, dither=dither, didFail=True)
+
     def test_do_manga_dither_fails_dither(self):
         self.cmd.failOn = "guider mangaDither ditherPos=S"
         dither = 'S'
-        self._do_manga_dither(4,27,0,1,dither=dither, didFail=True)
+        self._do_manga_dither(4, 27, 0, 1, dither=dither, didFail=True)
 
-
-    def _do_manga_sequence(self,nCall,nInfo,nWarn,nErr,count,dithers='NSE',didFail=False):
+    def _do_manga_sequence(self, nCall, nInfo, nWarn, nErr, count, dithers='NSE', didFail=False, first=True, checkcmds=True):
         self._update_cart(1, 'MaNGA')
         cmdState = self.actorState.doMangaSequence
-        cmdState.reinitialize(self.cmd)
+        if first:
+            cmdState.reinitialize(self.cmd)
         cmdState.count = count
         cmdState.dithers = dithers
         cmdState.reset_ditherSeq()
         masterThread.do_manga_sequence(self.cmd, cmdState, myGlobals.actorState)
-        self._check_cmd(nCall,nInfo,nWarn,nErr,True,didFail=didFail)
+        if checkcmds:
+            self._check_cmd(nCall, nInfo, nWarn, nErr, True, didFail=didFail)
         self.assertTrue(self.cmd.finished)
+
     def test_do_manga_sequence(self):
-        sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
+        sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
         count = 3
         dithers = 'NSE'
-        self._do_manga_sequence(29,239,0,0,count,dithers)
+        self._do_manga_sequence(29, 239, 0, 0, count, dithers)
+
     def test_do_manga_sequence_one_set(self):
-        sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
+        sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
         count = 1
         dithers = 'NSE'
-        self._do_manga_sequence(11,95,0,0,count,dithers)
+        self._do_manga_sequence(11, 95, 0, 0, count, dithers)
+
+    def test_do_manga_sequence_two_sets(self):
+        sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
+        count = 2
+        dithers = 'NSE'
+        self._do_manga_sequence(20, 167, 0, 0, count, dithers)
+
+    # Spawn a new process
+    def _start_thread(self, method, wait=2, mp=None, name='masterthread'):
+        # threads or multiprocessing
+        if mp:
+            # multiprocess
+            self.newproc = multi.Process(target=method, name=name, kwargs={'wait': wait})
+        else:
+            # threads
+            self.newproc = threading.Thread(target=method, name=name, kwargs={'wait': wait})
+        # start the process
+        self.newproc.start()
+
     def test_do_manga_sequence_fails_exposure(self):
-        sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
+        sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
         self.cmd.failOn = 'boss exposure science itime=900 noreadout'
         count = 3
         dithers = 'NSE'
-        self._do_manga_sequence(5,44,0,1,count,dithers,didFail=True)
+        self._do_manga_sequence(5, 44, 0, 1, count, dithers, didFail=True)
 
 
 class TestApogeeMangaScience(MasterThreadTester):
@@ -903,7 +933,7 @@ if __name__ == '__main__':
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestBossScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestHartmann)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestCollimateBoss)
-    # suite = unittest.TestLoader().loadTestsFromTestCase(TestMangaScience)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestMangaScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestApogeeMangaScience)
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestBossCalibs)
     # suite = unittest.TestLoader().loadTestsFromName('test_masterThread.TestGotoGangChange.test_goto_gang_change_apogee_bypass_gangToCart')

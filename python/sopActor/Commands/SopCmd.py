@@ -144,7 +144,6 @@ class SopCmd(object):
         else:
             cmd.fail('text="No %s command is active"'%(name))
 
-
     def modifiable(self, cmd, cmdState):
         return cmdState.cmd and cmdState.cmd.isAlive()
 
@@ -416,6 +415,7 @@ class SopCmd(object):
             if "count" in keywords:
                 count = int(keywords["count"].values[0])
 
+            # Updating the dithers, count, and/or ditherSeq with new values
             cmdState.dithers = dithers
             cmdState.count = count
             cmdState.reset_ditherSeq()
@@ -430,11 +430,11 @@ class SopCmd(object):
 
         cmdState.reinitialize(cmd)
         expTime = keywords["expTime"].values[0] if "expTime" in keywords else None
-        cmdState.set('expTime',expTime)
+        cmdState.set('expTime', expTime)
         dither = keywords['dithers'].values[0] if "dithers" in keywords else None
-        cmdState.set('dithers',dither)
+        cmdState.set('dithers', dither)
         count = keywords['count'].values[0] if "count" in keywords else None
-        cmdState.set('count',count)
+        cmdState.set('count', count)
         cmdState.reset_ditherSeq()
 
         sopState.queues[sopActor.MASTER].put(Msg.DO_MANGA_SEQUENCE, cmd, replyQueue=self.replyQueue,
@@ -502,10 +502,10 @@ class SopCmd(object):
         cmdState.reinitialize(cmd)
 
         mangaDithers = keywords['mangaDithers'].values[0] if "mangaDithers" in keywords else None
-        cmdState.set('mangaDithers',mangaDithers)
+        cmdState.set('mangaDithers', mangaDithers)
 
         count = keywords["count"].values[0] if "count" in keywords else None
-        cmdState.set('count',count)
+        cmdState.set('count', count)
 
         cmdState.reset_ditherSeq()
 

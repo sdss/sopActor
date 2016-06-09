@@ -525,52 +525,61 @@ class TestDoMangaDither(SopCmdTester,unittest.TestCase):
         self._check_cmd(0,2,0,0,True,True)
 
 
-class TestDoMangaSequence(SopCmdTester,unittest.TestCase):
-    def _doMangaSequence(self, expect, args, cmd_levels=(0,2,0,0)):
+class TestDoMangaSequence(SopCmdTester, unittest.TestCase):
+    def _doMangaSequence(self, expect, args, cmd_levels=(0, 2, 0, 0)):
         stages = ['expose', 'calibs', 'dither']
-        stages = dict(zip(stages,['idle']*len(stages)))
+        stages = dict(zip(stages, ['idle']*len(stages)))
 
         queue = myGlobals.actorState.queues[sopActor.MASTER]
-        msg = self._run_cmd('doMangaSequence %s'%(args),queue)
-        self.assertEqual(msg.type,sopActor.Msg.DO_MANGA_SEQUENCE)
+        msg = self._run_cmd('doMangaSequence %s' % (args), queue)
+        self.assertEqual(msg.type, sopActor.Msg.DO_MANGA_SEQUENCE)
         self._check_levels(*cmd_levels)
-        self.assertEqual(msg.cmdState.stages,stages)
-        self.assertEqual(msg.cmdState.ditherSeq,expect['ditherSeq'])
+        self.assertEqual(msg.cmdState.stages, stages)
+        self.assertEqual(msg.cmdState.ditherSeq, expect['ditherSeq'])
 
     def test_doMangaSequence_default(self):
-        expect = {'expTime':900,
-                  'ditherSeq':'NSE'*3}
-        self._doMangaSequence(expect,'')
+        expect = {'expTime': 900,
+                  'ditherSeq': 'NSE'*3}
+        self._doMangaSequence(expect, '')
+
     def test_doMangaSequence_one_set(self):
-        expect = {'expTime':900,
-                  'ditherSeq':'NSE'}
-        self._doMangaSequence(expect,'count=1')
+        expect = {'expTime': 900,
+                  'ditherSeq': 'NSE'}
+        self._doMangaSequence(expect, 'count=1')
 
     def test_doMangaSequence_abort(self):
         self.actorState.doMangaSequence.cmd = self.cmd
         self._run_cmd('doMangaSequence abort', None)
         self.assertTrue(self.actorState.aborting)
 
-    def _doMangaSequence_modify(self, args1, args2, cmd_levels=(0,11,0,0), didFail=False):
+    def _doMangaSequence_modify(self, args1, args2, cmd_levels=(0, 11, 0, 0), didFail=False):
         queue = myGlobals.actorState.queues[sopActor.MASTER]
         # create something we can modify.
-        msg = self._run_cmd('doMangaSequence %s'%args1, queue)
-        msgNew = self._run_cmd('doMangaSequence %s'%args2, queue, empty=True)
+        msg = self._run_cmd('doMangaSequence %s' % args1, queue)
+        msgNew = self._run_cmd('doMangaSequence %s' % args2, queue, empty=True)
         self.assertIsNone(msgNew)
-        self._check_cmd(*cmd_levels,finish=True, didFail=didFail)
+        self._check_cmd(*cmd_levels, finish=True, didFail=didFail)
         return msg
-    def test_doMangaSequence_modify(self):
-        msg = self._doMangaSequence_modify('dithers=NSE count=2','dithers=NSE count=1')
-        self.assertEqual(msg.cmdState.dithers,'NSE')
-        self.assertEqual(msg.cmdState.count,1)
-        self.assertEqual(msg.cmdState.ditherSeq,'NSE')
+
+    def test_doMangaSequence_modify_count_2to1(self):
+        msg = self._doMangaSequence_modify('dithers=NSE count=2', 'dithers=NSE count=1')
+        self.assertEqual(msg.cmdState.dithers, 'NSE')
+        self.assertEqual(msg.cmdState.count, 1)
+        self.assertEqual(msg.cmdState.ditherSeq, 'NSE')
+
+    def test_doMangaSequence_modify_count_1to2(self):
+        msg = self._doMangaSequence_modify('dithers=NSE count=1', 'dithers=NSE count=2')
+        self.assertEqual(msg.cmdState.dithers, 'NSE')
+        self.assertEqual(msg.cmdState.count, 2)
+        self.assertEqual(msg.cmdState.ditherSeq, 'NSENSE')
 
     def test_doMangaSequence_modify_not_dithers(self):
-        msg = self._doMangaSequence_modify('dithers=NSE count=2','dithers=SEN count=1',(0,2,0,0),True)
-        self.assertEqual(msg.cmdState.dithers,'NSE')
-        self.assertEqual(msg.cmdState.count,2)
-        self.assertEqual(msg.cmdState.ditherSeq,'NSENSE')
+        msg = self._doMangaSequence_modify('dithers=NSE count=2', 'dithers=SEN count=1', (0, 2, 0, 0), True)
+        self.assertEqual(msg.cmdState.dithers, 'NSE')
+        self.assertEqual(msg.cmdState.count, 2)
+        self.assertEqual(msg.cmdState.ditherSeq, 'NSENSE')
         self.assertTrue(self.cmd.didFail)
+
 
 class TestDoApogeeMangaDither(SopCmdTester,unittest.TestCase):
     def _doApogeeMangaDither(self, expect, args=''):

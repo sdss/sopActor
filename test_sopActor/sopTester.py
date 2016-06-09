@@ -23,7 +23,7 @@ def FakeThread(actor,queues):
     # how to get the actual name and ID of this thread.
     name = threading.current_thread().name
     tid = [t for t in queues if name == queues[t].name][0]
-    # Let me strip out Msg members that are always there, 
+    # Let me strip out Msg members that are always there,
     # to find useful parts of messages that are the command arguments.
     genericMsg = sopActor.Msg(None,None)
     genericMsg.senderName = ''
@@ -63,7 +63,7 @@ class SopTester(TestHelper.ActorTester):
         actorState.guiderState = GuiderState(actorState.models["guider"])
         actorState.apogeeGang = ApogeeGang()
         actorState.threads = {} # so things that look for threads here don't fail.
-        
+
         actorState.timeout = 10
         actorState.aborting = False
         self._load_lamptimes()
@@ -156,16 +156,16 @@ class SopThreadTester(SopTester,unittest.TestCase):
         self._load_cmd_calls(class_name)
         # lets us see really long list/list diffs
         self.maxDiff = None
-    
+
     def setUp(self):
         """
         Set up things that all thread testers need.
-        Requires that self.useThreads (list of triplets of tname,tid,target) 
+        Requires that self.useThreads (list of triplets of tname,tid,target)
         be defined first, so it can actually start the threads.
         """
         super(SopThreadTester,self).setUp()
         actorState = myGlobals.actorState
-        
+
         self.pre_threads = threading.activeCount()
         actorState.threads = {}
         actorState.queues = {}
@@ -204,7 +204,7 @@ class SopThreadTester(SopTester,unittest.TestCase):
         for tid in myGlobals.actorState.queues:
             myGlobals.actorState.queues[tid].flush()
             myGlobals.actorState.queues[tid].put(sopActor.Msg(sopActor.Msg.EXIT, cmd=self.cmd))
-        
+
     def tearDown(self):
         self.killQueues()
         sys.stderr.flush()
@@ -213,7 +213,7 @@ class SopThreadTester(SopTester,unittest.TestCase):
         if self.verbose:
             print
 
-# NOTE: commented out, as it doesn't actually test the thing I want it to test: 
+# NOTE: commented out, as it doesn't actually test the thing I want it to test:
 # the failure of RO.AddCallback on ApogeeCB.listenToReads.
 # class ThreadExitTester(SopThreadTester):
 #     """Overload setUp to start just one thread, to check for a clean exit."""
@@ -227,7 +227,7 @@ class SopThreadTester(SopTester,unittest.TestCase):
 #             msg = sopActor.Msg(sopActor.Msg.STATUS, cmd=self.cmd, replyQueue=sopActor.Queue("(replyQueue)", 0))
 #             myGlobals.actorState.queues[tid].put(msg)
 #         time.sleep(2)
-        
+
 #         self.killQueues()
 #         i=0
 #         while threading.activeCount() > self.pre_threads:
