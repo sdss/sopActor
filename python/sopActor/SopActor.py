@@ -43,23 +43,6 @@ from sopActor.utils.gang import ApogeeGang
 from bypass import Bypass
 
 
-class State(object):
-    """An object to hold globally useful state"""
-
-    def __init__(self, actor):
-        self.actor = actor
-        self.dispatcher = self.actor.cmdr.dispatcher
-        self.models = {}
-        self.restartCmd = None
-        self.aborting = False
-        self.ignoreAborting = False
-
-    def __str__(self):
-        msg = "%s %s" % (self.actor, self.actor.cmdr.dispatcher)
-
-        return msg
-
-
 class SopActor(actorcore.Actor.SDSSActor):
     """The SOP actor main class."""
 
