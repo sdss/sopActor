@@ -63,7 +63,31 @@ class SopCmdTester(sopTester.SopTester):
         self.actorState.threads[tid].join()
 
 
-class TestBypass(SopCmdTester,unittest.TestCase):
+class SopAPOCmdTester(SopCmdTester):
+    def setUp(self):
+        self.name = 'sop'
+        self.actor = TestHelper.FakeActor(self.name, self.name+'Actor', location='APO')
+        super(SopAPOCmdTester, self).setUp()
+        self.sopcmd = self.actor.commandSets['SopCmd_APO']
+
+
+class SopLCOCmdTester(SopCmdTester):
+    def setUp(self):
+        self.name = 'sop'
+        self.actor = TestHelper.FakeActor(self.name, self.name+'Actor', location='LCO')
+        super(SopLCOCmdTester, self).setUp()
+        self.sopcmd = self.actor.commandSets['SopCmd_LCO']
+
+
+class SopLOCALCmdTester(SopCmdTester):
+    def setUp(self):
+        self.name = 'sop'
+        self.actor = TestHelper.FakeActor(self.name, self.name+'Actor', location='LOCAL')
+        super(SopLOCALCmdTester, self).setUp()
+        self.sopcmd = self.actor.commandSets['SopCmd_LOCAL']
+
+
+class TestBypass(SopCmdTester, unittest.TestCase):
     """Test setting and clearing bypasses with the sop bypass command."""
     def setUp(self):
         # Cart bypasses can send a guider command, so we should test that.
