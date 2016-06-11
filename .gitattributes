@@ -27,7 +27,6 @@ python/sopActor/multiCommand.py -text
 python/sopActor/myGlobals.py -text
 python/sopActor/script.py -text
 python/sopActor/scriptThread.py -text
-python/sopActor/sopActor_main.py -text
 python/sopActor/tccThread.py -text
 python/sopActor/utils/__init__.py -text
 python/sopActor/utils/gang.py -text
