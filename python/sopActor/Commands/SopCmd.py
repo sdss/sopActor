@@ -463,40 +463,44 @@ class SopCmd(object):
 
         cmd.inform("surveyCommands=" + ", ".join(sopState.validCommands))
 
+        self._status_commands(cmd, sopState, oneCommand=oneCommand)
+
+        if threads:
+            self._status_threads(cmd, sopState, finish=finish)
+
+    def _status_commands(self, cmd, sopState, oneCommand=None):
+        """Status of commands.
+
+        This method is intended to be super'd and expanded for each location.
+
+        """
+
         # major commands
-        sopState.gotoField.genKeys(cmd=cmd, trimKeys=oneCommand)
-        sopState.doBossCalibs.genKeys(cmd=cmd, trimKeys=oneCommand)
-        sopState.doBossScience.genKeys(cmd=cmd, trimKeys=oneCommand)
-        sopState.doMangaDither.genKeys(cmd=cmd, trimKeys=oneCommand)
-        sopState.doMangaSequence.genKeys(cmd=cmd, trimKeys=oneCommand)
-        sopState.doApogeeMangaDither.genKeys(cmd=cmd, trimKeys=oneCommand)
-        sopState.doApogeeMangaSequence.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.doApogeeScience.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.doApogeeSkyFlats.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.gotoGangChange.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.doApogeeDomeFlat.genKeys(cmd=cmd, trimKeys=oneCommand)
-        sopState.hartmann.genKeys(cmd=cmd, trimKeys=oneCommand)
-        sopState.collimateBoss.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.gotoPosition.genKeys(cmd=cmd, trimKeys=oneCommand)
 
+    def _status_threads(self, cmd, sopState, finish=True):
         # TBD: threads arg is only used with "geek" option, apparently?
         # TBD: I guess its useful for live debugging of the threads.
-        if threads:
-            try:
-                sopState.ignoreAborting = True
-                getStatus = MultiCommand(cmd, 5.0, None)
 
-                for tid in sopState.threads.keys():
-                    getStatus.append(tid, Msg.STATUS)
+        try:
+            sopState.ignoreAborting = True
+            getStatus = MultiCommand(cmd, 5.0, None)
 
-                if not getStatus.run():
-                    if finish:
-                        cmd.fail("")
-                        return
-                    else:
-                        cmd.warn("")
-            finally:
-                sopState.ignoreAborting = False
+            for tid in sopState.threads.keys():
+                getStatus.append(tid, Msg.STATUS)
+
+            if not getStatus.run():
+                if finish:
+                    cmd.fail("")
+                    return
+                else:
+                    cmd.warn("")
+        finally:
+            sopState.ignoreAborting = False
 
         if finish:
             cmd.finish("")

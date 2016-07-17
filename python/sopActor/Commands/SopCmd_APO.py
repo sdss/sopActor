@@ -631,3 +631,21 @@ class SopCmd_APO(SopCmd.SopCmd):
         sopState.collimateBoss = CmdState.CollimateBossCmd()
 
         super(SopCmd_APO, self).initCommands()
+
+    def _status_commands(self, cmd, sopState, oneCommand=None):
+        """Status of APO specific commands.
+
+        """
+
+        super(SopCmd_APO, self)._status_commands(cmd, sopState,
+                                                 oneCommand=oneCommand)
+
+        sopState.gotoField.genKeys(cmd=cmd, trimKeys=oneCommand)
+        sopState.doBossCalibs.genKeys(cmd=cmd, trimKeys=oneCommand)
+        sopState.doBossScience.genKeys(cmd=cmd, trimKeys=oneCommand)
+        sopState.doMangaDither.genKeys(cmd=cmd, trimKeys=oneCommand)
+        sopState.doMangaSequence.genKeys(cmd=cmd, trimKeys=oneCommand)
+        sopState.doApogeeMangaDither.genKeys(cmd=cmd, trimKeys=oneCommand)
+        sopState.doApogeeMangaSequence.genKeys(cmd=cmd, trimKeys=oneCommand)
+        sopState.hartmann.genKeys(cmd=cmd, trimKeys=oneCommand)
+        sopState.collimateBoss.genKeys(cmd=cmd, trimKeys=oneCommand)
