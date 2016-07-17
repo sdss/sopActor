@@ -26,7 +26,7 @@ class SopCmd_LCO(SopCmd.SopCmd):
 
         # Define APO specific keys.
         self.keys.extend([
-            keys.Key('lco', types.Int(), help='Test key for LCO.')])
+            keys.Key('lco', types.String(), help='Test key for LCO.')])
 
         # Define new commands for APO
         self.vocab = [
