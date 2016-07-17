@@ -20,13 +20,24 @@ from sopActor.Commands import SopCmd
 class SopCmd_LCO(SopCmd.SopCmd):
 
     def __init__(self, actor):
+
         # initialize from the superclass
         super(SopCmd_LCO, self).__init__(actor)
 
-        # Define some new command keywords
+        # Define APO specific keys.
+        self.keys.extend([
+            keys.Key('lco', types.Int(), help='Test key for LCO.')])
 
-        # Define new commands for LCO
-        pass
+        # Define new commands for APO
+        self.vocab = [
+            ('doLCOThing', '[<lco>]', self.doLCOThing)]
 
+    def doLCOThing(self, cmd):
+        """Test for LCO."""
 
-
+        if 'lco' in cmd.cmd.keywords:
+            text = cmd.cmd.keywords['lco'].values[0]
+            cmd.inform('text={0}'.format(
+                qstr('got a text!: {0}'.format(text))))
+        else:
+            cmd.informat('text="no text was passed :("')

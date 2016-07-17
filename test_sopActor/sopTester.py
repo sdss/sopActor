@@ -1,8 +1,14 @@
 """
 To help testing the sop threads.
 """
+
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
+
 import ConfigParser
-import threading,Queue
+import threading
+import Queue
 import sys
 import unittest
 
@@ -11,12 +17,18 @@ from actorcore import TestHelper
 import sopActor
 
 from sopActor.bypass import Bypass
-from sopActor.Commands import SopCmd
+
+from sopActor.Commands.SopCmd_APO import SopCmd_APO
+from sopActor.Commands.SopCmd_LCO import SopCmd_LCO
+from sopActor.Commands.SopCmd_LOCAL import SopCmd_LOCAL
+
 from sopActor.utils.gang import ApogeeGang
 from sopActor.utils.guider import GuiderState
 import sopActor.myGlobals as myGlobals
 
+
 class TEST_QUEUE(): pass
+
 
 def FakeThread(actor,queues):
     """A thread that just outputs what it was told to do, for any message."""
@@ -45,17 +57,21 @@ def FakeThread(actor,queues):
         except Queue.Empty:
             actor.bcast.diag('text="%s alive"' % name)
 
+
 def updateModel(name,model):
     """Update the named actorState model with new parameters."""
     myGlobals.actorState.models[name] = TestHelper.Model(name,model)
 
 
 class SopTester(TestHelper.ActorTester):
-    def setUp(self):
+    def setUp(self, location='APO'):
         """Set up things that all SOP tests need."""
         self.name = 'sop'
+        self.location = location
+
         # so we can call SopCmds.
-        self.actor = TestHelper.FakeActor(self.name, self.name+'Actor')
+        self.actor = TestHelper.FakeActor(self.name, self.name+'Actor',
+                                          location=location)
 
         super(SopTester,self).setUp()
         myGlobals.actorState = self.actorState
@@ -77,7 +93,15 @@ class SopTester(TestHelper.ActorTester):
 
         # so we can call sopCmds, but init things silently.
         self.cmd.verbose = False
-        self.sopCmd = SopCmd.SopCmd(self.actor)
+
+        # Init the right SopCmd for this location.
+        if self.actor.location == 'APO':
+            self.sopCmd = SopCmd_APO(self.actor)
+        elif self.actor.location == 'LCO':
+            self.sopCmd = SopCmd_LCO(self.actor)
+        elif self.actor.location == 'LOCAL':
+            self.sopCmd = SopCmd_LOCAL(self.actor)
+
         self.sopCmd.initCommands()
         self.cmd.clear_msgs()
         self.cmd.verbose = self.verbose
@@ -197,7 +221,7 @@ class SopThreadTester(SopTester,unittest.TestCase):
         """Assert that a queue is empty, without waiting."""
         with self.assertRaises(queue.Empty):
             msg = queue.get(block=False)
-            print '%s got: %s'%(queue,msg)
+            print('%s got: %s'%(queue,msg))
 
     def killQueues(self):
         """Stop all running threads."""
@@ -211,7 +235,7 @@ class SopThreadTester(SopTester,unittest.TestCase):
         sys.stdout.flush()
         # give a newline after everything's done.
         if self.verbose:
-            print
+            print()
 
 # NOTE: commented out, as it doesn't actually test the thing I want it to test:
 # the failure of RO.AddCallback on ApogeeCB.listenToReads.
