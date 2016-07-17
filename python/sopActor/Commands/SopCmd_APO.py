@@ -614,3 +614,20 @@ class SopCmd_APO(SopCmd.SopCmd):
 
         sopState.queues[sopActor.MASTER].put(Msg.DO_APOGEEMANGA_SEQUENCE, cmd, replyQueue=self.replyQueue,
                                              actorState=sopState, cmdState=cmdState)
+
+    def initCommands(self):
+        """Recreate the objects that hold the state of the various commands."""
+
+        sopState = myGlobals.actorState
+
+        sopState.gotoField = CmdState.GotoFieldCmd()
+        sopState.doBossCalibs = CmdState.DoBossCalibsCmd()
+        sopState.doBossScience = CmdState.DoBossScienceCmd()
+        sopState.doMangaDither = CmdState.DoMangaDitherCmd()
+        sopState.doMangaSequence = CmdState.DoMangaSequenceCmd()
+        sopState.doApogeeMangaDither = CmdState.DoApogeeMangaDitherCmd()
+        sopState.doApogeeMangaSequence = CmdState.DoApogeeMangaSequenceCmd()
+        sopState.hartmann = CmdState.HartmannCmd()
+        sopState.collimateBoss = CmdState.CollimateBossCmd()
+
+        super(SopCmd_APO, self).initCommands()

@@ -14,6 +14,8 @@ import opscore.protocols.keys as keys
 import opscore.protocols.types as types
 from opscore.utility.qstr import qstr
 
+from sopActor import CmdState
+import sopActor.myGlobals as myGlobals
 from sopActor.Commands import SopCmd
 
 
@@ -41,3 +43,10 @@ class SopCmd_LCO(SopCmd.SopCmd):
                 qstr('got a text!: {0}'.format(text))))
         else:
             cmd.warn('text="no text was passed :("')
+
+    def initCommands(self):
+        """Recreate the objects that hold the state of the various commands."""
+
+        # sopState = myGlobals.actorState
+
+        super(SopCmd_LCO, self).initCommands()

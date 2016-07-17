@@ -129,7 +129,8 @@ class SopActor(actorcore.Actor.SDSSActor):
         myGlobals.actorState = self.actorState
 
         # This is the default set of commands, valid both at APO and LCO
-        self.actorState.actor.commandSets['SopCmd'].initCommands()
+        self.actorState.actor.commandSets['SopCmd_' +
+                                          self.actor.location].initCommands()
 
         self.actorState.timeout = 60  # timeout on message queues
 

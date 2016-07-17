@@ -503,22 +503,14 @@ class SopCmd(object):
 
     def initCommands(self):
         """Recreate the objects that hold the state of the various commands."""
+
         sopState = myGlobals.actorState
 
-        sopState.gotoField = CmdState.GotoFieldCmd()
-        sopState.doBossCalibs = CmdState.DoBossCalibsCmd()
-        sopState.doBossScience = CmdState.DoBossScienceCmd()
-        sopState.doMangaDither = CmdState.DoMangaDitherCmd()
-        sopState.doMangaSequence = CmdState.DoMangaSequenceCmd()
-        sopState.doApogeeMangaDither = CmdState.DoApogeeMangaDitherCmd()
-        sopState.doApogeeMangaSequence = CmdState.DoApogeeMangaSequenceCmd()
         sopState.doApogeeScience = CmdState.DoApogeeScienceCmd()
         sopState.doApogeeSkyFlats = CmdState.DoApogeeSkyFlatsCmd()
         sopState.gotoGangChange = CmdState.GotoGangChangeCmd()
         sopState.gotoPosition = CmdState.GotoPositionCmd()
         sopState.doApogeeDomeFlat = CmdState.DoApogeeDomeFlatCmd()
-        sopState.hartmann = CmdState.HartmannCmd()
-        sopState.collimateBoss = CmdState.CollimateBossCmd()
 
         self.updateCartridge(-1,'UNKNOWN','None')
         sopState.guiderState.setLoadedNewCartridgeCallback(self.updateCartridge)
