@@ -32,7 +32,8 @@ class SopCmd_LCO(SopCmd.SopCmd):
 
         # Define new commands for APO
         self.vocab = [
-            ('doLCOThing', '[<lco>]', self.doLCOThing)]
+            ('doLCOThing', '[<lco>]', self.doLCOThing),
+            ('gotoField', '[abort]', self.gotoField)]
 
     def doLCOThing(self, cmd):
         """Test for LCO."""
