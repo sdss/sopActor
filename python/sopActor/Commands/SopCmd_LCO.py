@@ -44,9 +44,32 @@ class SopCmd_LCO(SopCmd.SopCmd):
         else:
             cmd.warn('text="no text was passed :("')
 
+    def gotoField(self, cmd):
+        """Slew to the current cartridge/pointing.
+
+        Slew to the position of the currently loaded cartridge. Eventually
+        this command may also do callibrations.
+
+        """
+
+        sopState = myGlobals.actorState
+        cmdState = sopState.gotoField
+        keywords = cmd.cmd.keywords
+
+        if self.doing_science(sopState):
+            cmd.fail('text=\"A science exposure sequence is running -- '
+                     'will not go to field!\"')
+            return
+
+        if 'abort' in keywords:
+            self.stop_cmd(cmd, cmdState, sopState, 'gotoField')
+            return
+
     def initCommands(self):
         """Recreate the objects that hold the state of the various commands."""
 
-        # sopState = myGlobals.actorState
+        sopState = myGlobals.actorState
+
+        sopState.gotoField = CmdState.GotoFieldCmd()
 
         super(SopCmd_LCO, self).initCommands()
