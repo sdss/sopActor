@@ -468,6 +468,10 @@ class SopCmd(object):
         if threads:
             self._status_threads(cmd, sopState, finish=finish)
 
+        cmd.finish()
+
+        return
+
     def _status_commands(self, cmd, sopState, oneCommand=None):
         """Status of commands.
 
