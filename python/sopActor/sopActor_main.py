@@ -10,10 +10,10 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
-from sopActor import Msg, SOPActor
+from sopActor import Msg, SopActor
 
 # Start a new actor
 if __name__ == '__main__':
 
-    sop = SOPActor.SopActor.newActor()
+    sop = SopActor.SopActor.newActor()
     sop.run(Msg=Msg)
