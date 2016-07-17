@@ -73,3 +73,13 @@ class SopCmd_LCO(SopCmd.SopCmd):
         sopState.gotoField = CmdState.GotoFieldCmd()
 
         super(SopCmd_LCO, self).initCommands()
+
+    def _status_commands(self, cmd, sopState, oneCommand=None):
+        """Status of LCO specific commands.
+
+        """
+
+        super(SopCmd_LCO, self)._status_commands(cmd, sopState,
+                                                 oneCommand=oneCommand)
+
+        sopState.gotoField.genKeys(cmd=cmd, trimKeys=oneCommand)
