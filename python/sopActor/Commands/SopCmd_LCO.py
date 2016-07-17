@@ -40,4 +40,4 @@ class SopCmd_LCO(SopCmd.SopCmd):
             cmd.inform('text={0}'.format(
                 qstr('got a text!: {0}'.format(text))))
         else:
-            cmd.informat('text="no text was passed :("')
+            cmd.inform('text="no text was passed :("')
