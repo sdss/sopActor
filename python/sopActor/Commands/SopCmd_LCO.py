@@ -37,7 +37,7 @@ class SopCmd_LCO(SopCmd.SopCmd):
 
         if 'lco' in cmd.cmd.keywords:
             text = cmd.cmd.keywords['lco'].values[0]
-            cmd.inform('text={0}'.format(
+            cmd.warn('text={0}'.format(
                 qstr('got a text!: {0}'.format(text))))
         else:
-            cmd.inform('text="no text was passed :("')
+            cmd.warn('text="no text was passed :("')
