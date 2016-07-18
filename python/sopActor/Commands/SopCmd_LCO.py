@@ -14,7 +14,8 @@ import opscore.protocols.keys as keys
 import opscore.protocols.types as types
 from opscore.utility.qstr import qstr
 
-from sopActor import CmdState
+import sopActor
+from sopActor import CmdState, Msg
 import sopActor.myGlobals as myGlobals
 from sopActor.Commands import SopCmd
 
@@ -55,6 +56,7 @@ class SopCmd_LCO(SopCmd.SopCmd):
 
         sopState = myGlobals.actorState
         cmdState = sopState.gotoField
+        survey = sopState.survey
         keywords = cmd.cmd.keywords
 
         if self.doing_science(sopState):
@@ -65,6 +67,42 @@ class SopCmd_LCO(SopCmd.SopCmd):
         if 'abort' in keywords:
             self.stop_cmd(cmd, cmdState, sopState, 'gotoField')
             return
+
+        cmdState.reinitialize(cmd, output=False)
+
+        cmdState.doSlew = 'noSlew' not in keywords
+
+        if survey == sopActor.UNKNOWN:
+            cmd.warn(
+                'text="No cartridge is known to be loaded; disabling guider"')
+            cmdState.doGuider = False
+            cmdState.doGuiderFlat = False
+
+        if cmdState.doSlew:
+            pointingInfo = sopState.models['platedb'].keyVarDict['pointingInfo']
+            cmdState.ra = pointingInfo[3]
+            cmdState.dec = pointingInfo[4]
+            # Not setting the rotator because at LCO we don't move it.
+
+        if myGlobals.bypass.get(name='slewToField'):
+            fakeSkyPos = SopCmd.obs2Sky(cmd, cmdState.fakeAz, cmdState.fakeAlt,
+                                        cmdState.fakeRotOffset)
+            cmdState.ra = fakeSkyPos[0]
+            cmdState.dec = fakeSkyPos[1]
+            cmd.warn('text=\"Bypass slewToField is FAKING RA DEC:  '
+                     '%g, %g\"' % (cmdState.ra, cmdState.dec))
+
+        activeStages = []
+        if cmdState.doSlew:
+            activeStages.append('slew')
+        activeStages.append('cleanup')  # we always may have to cleanup...
+        cmdState.setupCommand(cmd, activeStages)
+
+        sopState.queues[sopActor.MASTER].put(Msg.GOTO_FIELD,
+                                             cmd,
+                                             replyQueue=self.replyQueue,
+                                             actorState=sopState,
+                                             cmdState=cmdState)
 
     def initCommands(self):
         """Recreate the objects that hold the state of the various commands."""
@@ -84,3 +122,9 @@ class SopCmd_LCO(SopCmd.SopCmd):
                                                  oneCommand=oneCommand)
 
         sopState.gotoField.genKeys(cmd=cmd, trimKeys=oneCommand)
+
+    def doing_science(self,sopState):
+        """Return True if any sort of science command is currently running."""
+
+        return (sopState.doApogeeScience.cmd and
+                sopState.doApogeeScience.cmd.isAlive())

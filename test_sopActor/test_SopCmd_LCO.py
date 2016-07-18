@@ -94,6 +94,48 @@ class TestNoBoss(SopCmdTester, unittest.TestCase):
         self.assertFalse(hasattr(self.sopCmd, 'collimateBoss'))
 
 
+class TestGotoField(SopCmdTester, unittest.TestCase):
+
+    def _gotoField(self, cart, expect, stages, args, cmd_levels=(0, 2, 0, 0)):
+
+        allStages = ['slew', 'guider', 'cleanup']
+
+        stages = build_active_stages(allStages, stages)
+
+        self._update_cart(cart, 'APOGEE')
+
+        queue = myGlobals.actorState.queues[sopActor.MASTER]
+
+        msg = self._run_cmd('gotoField %s' % (args), queue)
+
+        self.assertEqual(msg.type, sopActor.Msg.GOTO_FIELD)
+
+        self.assertEqual(msg.cmdState.stages, stages)
+        self._check_levels(*cmd_levels)
+
+        self.assertEqual(msg.cmdState.ra, expect.get('ra', 0))
+        self.assertEqual(msg.cmdState.dec, expect.get('dec', 0))
+        self.assertEqual(msg.cmdState.doSlew, expect.get('doSlew', True))
+
+    def test_gotoField_apogee_default(self):
+
+        sopTester.updateModel('guider', TestHelper.guiderState['apogeeLoaded'])
+        sopTester.updateModel('platedb', TestHelper.platedbState['apogee'])
+
+        stages = ['slew', 'cleanup']
+
+        expect = {'ra': 20, 'dec': 30}
+
+        self._gotoField(1, expect, stages, '')
+
+    # TODO: This test fails because self.cmd is finished
+    # def test_gotoField_abort(self):
+    #
+    #     self.actorState.gotoField.cmd = self.cmd
+    #     self._run_cmd('gotoField abort', None)
+    #     self.assertTrue(self.actorState.aborting)
+
+
 if __name__ == '__main__':
 
     verbosity = 2

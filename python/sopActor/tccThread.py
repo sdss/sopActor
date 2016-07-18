@@ -133,7 +133,7 @@ def axis_init(cmd, actorState, replyQueue):
             cmd.warn('text="Altitude below interlock limit! Only initializing altitude and rotator: cannot move in az."')
             cmdStr = ' '.join((cmdStr,"rot,alt"))
         cmdVar = actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd, cmdStr=cmdStr)
-    
+
     if cmdVar.didFail:
         cmd.error('text="Cannot slew telescope: failed tcc axis init."')
         cmd.error('text="Cannot slew telescope: check and clear interlocks?"')
@@ -185,6 +185,12 @@ class SlewHandler(object):
 
     def slew(self, cmd, replyQueue):
         """Issue the commanded tcc track if the axes are ready to move."""
+
+        # For LCO we don't do any check, just issue the slew.
+        if self.actorState.actor.location.lower() == 'lco':
+            self.do_slew_lco(cmd, replyQueue)
+            return
+
         tccModel = self.actorState.models['tcc']
         # Fail before attempting slew if there's something wrong with an axis.
         if self.not_ok_to_slew(cmd):
@@ -257,6 +263,34 @@ class SlewHandler(object):
         else:
             replyQueue.put(Msg.REPLY, cmd=cmd, success=True)
         return
+
+    def do_slew_lco(self, cmd, replyQueue):
+        """Commands the TCC at LCO to slew."""
+
+        call = self.actorState.actor.cmdr.call
+        tccModel = self.actorState.models['tcc']
+
+        if self.ra is not None and self.dec is not None:
+            cmd.inform('text="slewing to ({0:.4f}, {1:.4f})"'
+                       .format(self.ra, self.dec))
+            cmdVar = call(actor='tcc', forUserCmd=cmd,
+                          cmdStr=('target {0:f}, {1:f}'
+                                  .format(self.ra, self.dec)))
+
+        if cmdVar.didFail:
+            strAxisState = (','.join(tccModel.keyVarDict['axisCmdState']))
+            strAxisCode = (','.join(tccModel.keyVarDict['axisErrCode']))
+            cmd.error('text=\"tcc track command failed with axis states: '
+                      '{0} and error codes: {1}\"'.format(strAxisState,
+                                                          strAxisCode))
+            cmd.error('text=\"Failed to complete slew: '
+                      'see TCC messages for details.\"')
+            replyQueue.put(Msg.REPLY, cmd=cmd, success=False)
+            return
+
+        replyQueue.put(Msg.REPLY, cmd=cmd, success=True)
+        return
+
 
 def main(actor, queues):
     """Main loop for TCC thread"""

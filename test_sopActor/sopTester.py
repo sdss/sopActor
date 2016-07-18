@@ -181,13 +181,13 @@ class SopThreadTester(SopTester,unittest.TestCase):
         # lets us see really long list/list diffs
         self.maxDiff = None
 
-    def setUp(self):
+    def setUp(self, location='APO'):
         """
         Set up things that all thread testers need.
         Requires that self.useThreads (list of triplets of tname,tid,target)
         be defined first, so it can actually start the threads.
         """
-        super(SopThreadTester,self).setUp()
+        super(SopThreadTester,self).setUp(location=location)
         actorState = myGlobals.actorState
 
         self.pre_threads = threading.activeCount()

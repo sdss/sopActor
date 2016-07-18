@@ -150,6 +150,18 @@ class TestGotoField(MasterThreadTester):
         self.assertEqual(result.timeout, self.timeout+myGlobals.actorState.timeout)
         self._check_cmd(0,3,0,0,False)
 
+    def test_start_slew_lco(self):
+
+        cmdState = self.actorState.gotoField
+        cmdState.reinitialize(self.cmd)
+        result = masterThread.start_slew(self.cmd, cmdState,
+                                         myGlobals.actorState, self.timeout,
+                                         location='LCO')
+        self.assertIsInstance(result, MultiCommand)
+        self.assertEqual(result.timeout,
+                         self.timeout + myGlobals.actorState.timeout)
+        self._check_cmd(0, 3, 0, 0, False)
+
     def test_goto_field_unknown(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
         cmdState = self.actorState.gotoField
@@ -214,6 +226,16 @@ class TestGotoField(MasterThreadTester):
         cmdState.reinitialize(self.cmd)
         cmdState.doSlew = False
         self._goto_feld_apogee(9,34,0,0,cmdState)
+
+    def test_goto_field_apogee_lco(self):
+
+        cmdState = self.actorState.gotoField
+        cmdState.reinitialize(self.cmd)
+        masterThread.goto_field_apogee_lco(self.cmd,
+                                           cmdState,
+                                           myGlobals.actorState,
+                                           self.timeout * 2)
+        self._check_cmd(12, 43, 0, 0, False)
 
     def _goto_field_boss(self, nCall, nInfo, nWarn, nErr, cmdState, finish=False, didFail=False):
         masterThread.goto_field_boss(self.cmd,cmdState,myGlobals.actorState,self.timeout)

@@ -908,14 +908,23 @@ def do_boss_calibs(cmd, cmdState, actorState):
     finish_command(cmd,cmdState,actorState,finishMsg)
 #...
 
-def start_slew(cmd, cmdState, actorState, slewTimeout):
+def start_slew(cmd, cmdState, actorState, slewTimeout, location='APO'):
     """Prepare for the start of a slew. Returns the relevant multiCmd for precondition appending."""
+
     cmdState.setStageState('slew', 'running')
-    multiCmd = SopMultiCommand(cmd, slewTimeout + actorState.timeout, cmdState.name+".slew")
-    multiCmd.append(SopPrecondition(sopActor.TCC, Msg.AXIS_INIT)) # start with an axis init
+
+    multiCmd = SopMultiCommand(cmd, slewTimeout + actorState.timeout,
+                               cmdState.name + '.slew')
+
+    if location == 'APO':
+        # At LCO, we don't do axis init.
+        # start with an axis init
+        multiCmd.append(SopPrecondition(sopActor.TCC, Msg.AXIS_INIT))
+
     multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState,
                     ra=cmdState.ra, dec=cmdState.dec, rot=cmdState.rotang,
                     keepOffsets=cmdState.keepOffsets)
+
     return multiCmd
 
 def _run_slew(cmd, cmdState, actorState, multiCmd):
@@ -960,7 +969,18 @@ def goto_field_apogee(cmd, cmdState, actorState, slewTimeout):
         return guider_start(cmd, cmdState, actorState)
 
     return True
-#...
+
+
+def goto_field_apogee_lco(cmd, cmdState, actorState, slewTimeout):
+    """Process a goto field sequence for an APOGEE plate at LCO."""
+
+    if cmdState.doSlew:
+        multiCmd = start_slew(cmd, cmdState, actorState, slewTimeout)
+        if not _run_slew(cmd, cmdState, actorState, multiCmd):
+            return False
+
+    return True
+
 
 def goto_field_boss(cmd, cmdState, actorState, slewTimeout):
     """Process a goto field sequence for a BOSS plate."""
@@ -1117,6 +1137,34 @@ def goto_field_boss(cmd, cmdState, actorState, slewTimeout):
     return True
 
 
+def check_cart(actorState):
+    """Checks that guider and TCC/MCP agree on the loaded cart."""
+
+    failMsg = None
+
+    models = myGlobals.actorState.models
+    guiderCartLoaded = models['guider'].keyVarDict['cartridgeLoaded'][0]
+
+    location = actorState.location.lower()
+
+    if location == 'apo':
+        cartActor = 'mcp'
+    elif location == 'lco':
+        cartActor = 'tcc'
+    else:
+        failMsg = 'unknown location={0}'.format(location)
+        return False, failMsg
+
+    instrumentNum = models[cartActor].keyVarDict['instrumentNum'][0]
+
+    if instrumentNum != guiderCartLoaded:
+        failMsg = ('guider cart is {0} while {1} cart is {2}.'
+                   .format(guiderCartLoaded, cartActor.upper(), instrumentNum))
+        return False, failMsg
+
+    return True, failMsg
+
+
 def goto_field(cmd, cmdState, actorState):
     """Start a goto field sequence, with behavior depending on the current survey."""
 
@@ -1125,20 +1173,19 @@ def goto_field(cmd, cmdState, actorState):
     finishMsg = "On field."
 
     show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand="gotoField")
+    cartStatus, failMsg = check_cart(actorState)
 
-    # Compares MCP and guider to make sure there is no cart mismatch.
-    models = myGlobals.actorState.models
-    instrumentNum = models['mcp'].keyVarDict['instrumentNum'][0]
-    guiderCartLoaded = models['guider'].keyVarDict['cartridgeLoaded'][0]
-
-    if instrumentNum != guiderCartLoaded:
-        failMsg = ('guider cart is {0} while MCP cart is {1}.'
-                   .format(guiderCartLoaded, instrumentNum))
+    if cartStatus is False:
         fail_command(cmd, cmdState, failMsg)
         return
 
     if actorState.survey == sopActor.APOGEE:
-        success = goto_field_apogee(cmd, cmdState, actorState, slewTimeout)
+        if actorState.location.lower() == 'apo':
+            success = goto_field_apogee(cmd, cmdState, actorState, slewTimeout)
+        else:
+            # Uses a longr slewTimeout for LCO
+            success = goto_field_apogee_lco(cmd, cmdState, actorState,
+                                            slewTimeout * 2)
     elif actorState.survey == sopActor.BOSS or actorState.survey == sopActor.MANGA:
         success = goto_field_boss(cmd, cmdState, actorState, slewTimeout)
     elif actorState.survey == sopActor.APOGEEMANGA:

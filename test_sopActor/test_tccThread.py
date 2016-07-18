@@ -15,10 +15,10 @@ from sopActor import tccThread
 
 class TccThreadTester(sopTester.SopThreadTester):
     """subclass this, then unittest.TestCase, in that order."""
-    def setUp(self):
+    def setUp(self, location='APO'):
         self.useThreads = []#[("master", sopActor.MASTER,  masterThread.main)]
         self.verbose = True
-        super(TccThreadTester,self).setUp()
+        super(TccThreadTester,self).setUp(location=location)
         # Do this after super setUp, as that's what creates actorState.
         myGlobals.actorState.queues['tcc'] = Queue('tcc')
         self.queues = myGlobals.actorState.queues
@@ -275,9 +275,54 @@ class TestSlew(TccThreadTester, unittest.TestCase):
         self._check_cmd(0,0,0,1,False,False)
 
 
+class TestSlewLCO(TccThreadTester, unittest.TestCase):
+
+    def setUp(self):
+
+        super(TestSlewLCO, self).setUp(location='LCO')
+        self.slewHandler = tccThread.SlewHandler(self.actorState,
+                                                 self.queues['tcc'])
+
+    def test_parse_args_radecrot(self):
+
+        ra, dec, rot = 10, 20, None
+        msg = sopActor.Msg(sopActor.Msg.SLEW,
+                           self.cmd,
+                           ra=ra, dec=dec, rot=rot,
+                           keepOffsets=True)
+
+        self.slewHandler.parse_args(msg)
+        self.assertEqual(self.slewHandler.ra, ra)
+        self.assertEqual(self.slewHandler.dec, dec)
+        self.assertEqual(self.slewHandler.rot, rot)
+        self.assertTrue(self.slewHandler.keepOffsets)
+
+    def _do_slew_radec(self, ra, dec, success):
+
+        self.slewHandler.ra = ra
+        self.slewHandler.dec = dec
+        self.slewHandler.rot = None
+        self.slewHandler.do_slew_lco(self.cmd, self.queues['tcc'])
+
+        msg = self.queues['tcc'].get(timeout=0.1)
+        self.assertEqual(msg.success, success)
+
+        error = 0 if success else 2
+        self._check_cmd(1, 1, 0, error, True)
+
+    def test_do_slew(self):
+        # This does not work because the call finishes.
+        self._do_slew_radec(10, 20, True)
+
+    def test_do_slew_fails(self):
+        # This does not work because the call finishes.
+        self.cmd.failOn = 'tcc target 10.000000, 20.000000'
+        self._do_slew_radec(10, 20, False)
+
+
 if __name__ == '__main__':
     verbosity = 2
-    
+
     suite = None
     # to test just one piece
     # suite = unittest.TestLoader().loadTestsFromTestCase(TestSlew)
