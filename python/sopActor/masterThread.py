@@ -1304,7 +1304,9 @@ def collimate_boss(cmd,cmdState,actorState):
 def show_status(cmd, cmdState, actor, oneCommand=""):
     """Output status of a new state or just one command."""
     if cmd:
-        actor.commandSets["SopCmd"].status(cmd, threads=False, finish=False, oneCommand=oneCommand)
+        cmdSet = 'SopCmd_{0}'.format(actor.location.upper())
+        actor.commandSets[cmdSet].status(cmd, threads=False, finish=False,
+                                         oneCommand=oneCommand)
 
 # Define the command that we use to communicate our state to e.g. STUI
 def main(actor, queues):

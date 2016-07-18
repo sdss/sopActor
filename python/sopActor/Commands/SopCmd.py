@@ -468,7 +468,8 @@ class SopCmd(object):
         if threads:
             self._status_threads(cmd, sopState, finish=finish)
 
-        cmd.finish()
+        if finish:
+            cmd.finish("")
 
         return
 
@@ -505,9 +506,6 @@ class SopCmd(object):
                     cmd.warn("")
         finally:
             sopState.ignoreAborting = False
-
-        if finish:
-            cmd.finish("")
 
     def initCommands(self):
         """Recreate the objects that hold the state of the various commands."""

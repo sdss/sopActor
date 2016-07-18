@@ -128,12 +128,11 @@ class TestGotoField(SopCmdTester, unittest.TestCase):
 
         self._gotoField(1, expect, stages, '')
 
-    # TODO: This test fails because self.cmd is finished
-    # def test_gotoField_abort(self):
-    #
-    #     self.actorState.gotoField.cmd = self.cmd
-    #     self._run_cmd('gotoField abort', None)
-    #     self.assertTrue(self.actorState.aborting)
+    def test_gotoField_abort(self):
+
+        self.actorState.gotoField.cmd = self.cmd
+        self._run_cmd('gotoField abort', None)
+        self.assertTrue(self.actorState.aborting)
 
 
 if __name__ == '__main__':

@@ -308,14 +308,12 @@ class TestSlewLCO(TccThreadTester, unittest.TestCase):
         self.assertEqual(msg.success, success)
 
         error = 0 if success else 2
-        self._check_cmd(1, 1, 0, error, True)
+        self._check_cmd(1, 1, 0, error, False)
 
     def test_do_slew(self):
-        # This does not work because the call finishes.
         self._do_slew_radec(10, 20, True)
 
     def test_do_slew_fails(self):
-        # This does not work because the call finishes.
         self.cmd.failOn = 'tcc target 10.000000, 20.000000'
         self._do_slew_radec(10, 20, False)
 
