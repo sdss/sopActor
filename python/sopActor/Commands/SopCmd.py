@@ -22,28 +22,37 @@ from sopActor.multiCommand import MultiCommand
 
 # SDSS-IV plates should all be "APOGEE-2;MaNGA", but we need both,
 # for test plates drilled as part of SDSS-III.
-survey_dict = {'UNKNOWN':sopActor.UNKNOWN, 'ecamera':sopActor.ECAMERA,
-               'BOSS':sopActor.BOSS, 'eBOSS':sopActor.BOSS,
-               'APOGEE':sopActor.APOGEE,'APOGEE-2':sopActor.APOGEE,
-               'MaNGA':sopActor.MANGA,
-               'APOGEE-2&MaNGA':sopActor.APOGEEMANGA,
-               'APOGEE&MaNGA':sopActor.APOGEEMANGA,
-               'APOGEE-2S':sopActor.APOGEE}
-surveyMode_dict = {'None':None, None:None,
-                   'APOGEE lead':sopActor.APOGEELEAD,
-                   'MaNGA dither':sopActor.MANGADITHER,
-                   'MaNGA stare':sopActor.MANGASTARE}
+survey_dict = {'UNKNOWN': sopActor.UNKNOWN,
+               'ecamera': sopActor.ECAMERA,
+               'BOSS': sopActor.BOSS,
+               'eBOSS': sopActor.BOSS,
+               'APOGEE': sopActor.APOGEE,
+               'APOGEE-2': sopActor.APOGEE,
+               'APOGEE-2S': sopActor.APOGEE2S,
+               'MaNGA': sopActor.MANGA,
+               'APOGEE-2&MaNGA': sopActor.APOGEEMANGA,
+               'APOGEE&MaNGA': sopActor.APOGEEMANGA}
+
+surveyMode_dict = {'None': None,
+                   None: None,
+                   'APOGEE lead': sopActor.APOGEELEAD,
+                   'MaNGA dither': sopActor.MANGADITHER,
+                   'MaNGA stare': sopActor.MANGASTARE}
 
 # And the inverses of the above.
 # Can't directly make an inverse, since it's not one-to-one.
-survey_inv_dict = {sopActor.UNKNOWN:'UNKNOWN', sopActor.ECAMERA:'ecamera',
-                   sopActor.BOSS:'eBOSS', sopActor.APOGEE:'APOGEE-2',
-                   sopActor.MANGA:'MaNGA',
-                   sopActor.APOGEEMANGA:'APOGEE-2&MaNGA'}
-surveyMode_inv_dict = {None:'None',
-                       sopActor.MANGADITHER:'MaNGA dither',
-                       sopActor.MANGASTARE:'MaNGA stare',
-                       sopActor.APOGEELEAD:'APOGEE lead'}
+survey_inv_dict = {sopActor.UNKNOWN: 'UNKNOWN',
+                   sopActor.ECAMERA: 'ecamera',
+                   sopActor.BOSS: 'eBOSS',
+                   sopActor.APOGEE: 'APOGEE-2',
+                   sopActor.APOGEE2S: 'APOGEE-2S',
+                   sopActor.MANGA: 'MaNGA',
+                   sopActor.APOGEEMANGA: 'APOGEE-2&MaNGA'}
+
+surveyMode_inv_dict = {None: 'None',
+                       sopActor.MANGADITHER: 'MaNGA dither',
+                       sopActor.MANGASTARE: 'MaNGA stare',
+                       sopActor.APOGEELEAD: 'APOGEE lead'}
 
 
 class SopCmd(object):
@@ -559,7 +568,7 @@ class SopCmd(object):
         if survey is sopActor.BOSS:
             sopState.gotoField.setStages(['slew', 'hartmann', 'calibs', 'guider', 'cleanup'])
             sopState.validCommands += ['doBossCalibs', 'doBossScience',]
-        elif survey is sopActor.APOGEE:
+        elif survey is sopActor.APOGEE or survey is sopActor.APOGEE2S:
             apogeeDesign = self.update_apogee_design(sopState)
             sopState.doApogeeScience.set_apogee_expTime(apogeeDesign[1])
             sopState.gotoField.setStages(['slew', 'guider', 'cleanup'])

@@ -16,6 +16,7 @@ try:
     APOGEE
 except NameError:
     class APOGEE(): pass
+    class APOGEE2S(): pass
     class BOSS(): pass
     class MANGA(): pass
     class MANGASTARE(): pass
