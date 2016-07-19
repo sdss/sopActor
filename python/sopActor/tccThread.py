@@ -273,7 +273,7 @@ class SlewHandler(object):
             cmd.inform('text="slewing to ({0:.4f}, {1:.4f})"'
                        .format(self.ra, self.dec))
             cmdVar = call(actor='tcc', forUserCmd=cmd,
-                          cmdStr=('target {0:f}, {1:f}'
+                          cmdStr=('target {0:f}, {1:f} icrs'
                                   .format(self.ra, self.dec)))
 
         if cmdVar.didFail:
