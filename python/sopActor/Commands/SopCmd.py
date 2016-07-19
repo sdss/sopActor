@@ -27,7 +27,8 @@ survey_dict = {'UNKNOWN':sopActor.UNKNOWN, 'ecamera':sopActor.ECAMERA,
                'APOGEE':sopActor.APOGEE,'APOGEE-2':sopActor.APOGEE,
                'MaNGA':sopActor.MANGA,
                'APOGEE-2&MaNGA':sopActor.APOGEEMANGA,
-               'APOGEE&MaNGA':sopActor.APOGEEMANGA}
+               'APOGEE&MaNGA':sopActor.APOGEEMANGA,
+               'APOGEE-2S':sopActor.APOGEE}
 surveyMode_dict = {'None':None, None:None,
                    'APOGEE lead':sopActor.APOGEELEAD,
                    'MaNGA dither':sopActor.MANGADITHER,
