@@ -1145,7 +1145,7 @@ def check_cart(actorState):
     models = myGlobals.actorState.models
     guiderCartLoaded = models['guider'].keyVarDict['cartridgeLoaded'][0]
 
-    location = actorState.location.lower()
+    location = actorState.actor.location.lower()
 
     if location == 'apo':
         cartActor = 'mcp'
@@ -1180,7 +1180,7 @@ def goto_field(cmd, cmdState, actorState):
         return
 
     if actorState.survey == sopActor.APOGEE:
-        if actorState.location.lower() == 'apo':
+        if actorState.actor.location.lower() == 'apo':
             success = goto_field_apogee(cmd, cmdState, actorState, slewTimeout)
         else:
             # Uses a longr slewTimeout for LCO
