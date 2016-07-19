@@ -268,7 +268,6 @@ class SlewHandler(object):
         """Commands the TCC at LCO to slew."""
 
         call = self.actorState.actor.cmdr.call
-        tccModel = self.actorState.models['tcc']
 
         if self.ra is not None and self.dec is not None:
             cmd.inform('text="slewing to ({0:.4f}, {1:.4f})"'
@@ -278,11 +277,7 @@ class SlewHandler(object):
                                   .format(self.ra, self.dec)))
 
         if cmdVar.didFail:
-            strAxisState = (','.join(tccModel.keyVarDict['axisCmdState']))
-            strAxisCode = (','.join(tccModel.keyVarDict['axisErrCode']))
-            cmd.error('text=\"tcc track command failed with axis states: '
-                      '{0} and error codes: {1}\"'.format(strAxisState,
-                                                          strAxisCode))
+            # TODO: add LCO specific error messages here.
             cmd.error('text=\"Failed to complete slew: '
                       'see TCC messages for details.\"')
             replyQueue.put(Msg.REPLY, cmd=cmd, success=False)

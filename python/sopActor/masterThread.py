@@ -927,14 +927,21 @@ def start_slew(cmd, cmdState, actorState, slewTimeout, location='APO'):
 
     return multiCmd
 
+
 def _run_slew(cmd, cmdState, actorState, multiCmd):
     """To help with running a slew multiCmd."""
+
+    if actorState.actor.location == 'APO':
+        failMsg = 'Failed to close screens, warm up lamps, and slew to field.'
+    else:
+        failMsg = 'Failed to slew to field.'
+
     if not multiCmd.run():
-        failMsg = "Failed to close screens, warm up lamps, and slew to field"
         cmdState.setStageState('slew', 'failed')
         return fail_command(cmd, cmdState, 'slew', failMsg)
     else:
         return True
+
 
 def goto_field_apogeemanga(cmd, cmdState, actorState, slewTimeout):
     """Process a goto field sequence for an APOGEE-MaNGA co-observing plate."""
@@ -975,7 +982,8 @@ def goto_field_apogee_lco(cmd, cmdState, actorState, slewTimeout):
     """Process a goto field sequence for an APOGEE plate at LCO."""
 
     if cmdState.doSlew:
-        multiCmd = start_slew(cmd, cmdState, actorState, slewTimeout)
+        multiCmd = start_slew(cmd, cmdState, actorState, slewTimeout,
+                              location='LCO')
         if not _run_slew(cmd, cmdState, actorState, multiCmd):
             return False
 
@@ -1157,6 +1165,9 @@ def check_cart(actorState):
 
     instrumentNum = models[cartActor].keyVarDict['instrumentNum'][0]
 
+    # LCOHACK: hardcoding cart number for testing while TCC is down
+    # instrumentNum = instrumentNum or 20
+
     if instrumentNum != guiderCartLoaded:
         failMsg = ('guider cart is {0} while {1} cart is {2}.'
                    .format(guiderCartLoaded, cartActor.upper(), instrumentNum))
@@ -1180,12 +1191,11 @@ def goto_field(cmd, cmdState, actorState):
         return
 
     if actorState.survey == sopActor.APOGEE:
-        if actorState.actor.location.lower() == 'apo':
-            success = goto_field_apogee(cmd, cmdState, actorState, slewTimeout)
-        else:
-            # Uses a longr slewTimeout for LCO
-            success = goto_field_apogee_lco(cmd, cmdState, actorState,
-                                            slewTimeout * 2)
+        success = goto_field_apogee(cmd, cmdState, actorState, slewTimeout)
+    elif actorState.survey == sopActor.APOGEE2S:
+        # Uses a longr slewTimeout for LCO
+        success = goto_field_apogee_lco(cmd, cmdState, actorState,
+                                        slewTimeout * 2)
     elif actorState.survey == sopActor.BOSS or actorState.survey == sopActor.MANGA:
         success = goto_field_boss(cmd, cmdState, actorState, slewTimeout)
     elif actorState.survey == sopActor.APOGEEMANGA:
