@@ -78,6 +78,11 @@ class SopCmd(object):
             keys.Key("threads", types.String()*(1,), help="Threads to restart; default: all"),
             keys.Key("ditherPairs", types.Int(),
                      help="Number of dither pairs (AB or BA) to observe"),
+            keys.Key('guiderTime', types.Float(), help='Exposure time '
+                                                       'for guider'),
+            keys.Key('guiderFlatTime', types.Float(), help='Exposure time '
+                                                           'for guider flats'),
+            keys.Key('noGuider', help='Don\'t start the guider'),
             keys.Key("comment", types.String(), help="comment for headers"),
             keys.Key("scriptName", types.String(), help="name of script to run"),
             keys.Key("az", types.Float(), help="what azimuth to slew to"),

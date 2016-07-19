@@ -39,8 +39,6 @@ class SopCmd_APO(SopCmd.SopCmd):
             keys.Key('flatTime', types.Float(), help='Exposure time for flats'),
             keys.Key('test', help='Assert that the exposures are '
                                   'not expected to be meaningful'),
-            keys.Key('guiderFlatTime', types.Float(), help='Exposure time '
-                                                           'for guider flats'),
             keys.Key('sp1', help='Select SP1'),
             keys.Key('sp2', help='Select SP2'),
             keys.Key('nStep', types.Int(), help='Number of dithered '
@@ -59,10 +57,7 @@ class SopCmd_APO(SopCmd.SopCmd):
                                                          'single dither.'),
             keys.Key('count', types.Int(), help='Number of MaNGA dither '
                                                 'sets to perform.'),
-            keys.Key('guiderTime', types.Float(), help='Exposure time '
-                                                       'for guider'),
             keys.Key('noHartmann', help='Don\'t make Hartmann corrections'),
-            keys.Key('noGuider', help='Don\'t start the guider'),
             keys.Key('noCalibs', help='Don\'t run the calibration step'),
             keys.Key('keepOffsets', help='When slewing, do not clear '
                                          'accumulated offsets'),
