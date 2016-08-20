@@ -178,7 +178,7 @@ def handle_bad_exception(actor, e, threadName, msg):
     tback(errMsg, e)
     try:
         msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=False)
-    except Exception, e:
+    except Exception as e:
         pass
 
 
