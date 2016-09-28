@@ -352,6 +352,34 @@ class TestUpdateCartridge(SopCmdTester,unittest.TestCase):
         self.assertEqual(
             self.actorState.doApogeeMangaSequence.apogeeExpTime, 500)
 
+    def test_updateCartridge_apogeemanga_500s_no_survey_mode(self):
+
+        # Loads a double length plate
+        sopTester.updateModel('guider', TestHelper.guiderState['apogeeLeadLoaded'])
+        sopTester.updateModel('platedb', TestHelper.platedbState['apogeeLead1000s'])
+
+        expected = {}
+        expected['surveyCommands'] = TestHelper.sopApogeeMangaCommands['surveyCommands']
+
+        self._updateCartridge(1, 'APOGEE-2&MaNGA', 'APOGEE lead', expected)
+
+        self.assertEqual(self.actorState.doApogeeMangaDither.apogeeExpTime, 1000)
+        self.assertEqual(self.actorState.doApogeeMangaSequence.apogeeExpTime, 1000)
+        self.assertEqual(self.actorState.doApogeeScience.expTime, 1000)
+
+        # Now loads a 500s cartridge with survey mode None
+        sopTester.updateModel('guider', TestHelper.guiderState['apogeemangaNoneLoaded'])
+        sopTester.updateModel('platedb', TestHelper.platedbState['apogeeLead'])
+
+        expected = {}
+        expected['surveyCommands'] = TestHelper.sopApogeeMangaCommands['surveyCommands']
+
+        self._updateCartridge(1, 'APOGEE-2&MaNGA', 'None', expected)
+
+        self.assertEqual(self.actorState.doApogeeMangaDither.apogeeExpTime, 500)
+        self.assertEqual(self.actorState.doApogeeMangaSequence.apogeeExpTime, 500)
+        self.assertEqual(self.actorState.doApogeeScience.expTime, 500)
+
     def test_updateCartridge_apogeemanga(self):
         sopTester.updateModel('guider',TestHelper.guiderState['apogeemangaDitherLoaded'])
         sopTester.updateModel('platedb',
