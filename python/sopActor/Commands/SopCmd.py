@@ -1124,12 +1124,11 @@ class SopCmd(object):
             sopState.validCommands += ['doBossCalibs',
                                       'doApogeeMangaDither','doApogeeMangaSequence',
                                       'doApogeeSkyFlats', 'gotoGangChange', 'doApogeeDomeFlat']
-            if surveyMode is sopActor.APOGEELEAD:
+            if surveyMode is sopActor.APOGEELEAD or surveyMode is None:
                 apogeeDesign = self.update_apogee_design(sopState)
-                sopState.doApogeeMangaDither.set_apogeeLead(
-                    apogeeExpTime=apogeeDesign[1])
-                sopState.doApogeeMangaSequence.set_apogeeLead(
-                    apogeeExpTime=apogeeDesign[1])
+                sopState.doApogeeMangaDither.set_apogeeLead(apogeeExpTime=apogeeDesign[1])
+                sopState.doApogeeMangaSequence.set_apogeeLead(apogeeExpTime=apogeeDesign[1])
+                sopState.doApogeeScience.set_apogee_expTime(apogeeDesign[1])
             if surveyMode is sopActor.MANGADITHER:
                 sopState.doApogeeMangaDither.set_manga()
                 sopState.doApogeeMangaSequence.set_mangaDither()
