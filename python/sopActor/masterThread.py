@@ -991,8 +991,23 @@ def goto_field_boss(cmd, cmdState, actorState, slewTimeout):
         cmdState.setStageState(stageName, "running")
         multiCmd = SopMultiCommand(cmd, actorState.timeout + hartmannDelay, cmdState.name+'.hartmann')
         prep_quick_hartmann(multiCmd)
-        multiCmd.append(sopActor.BOSS, Msg.HARTMANN)
+        # We call the hartmann with ignoreResiduals so that the red correction is always applied,
+        # and with minBlueCorrection so that it outputs only the minimum correction needed
+        # for the blue ring.
+        multiCmd.append(sopActor.BOSS, Msg.HARTMANN, args='ignoreResiduals minBlueCorrection')
         if not handle_multiCmd(multiCmd,cmd,cmdState,stageName,"Failed to take hartmann sequence"):
+            return False
+
+        # Because we called the hartmann with ignoreResiduals, maybe we were outside the tolerance
+        # range but the command still succeeded. If that's the case we want to stop here but
+        # leave the lamps on (see ticket #2701).
+        models = myGlobals.actorState.models
+        sp1_resid = models['hartmann'].keyVarDict['sp1Residuals'][2]
+        sp2_resid = models['hartmann'].keyVarDict['sp2Residuals'][2]
+
+        if sp1_resid != 'OK' or sp2_resid != 'OK':
+            fail_command(cmd, cmdState, 'Please, adjust the blue ring and run gotoField again. '
+                                        'The red correction has been applied. Lamps are still on.')
             return False
 
         show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)

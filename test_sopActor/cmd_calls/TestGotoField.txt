@@ -106,7 +106,7 @@ mcp ne.on
 
 mcp ne.on
 mcp hgcd.on
-hartmann collimate
+hartmann collimate ignoreResiduals minBlueCorrection
 
 mcp ne.on
 mcp hgcd.on
@@ -142,7 +142,7 @@ tcc track 0.000000, 0.000000 icrs /rottype=object/rotang=0/rotwrap=mid
 [test_goto_field_boss_hartmann]
 mcp ne.on
 
-hartmann collimate
+hartmann collimate ignoreResiduals minBlueCorrection
 mcp hgcd.on
 
 mcp hgcd.off
@@ -189,7 +189,7 @@ mcp ne.on
 
 mcp ne.on
 mcp hgcd.on
-hartmann collimate
+hartmann collimate ignoreResiduals minBlueCorrection
 
 mcp ne.on
 mcp hgcd.on
@@ -219,7 +219,19 @@ mcp ne.on
 
 mcp ne.on
 mcp hgcd.on
-hartmann collimate
+hartmann collimate ignoreResiduals minBlueCorrection
+
+[test_goto_field_boss_hartmann_blue_fails]
+tcc axis status
+tcc axis init
+tcc track 0.000000, 0.000000 icrs /rottype=object/rotang=0/rotwrap=mid
+mcp hgcd.on
+mcp ff.off
+mcp ne.on
+
+mcp ne.on
+mcp hgcd.on
+hartmann collimate ignoreResiduals minBlueCorrection
 
 [test_goto_field_boss_ffs_open_fails]
 tcc axis status
@@ -231,7 +243,7 @@ mcp ne.on
 
 mcp ne.on
 mcp hgcd.on
-hartmann collimate
+hartmann collimate ignoreResiduals minBlueCorrection
 
 mcp ne.on
 mcp hgcd.on
@@ -260,7 +272,7 @@ mcp ne.on
 
 mcp ne.on
 mcp hgcd.on
-hartmann collimate
+hartmann collimate ignoreResiduals minBlueCorrection
 
 mcp ne.on
 mcp hgcd.on
@@ -298,7 +310,7 @@ mcp ne.on
 
 mcp ne.on
 mcp hgcd.on
-hartmann collimate
+hartmann collimate ignoreResiduals minBlueCorrection
 
 mcp ne.on
 mcp hgcd.on

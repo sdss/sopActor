@@ -142,6 +142,11 @@ class TestGuider(MasterThreadTester):
 
 class TestGotoField(MasterThreadTester):
     """GotoField and slewing tests"""
+
+    def setUp(self):
+        super(TestGotoField, self).setUp()
+        sopTester.updateModel('hartmann', TestHelper.hartmannState['default'])
+
     def test_start_slew(self):
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
@@ -151,7 +156,11 @@ class TestGotoField(MasterThreadTester):
         self._check_cmd(0,3,0,0,False)
 
     def test_goto_field_unknown(self):
-        sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
+
+        mcpState = TestHelper.mcpState['all_off']
+        mcpState.update({'instrumentNum': [15]})
+        sopTester.updateModel('mcp', mcpState)
+
         cmdState = self.actorState.gotoField
         self.actorState.survey = sopActor.UNKNOWN
         masterThread.goto_field(self.cmd,cmdState,myGlobals.actorState)
@@ -295,12 +304,24 @@ class TestGotoField(MasterThreadTester):
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
-        self.cmd.failOn = "hartmann collimate"
+        self.cmd.failOn = "hartmann collimate ignoreResiduals minBlueCorrection"
         # TBD: NOTE: Something wrong with this test!
         # Should produce 0 errors, but the failure usually (not always!)
         # cascades through to hgcd lampThread.
         # I'm pretty sure that's not correct.
         self._goto_field_boss(9,33,0,1,cmdState,didFail=True,finish=True)
+
+    def test_goto_field_boss_hartmann_blue_fails(self):
+        """Hartmann succeeds but the blue ring move is out of tolerance."""
+
+        sopTester.updateModel('mcp', TestHelper.mcpState['all_off'])
+        sopTester.updateModel('hartmann', TestHelper.hartmannState['blue_fails'])
+
+        cmdState = self.actorState.gotoField
+        cmdState.reinitialize(self.cmd)
+
+        self._goto_field_boss(9, 33, 0, 0, cmdState, didFail=True, finish=True)
+
     def test_goto_field_boss_ffs_open_fails(self):
         """Fail on ffs.open, but still readout flat."""
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
