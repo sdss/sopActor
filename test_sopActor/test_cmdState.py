@@ -196,6 +196,13 @@ class CmdStateTester(sopTester.SopTester):
         self.cmdState.stop_boss_exposure()
         self._check_cmd(0,0,1,0,False) # nothing should happen except a warning.
 
+    def test_stop_boss_exposure_legible(self):
+
+        self._fake_boss_legible()
+        self.cmdState.stop_boss_exposure()
+        # self._check_cmd(0, 0, 2, 0, False)
+        self.assertEqual(self.cmd.calls, ['boss exposure stop', 'boss exposure readout'])
+
     def test_stop_apogee_exposure(self):
         self.cmdState.stop_apogee_exposure()
         self.assertEqual(self.cmd.calls, ['apogee expose stop',])

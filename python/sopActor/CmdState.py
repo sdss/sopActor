@@ -239,8 +239,12 @@ class CmdState(object):
                 self.stages[s] = "aborted"
         self.genCmdStateKeys()
 
-    def stop_boss_exposure(self):
-        """Abort any currently running BOSS exposure, or warn if there's nothing to abort."""
+    def stop_boss_exposure(self, force_readout=True):
+        """Abort any currently running BOSS exposure, or warn if there's nothing to abort.
+
+        If force_readout is set, makes sure the exposure has been read.
+
+        """
         cmd = self._getCmd()
         # The same states we cannot slew during are the states we can't abort from.
         if self.isSlewingDisabled_BOSS()[0]:
@@ -249,6 +253,15 @@ class CmdState(object):
             cmdVar = call(actor="boss", forUserCmd=cmd, cmdStr="exposure stop")
             if cmdVar.didFail:
                 cmd.warn('text="Failed to stop running BOSS exposure"')
+
+            # If the exposure is left in legible state (not read) and force_readout, we read it.
+            boss_state = myGlobals.actorState.models['boss'].keyVarDict['exposureState'][0]
+            if force_readout and boss_state == 'LEGIBLE':
+                cmd.warn('text="forcing a readout of the exposure."')
+                cmdVar = call(actor='boss', forUserCmd=cmd, cmdStr='exposure readout')
+                if cmdVar.didFail:
+                    cmd.warn('text="Failed to read BOSS exposure"')
+
         else:
             cmd.warn('text="No BOSS exposure to abort!"')
 
