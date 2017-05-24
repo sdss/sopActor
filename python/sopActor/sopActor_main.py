@@ -64,13 +64,13 @@ class Sop(actorcore.Actor.Actor):
         #self.logger.propagate = True
 
         sopActor.myGlobals.bypass = Bypass()
-        
+
         sopActor.myGlobals.actorState = State(self)
         actorState = sopActor.myGlobals.actorState
         #
         # Load other actor's models so we can send them commands
         #
-        for actor in ["boss", "guider", "platedb", "mcp", "sop", "tcc", "apogee"]:
+        for actor in ["boss", "guider", "platedb", "mcp", "sop", "tcc", "apogee", 'hartmann']:
             actorState.models[actor] = opscore.actor.model.Model(actor)
 
         from sopActor.utils.guider import GuiderState
@@ -78,13 +78,13 @@ class Sop(actorcore.Actor.Actor):
 
         actorState.guiderState = GuiderState(actorState.models["guider"])
         actorState.apogeeGang = ApogeeGang()
-        
+
         actorState.actor.commandSets["SopCmd"].initCommands()
-        
+
         #
         # spawn off the threads that sequence actions (e.g. take an exposure; move telescope)
         # and talk to the gcamera
-        # 
+        #
         actorState.timeout = 60         # timeout on message queues
 
         Sop.startThreads(actorState, restartQueues=True)
@@ -103,7 +103,7 @@ class Sop(actorcore.Actor.Actor):
                                            "uv" : sopActor.UV_LAMP
                                        }[k.lower()]] = float(v)
 
-        
+
         #
         # Finally start the reactor
         #
@@ -111,7 +111,7 @@ class Sop(actorcore.Actor.Actor):
 
     def periodicStatus(self):
         pass
-    
+
     @staticmethod
     def startThreads(actorState, cmd=None, restartQueues=False, restart=False, restartThreads=None):
         """Start or restart the worker threads and queues; restartThreads is a list of names to restart"""
@@ -120,7 +120,7 @@ class Sop(actorcore.Actor.Actor):
             actorState.threads
         except AttributeError:
             restart = False
-        
+
         if not restart:
             actorState.queues = {}
             actorState.threads = {}
@@ -179,7 +179,7 @@ class Sop(actorcore.Actor.Actor):
                 cmd.inform('text="Starting %s"' % tname)
 
             actorState.queues[tid] = sopActor.Queue(tname, 0) # remove any unprocessed Msg.EXITs
-                
+
             actorState.threads[tid] = threading.Thread(target=target, name=tname,
                                                        args=[actorState.actor, newQueues])
             actorState.threads[tid].daemon = True
