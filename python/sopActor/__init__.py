@@ -19,6 +19,7 @@ except NameError:
     class BOSS(): pass
     class MANGA(): pass
     class MANGASTARE(): pass
+    class MANGAMASTAR(): pass
     class MANGADITHER(): pass
     class APOGEELEAD(): pass
     class APOGEEMANGA(): pass
