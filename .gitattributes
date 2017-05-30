@@ -1,11 +1,19 @@
 * text=auto !eol
 /README.rst -text
+bin/sopActor_main.py -text
 etc/config.ini -text
 etc/sop.cfg -text
 etc/sopActor.module -text
+etc/sop_APO.cfg -text
+etc/sop_LCO.cfg -text
+etc/sop_LOCAL.cfg -text
 python/sopActor/CmdState.py -text
 python/sopActor/Commands/SopCmd.py -text
+python/sopActor/Commands/SopCmd_APO.py -text
+python/sopActor/Commands/SopCmd_LCO.py -text
+python/sopActor/Commands/SopCmd_LOCAL.py -text
 python/sopActor/Commands/__init__.py -text
+python/sopActor/SopActor.py -text
 python/sopActor/__init__.py -text
 python/sopActor/apogeeThread.py -text
 python/sopActor/bossThread.py -text
@@ -19,7 +27,6 @@ python/sopActor/multiCommand.py -text
 python/sopActor/myGlobals.py -text
 python/sopActor/script.py -text
 python/sopActor/scriptThread.py -text
-python/sopActor/sopActor_main.py -text
 python/sopActor/tccThread.py -text
 python/sopActor/utils/__init__.py -text
 python/sopActor/utils/gang.py -text
@@ -55,6 +62,7 @@ test_sopActor/cmd_calls/TestMcpSemaphoreOk.txt -text
 test_sopActor/cmd_calls/TestMultiCommand.txt -text
 test_sopActor/cmd_calls/TestSlew.txt -text
 test_sopActor/sopTester.py -text
+test_sopActor/test_SopActor.py -text
 test_sopActor/test_SopCmd.py -text
 test_sopActor/test_apogeeThread.py -text
 test_sopActor/test_bossThread.py -text

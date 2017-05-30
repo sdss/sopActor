@@ -9,14 +9,15 @@ import opscore.protocols.types as types
 
 from opscore.utility.qstr import qstr
 
-import glob, os
+import glob
+import os
 
 from sopActor import CmdState, Msg
 import sopActor
 import sopActor.myGlobals as myGlobals
 from sopActor.multiCommand import MultiCommand
 
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 
 # SDSS-IV plates should all be "APOGEE-2;MaNGA", but we need both,

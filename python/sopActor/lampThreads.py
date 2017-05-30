@@ -9,6 +9,7 @@ from opscore.utility.qstr import qstr
 # don't bother doing anything with these lamps, as they aren't used for anything.
 ignore_lamps = ['uv', 'wht']
 
+
 class LampHandler(object):
     def __init__(self, actorState, queue, lampName):
         self.actorState = actorState
@@ -61,7 +62,7 @@ class LampHandler(object):
     def wait_until(self, cmd, endTime, replyQueue):
         """Wait until we reach endTime, to allow the lamp to warm up."""
         timeToGo = endTime - time.time()
-        
+
         if timeToGo <= 0:
             replyQueue.put(Msg.LAMP_COMPLETE, cmd=cmd, success=True)
         elif self.actorState.aborting:
@@ -71,7 +72,7 @@ class LampHandler(object):
             # output status every 5 seconds, unless we're almost done.
             if timeToGo > 1 and int(timeToGo)%5 == 0:
                 cmd.inform('text="Warming up %s lamps; %ds left"' % (self.lampName, timeToGo))
-            
+
             time.sleep(1)
             self.queue.put(Msg.WAIT_UNTIL, cmd=cmd, replyQueue=replyQueue, endTime=endTime)
 #...
