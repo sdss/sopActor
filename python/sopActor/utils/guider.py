@@ -20,7 +20,7 @@ class GuiderState(object):
 
     def _setKeywords(self):
         """Set the cartridge, plateType, surveyMode from the guider model."""
-
+        
         self.currentCartridge = self.guiderModel.keyVarDict["cartridgeLoaded"][0]
         survey = self.guiderModel.keyVarDict["survey"]
         self.plateType = survey[0]
@@ -34,7 +34,7 @@ class GuiderState(object):
 
     def listenToLoadedNewCartridge(self, cartridgeLoaded):
         """Grab the cartridge loaded and survey values and pass them on to the defined callback."""
-
+        
         self._setKeywords()
         if self.cartridgeChangeCallback:
             self.cartridgeChangeCallback(self.currentCartridge, self.plateType, self.surveyMode)
