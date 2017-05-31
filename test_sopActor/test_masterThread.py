@@ -304,7 +304,7 @@ class TestGotoField(MasterThreadTester):
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
-        self.cmd.failOn = "hartmann collimate ignoreResiduals minBlueCorrection"
+        self.cmd.failOn = "hartmann collimate ignoreResiduals"
         # TBD: NOTE: Something wrong with this test!
         # Should produce 0 errors, but the failure usually (not always!)
         # cascades through to hgcd lampThread.
@@ -320,7 +320,7 @@ class TestGotoField(MasterThreadTester):
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
 
-        self._goto_field_boss(9, 33, 0, 0, cmdState, didFail=True, finish=True)
+        self._goto_field_boss(12, 36, 0, 0, cmdState, didFail=True, finish=True)
 
     def test_goto_field_boss_ffs_open_fails(self):
         """Fail on ffs.open, but still readout flat."""
@@ -330,20 +330,32 @@ class TestGotoField(MasterThreadTester):
         self.cmd.failOn = "mcp ffs.open"
         self._goto_field_boss(21,98,1,1,cmdState,didFail=True,finish=True)
 
-    def _goto_field_apogeemanga(self, nCall, nInfo, nWarn, nErr, cmdState, finish=False, didFail=False):
+    def _goto_field_apogeemanga(self, nCall, nInfo, nWarn, nErr, cmdState,
+                                finish=False, didFail=False, surveyMode=None):
+        myGlobals.actorState.survey = sopActor.APOGEEMANGA
+        myGlobals.actorState.surveyMode = surveyMode or sopActor.MANGADITHER
         masterThread.goto_field_apogeemanga(self.cmd,cmdState,myGlobals.actorState,self.timeout)
         self._check_cmd(nCall, nInfo, nWarn, nErr, finish, didFail)
+
     def test_goto_field_apogeemanga_all(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
         self._goto_field_apogeemanga(25,99,0,0,cmdState)
+
     def test_goto_field_apogeemanga_all_shutter_open(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_parked'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
         self._goto_field_apogeemanga(26,106,0,0,cmdState)
+
+    def test_goto_field_apogeemanga_apogee_lead_hartmann_out_of_focus(self):
+        sopTester.updateModel('mcp', TestHelper.mcpState['all_off'])
+        sopTester.updateModel('hartmann', TestHelper.hartmannState['blue_fails'])
+        cmdState = self.actorState.gotoField
+        cmdState.reinitialize(self.cmd)
+        self._goto_field_apogeemanga(25, 99, 1, 0, cmdState, surveyMode=sopActor.APOGEELEAD)
 
     def test_goto_field_cartridge_mismatch(self):
         """Tests gotoField if there is a mismatch between MCP and guider."""

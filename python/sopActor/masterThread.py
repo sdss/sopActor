@@ -960,7 +960,62 @@ def goto_field_apogee(cmd, cmdState, actorState, slewTimeout):
         return guider_start(cmd, cmdState, actorState)
 
     return True
-#...
+
+
+def do_goto_field_hartmann(cmd, cmdState, actorState):
+    """Handles taking hartmanns for goto_field, depending on survey."""
+
+    stageName = 'hartmann'
+    hartmannDelay = 210
+    cmdState.setStageState(stageName, 'running')
+    multiCmd = SopMultiCommand(cmd, actorState.timeout + hartmannDelay, cmdState.name + '.hartmann')
+    prep_quick_hartmann(multiCmd)
+
+    # The behaviour for hartmanns depends on the leading survey:
+    # - If APOGEE is leading with call hartmann collimate ignoreResiduals so that the
+    #   collimator is always adjusted.
+    # - If MaNGA is leading we call hartmann collimate ignoreResiduals minBlueCorrection. This
+    #   outputs only the minimum blue ring correction required to get the cameras into focus
+    #   tolerance. If any of the cameras is out of focus we stop the goto_field command and turn
+    #   the lamps off.
+    # - For eBOSS we do the same this but we only call hartmann collimate ignoreResiduals (same as
+    #   collimate_boss).
+
+    if actorState.survey == sopActor.BOSS or actorState.survey == sopActor.MANGA:
+        args = 'ignoreResiduals'
+    elif actorState.survey == sopActor.APOGEEMANGA:
+        if actorState.surveyMode == sopActor.APOGEELEAD:
+            args = 'ignoreResiduals'
+        else:
+            args = 'ignoreResiduals minBlueCorrection'
+
+    multiCmd.append(sopActor.BOSS, Msg.HARTMANN, args=args)
+    if not handle_multiCmd(multiCmd, cmd, cmdState, stageName, 'Failed to take hartmann sequence'):
+        return False
+
+    # Because we always use ignoreResiduals we need to check the model to see if the
+    # cameras are actually focused.
+    models = myGlobals.actorState.models
+    sp1_resid = models['hartmann'].keyVarDict['sp1Residuals'][2]
+    sp2_resid = models['hartmann'].keyVarDict['sp2Residuals'][2]
+
+    if sp1_resid != 'OK' or sp2_resid != 'OK':
+        if actorState.surveyMode != sopActor.APOGEELEAD:
+            # Turns off the lamps before failing the command.
+            if not doLamps(cmd, actorState, Ne=False, HgCd=False):
+                cmd.warn('text="Failed turning on lamps in preparation to fail '
+                         'the hartmann sequence."')
+            fail_command(cmd, cmdState, 'Please, adjust the blue ring and run gotoField again. '
+                                        'The corrector has been adjusted.')
+            return False
+        else:
+            cmd.warn('text="BOSS cameras are out of focus but continuing '
+                     'because this is an APOGEE lead plate."')
+
+    show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
+
+    return True
+
 
 def goto_field_boss(cmd, cmdState, actorState, slewTimeout):
     """Process a goto field sequence for a BOSS plate."""
@@ -968,7 +1023,8 @@ def goto_field_boss(cmd, cmdState, actorState, slewTimeout):
     pendingReadout = False
     stageName = ''
 
-    doGuiderFlat = True if (cmdState.doGuiderFlat and cmdState.doGuider and cmdState.guiderFlatTime > 0) else False
+    doGuiderFlat = True if (cmdState.doGuiderFlat and cmdState.doGuider and
+                            cmdState.guiderFlatTime > 0) else False
     doingCalibs = False
     if cmdState.doSlew:
         stageName = 'slew'
@@ -978,39 +1034,15 @@ def goto_field_boss(cmd, cmdState, actorState, slewTimeout):
         elif doGuiderFlat or cmdState.flatTime > 0:
             prep_for_flat(multiCmd)
 
-        if not _run_slew(cmd,cmdState,actorState,multiCmd):
+        if not _run_slew(cmd,cmdState, actorState, multiCmd):
             return False
 
         cmdState.setStageState(stageName, 'done')
         show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
 
     # We're on the field: start with a hartmann
-    if cmdState.doHartmann:
-        stageName = 'hartmann'
-        hartmannDelay = 210
-        cmdState.setStageState(stageName, "running")
-        multiCmd = SopMultiCommand(cmd, actorState.timeout + hartmannDelay, cmdState.name+'.hartmann')
-        prep_quick_hartmann(multiCmd)
-        # We call the hartmann with ignoreResiduals so that the red correction is always applied,
-        # and with minBlueCorrection so that it outputs only the minimum correction needed
-        # for the blue ring.
-        multiCmd.append(sopActor.BOSS, Msg.HARTMANN, args='ignoreResiduals minBlueCorrection')
-        if not handle_multiCmd(multiCmd,cmd,cmdState,stageName,"Failed to take hartmann sequence"):
-            return False
-
-        # Because we called the hartmann with ignoreResiduals, maybe we were outside the tolerance
-        # range but the command still succeeded. If that's the case we want to stop here but
-        # leave the lamps on (see ticket #2701).
-        models = myGlobals.actorState.models
-        sp1_resid = models['hartmann'].keyVarDict['sp1Residuals'][2]
-        sp2_resid = models['hartmann'].keyVarDict['sp2Residuals'][2]
-
-        if sp1_resid != 'OK' or sp2_resid != 'OK':
-            fail_command(cmd, cmdState, 'Please, adjust the blue ring and run gotoField again. '
-                                        'The red correction has been applied. Lamps are still on.')
-            return False
-
-        show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
+    if cmdState.doHartmann and not do_goto_field_hartmann(cmd, cmdState, actorState):
+        return False
 
     # Calibs: arc then flat (and guider flat if we're going to guide)
     if cmdState.doCalibs:
