@@ -264,7 +264,9 @@ class CmdState(object):
     def stop_tcc(self):
         """Stop current TCC motion."""
         cmd = self._getCmd()
-        cmdVar = myGlobals.actorState.actor.cmdr.call(actor="tcc", forUserCmd=cmd, cmdStr="axis stop")
+        cmdVar = myGlobals.actorState.actor.cmdr.call(actor='tcc',
+                                                      forUserCmd=cmd,
+                                                      cmdStr='track /stop')
         if cmdVar.didFail:
             cmd.warn('text="Failed to abort slew"')
 
