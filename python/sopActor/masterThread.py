@@ -323,7 +323,7 @@ def prep_guider_decenter_off(multiCmd):
 
     Command: guider decenter off
     """
-    multiCmd.append(SopPrecondition(sopActor.GUIDER, Msg.DECENTER, on=False))
+    multiCmd.append(sopActor.GUIDER, Msg.DECENTER, on=False)
 
 def prep_manga_dither(multiCmd, dither='C', precondition=False):
     """Prepare for MaNGA exposures by dithering the guider.
