@@ -375,11 +375,20 @@ class DoBossCalibsCmd(CmdState):
                                         arcTime=4.0,
                                         guiderFlatTime=0.5))
 
+    def isSlewingDisabled(self):
+        """If slewing is disabled, return a string describing why, else False."""
+
+        if self.cmd and self.cmd.isAlive() and self.disable_slews:
+            return 'slewing disallowed while taking calibrations.'
+        else:
+            return False
+
     def reset_nonkeywords(self):
         self.nBias = 0; self.nBiasDone = 0;
         self.nDark = 0; self.nDarkDone = 0;
         self.nFlat = 0; self.nFlatDone = 0;
         self.nArc = 0; self.nArcDone = 0;
+        self.disable_slews = False
 
     def exposures_remain(self):
         """Return True if there are any exposures left to be taken."""
@@ -403,6 +412,7 @@ class DoBossCalibsCmd(CmdState):
         self.nBias = self.nBiasDone
         self.nDark = self.nDarkDone
         self.nFlat = self.nFlatDone
+        self.disable_slews = False
         super(DoBossCalibsCmd,self).abort()
 
 

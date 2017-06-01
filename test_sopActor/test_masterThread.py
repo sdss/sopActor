@@ -904,17 +904,20 @@ class TestBossCalibs(MasterThreadTester):
         cmdState.nFlat = 1
         cmdState.nArc = 1
         self._do_boss_calibs(7,38,0,1,cmdState,didFail=True)
+        self.assertFalse(cmdState.isSlewingDisabled())
     def test_do_boss_calibs_two_flat_fail_on_readout(self):
         cmdState = CmdState.DoBossCalibsCmd()
         self.cmd.failOn = "boss exposure   readout"
         cmdState.nFlat = 2
         self._do_boss_calibs(7,38,0,1,cmdState,didFail=True)
+        self.assertFalse(cmdState.isSlewingDisabled())
     def test_do_boss_calibs_two_arc_fail_on_second_exposure(self):
         cmdState = CmdState.DoBossCalibsCmd()
         self.cmd.failOn = "boss exposure arc itime=4 noreadout"
         self.cmd.failOnCount = 2
         cmdState.nArc = 2
         self._do_boss_calibs(9,48,0,1,cmdState,didFail=True)
+        self.assertFalse(cmdState.isSlewingDisabled())
 
 
 if __name__ == '__main__':

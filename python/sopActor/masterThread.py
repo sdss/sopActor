@@ -793,6 +793,9 @@ def do_boss_calibs(cmd, cmdState, actorState):
     finishMsg = "Your calibration data are ready."
     failMsg = ""            # message to use if we've failed
 
+    # We disable slews untils we start reading the last exposure
+    cmdState.disable_slews = True
+
     # ensure the apogee shutter is closed for co-observing carts.
     if not close_apogee_shutter_if_gang_on_cart(cmd, cmdState, actorState, 'cleanup'):
         return False
@@ -887,9 +890,11 @@ def do_boss_calibs(cmd, cmdState, actorState):
                                     cmdState.name+'.readoutCleanup',
                                     sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True).run():
                 cmd.error('text="Failed to readout last exposure"')
+        cmdState.disable_slews = False
         return fail_command(cmd, cmdState, failMsg)
 
     # Readout any pending data and return telescope to initial state
+    cmdState.disable_slews = False  # It is ok to slew again
     multiCmd = SopMultiCommand(cmd,
                                 actorState.timeout + (readoutDuration if pendingReadout else 0),
                                 cmdState.name+'.readoutFinish')

@@ -958,6 +958,10 @@ class SopCmd(object):
         """Return False if we can slew, otherwise return a string describing why we cannot."""
         sopState = myGlobals.actorState
 
+        bossCalibs_disabled = sopState.doBossCalibs.isSlewingDisabled()
+        if bossCalibs_disabled:
+            return bossCalibs_disabled
+
         if sopState.survey == sopActor.BOSS:
             return sopState.doBossScience.isSlewingDisabled()
 
