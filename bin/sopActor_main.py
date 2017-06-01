@@ -11,11 +11,11 @@
 
 
 from __future__ import print_function, division, absolute_import
-from sopActor import Msg, SopActor
+from sopActor import Msg, SopActor, Queue
 
 # start a new SopActor
 if __name__ == "__main__":
     sop = SopActor.SopActor.newActor()
-    sop.run(Msg=Msg)
+    sop.run(Msg=Msg, queueClass=Queue)
 
 
