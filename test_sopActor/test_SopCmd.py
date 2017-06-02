@@ -66,24 +66,24 @@ class SopCmdTester(sopTester.SopTester):
 class SopAPOCmdTester(SopCmdTester):
     def setUp(self):
         self.name = 'sop'
-        self.actor = TestHelper.FakeActor(self.name, self.name+'Actor', location='APO')
         super(SopAPOCmdTester, self).setUp()
+        self.actor = TestHelper.FakeActor(self.name, self.name+'Actor', location='APO')
         self.sopcmd = self.actor.commandSets['SopCmd_APO']
 
 
 class SopLCOCmdTester(SopCmdTester):
     def setUp(self):
         self.name = 'sop'
-        self.actor = TestHelper.FakeActor(self.name, self.name+'Actor', location='LCO')
         super(SopLCOCmdTester, self).setUp()
+        self.actor = TestHelper.FakeActor(self.name, self.name+'Actor', location='LCO')
         self.sopcmd = self.actor.commandSets['SopCmd_LCO']
 
 
 class SopLOCALCmdTester(SopCmdTester):
     def setUp(self):
         self.name = 'sop'
-        self.actor = TestHelper.FakeActor(self.name, self.name+'Actor', location='LOCAL')
         super(SopLOCALCmdTester, self).setUp()
+        self.actor = TestHelper.FakeActor(self.name, self.name+'Actor', location='LOCAL')
         self.sopcmd = self.actor.commandSets['SopCmd_LOCAL']
 
 
