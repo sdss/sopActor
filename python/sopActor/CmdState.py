@@ -4,8 +4,11 @@ Also hold keywords for those commands as we pass them around.
 """
 from opscore.utility.qstr import qstr
 
+from time import sleep
+
 import sopActor.myGlobals as myGlobals
 import sopActor
+
 
 def getDefaultArcTime(survey):
     """Get the default arc time for this survey"""
@@ -239,8 +242,12 @@ class CmdState(object):
                 self.stages[s] = "aborted"
         self.genCmdStateKeys()
 
-    def stop_boss_exposure(self):
-        """Abort any currently running BOSS exposure, or warn if there's nothing to abort."""
+    def stop_boss_exposure(self, wait=False):
+        """Abort any currently running BOSS exposure, or warn if there's nothing to abort.
+
+        If force_readout is set, makes sure the exposure has been read.
+
+        """
         cmd = self._getCmd()
         # The same states we cannot slew during are the states we can't abort from.
         if self.isSlewingDisabled_BOSS()[0]:
@@ -249,6 +256,12 @@ class CmdState(object):
             cmdVar = call(actor="boss", forUserCmd=cmd, cmdStr="exposure stop")
             if cmdVar.didFail:
                 cmd.warn('text="Failed to stop running BOSS exposure"')
+
+            # We wait for 10 seconds before returning. If the exposure is being taken as
+            # part of a MaNGA sequence, that should give it enough time for the expose
+            # multi command to finish and the readout to start.
+            if wait:
+                sleep(10)
         else:
             cmd.warn('text="No BOSS exposure to abort!"')
 
@@ -602,7 +615,7 @@ class DoMangaSequenceCmd(CmdState):
             return False
 
     def abort(self):
-        self.stop_boss_exposure()
+        self.stop_boss_exposure(wait=True)
         super(DoMangaSequenceCmd, self).abort()
 
 
@@ -625,7 +638,7 @@ class DoMangaDitherCmd(CmdState):
             return False
 
     def abort(self):
-        self.stop_boss_exposure()
+        self.stop_boss_exposure(wait=True)
         super(DoMangaDitherCmd,self).abort()
 
 
@@ -687,7 +700,7 @@ class DoApogeeMangaDitherCmd(CmdState):
             return False
 
     def abort(self):
-        self.stop_boss_exposure()
+        self.stop_boss_exposure(wait=True)
         self.stop_apogee_exposure()
         super(DoApogeeMangaDitherCmd,self).abort()
 
@@ -809,6 +822,6 @@ class DoApogeeMangaSequenceCmd(CmdState):
             return False
 
     def abort(self):
-        self.stop_boss_exposure()
+        self.stop_boss_exposure(wait=True)
         self.stop_apogee_exposure()
-        super(DoApogeeMangaSequenceCmd,self).abort()
+        super(DoApogeeMangaSequenceCmd, self).abort()

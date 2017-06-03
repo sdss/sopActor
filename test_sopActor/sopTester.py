@@ -141,6 +141,11 @@ class SopTester(TestHelper.ActorTester):
         self.cmd.bossNeedsReadout = False
         updateModel('boss',TestHelper.bossState['reading'])
 
+    def _fake_boss_legible(self):
+        """Pretend that boss is legible (stopped but not read)."""
+        self.cmd.bossNeedsReadout = True
+        updateModel('boss', TestHelper.bossState['legible'])
+
 #...
 
 class SopThreadTester(SopTester,unittest.TestCase):
