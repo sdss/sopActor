@@ -66,24 +66,24 @@ class SopCmdTester(sopTester.SopTester):
 class SopAPOCmdTester(SopCmdTester):
     def setUp(self):
         self.name = 'sop'
-        self.actor = TestHelper.FakeActor(self.name, self.name+'Actor', location='APO')
         super(SopAPOCmdTester, self).setUp()
+        self.actor = TestHelper.FakeActor(self.name, self.name+'Actor', location='APO')
         self.sopcmd = self.actor.commandSets['SopCmd_APO']
 
 
 class SopLCOCmdTester(SopCmdTester):
     def setUp(self):
         self.name = 'sop'
-        self.actor = TestHelper.FakeActor(self.name, self.name+'Actor', location='LCO')
         super(SopLCOCmdTester, self).setUp()
+        self.actor = TestHelper.FakeActor(self.name, self.name+'Actor', location='LCO')
         self.sopcmd = self.actor.commandSets['SopCmd_LCO']
 
 
 class SopLOCALCmdTester(SopCmdTester):
     def setUp(self):
         self.name = 'sop'
-        self.actor = TestHelper.FakeActor(self.name, self.name+'Actor', location='LOCAL')
         super(SopLOCALCmdTester, self).setUp()
+        self.actor = TestHelper.FakeActor(self.name, self.name+'Actor', location='LOCAL')
         self.sopcmd = self.actor.commandSets['SopCmd_LOCAL']
 
 
@@ -812,11 +812,18 @@ class TestDoApogeeMangaSequence(SopCmdTester,unittest.TestCase):
         self.assertIsNone(msgNew)
         self._check_cmd(*cmd_levels,finish=True, didFail=didFail)
         return msg
-    def test_doApogeeMangaSequence_modify(self):
+
+    def test_doApogeeMangaSequence_modify_count1(self):
         msg = self._doApogeeMangaSequence_modify('mangaDithers=ESN count=2','mangaDithers=ESN count=1')
         self.assertEqual(msg.cmdState.mangaDithers,'ESN')
         self.assertEqual(msg.cmdState.count,1)
         self.assertEqual(msg.cmdState.mangaDitherSeq,'ESN')
+
+    def test_doApogeeMangaSequence_modify_count2(self):
+        msg = self._doApogeeMangaSequence_modify('mangaDithers=NSE count=1','mangaDithers=NSE count=2')
+        self.assertEqual(msg.cmdState.mangaDithers,'NSE')
+        self.assertEqual(msg.cmdState.count,2)
+        self.assertEqual(msg.cmdState.mangaDitherSeq,'NSENSE')
 
     def test_doApogeeMangaSequence_modify_not_dithers(self):
         msg = self._doApogeeMangaSequence_modify('mangaDithers=NSE count=2','mangaDithers=SEN count=1',(0,2,0,0),True)

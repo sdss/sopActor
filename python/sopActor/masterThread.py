@@ -608,7 +608,7 @@ def do_manga_sequence(cmd, cmdState, actorState):
         ditherState = actorState.doMangaDither
         ditherState.reinitialize(cmd)
         ditherState.expTime = cmdState.expTime
-        ditherState.dither = dither
+        ditherState.dither = cmdState.ditherSeq[cmdState.index]
         ditherState.readout = False
         pendingReadout = True
         # Beginning of exposure
@@ -650,6 +650,7 @@ def do_manga_sequence(cmd, cmdState, actorState):
 
     # Append to stack exposure readout command
     # Command : boss exposure   readout
+    # when while loop is aborted
     if pendingReadout:
         multiCmd = SopMultiCommand(cmd, actorState.timeout + readoutDuration,
                                    cmdState.name+".readout",
@@ -734,7 +735,7 @@ def do_apogeemanga_sequence(cmd, cmdState, actorState):
         ditherState.reinitialize(cmd)
         ditherState.mangaExpTime = cmdState.mangaExpTime
         ditherState.apogeeExpTime = cmdState.apogeeExpTime
-        ditherState.mangaDither = mangaDither
+        ditherState.mangaDither = cmdState.mangaDitherSeq[cmdState.index]
         ditherState.readout = cmdState.readout
         ditherState.apogee_long = cmdState.apogee_long
         pendingReadout = not cmdState.readout

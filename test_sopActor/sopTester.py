@@ -56,7 +56,6 @@ class SopTester(TestHelper.ActorTester):
         self.name = 'sop'
         # so we can call SopCmds.
         self.actor = TestHelper.FakeActor(self.name, self.name+'Actor')
-
         super(SopTester,self).setUp()
         myGlobals.actorState = self.actorState
         actorState = myGlobals.actorState
