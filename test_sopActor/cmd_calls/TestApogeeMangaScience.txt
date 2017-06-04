@@ -267,7 +267,139 @@ boss exposure   readout
 guider decenter off
 
 
+[test_do_apogeemanga_sequence_modifycount_2to1]
+guider decenter on
+guider mangaDither ditherPos=N
 
+apogee expose time=450.0 object=object
+boss exposure science itime=900 noreadout
+apogee dither namedpos=A
+apogee expose time=450.0 object=object
+
+boss exposure   readout
+guider mangaDither ditherPos=S
+
+apogee expose time=450.0 object=object
+boss exposure science itime=900 noreadout
+apogee dither namedpos=B
+apogee expose time=450.0 object=object
+
+boss exposure   readout
+guider mangaDither ditherPos=E
+
+apogee expose time=450.0 object=object
+boss exposure science itime=900 noreadout
+apogee dither namedpos=A
+apogee expose time=450.0 object=object
+
+boss exposure   readout
+guider decenter off
+
+
+[test_do_apogeemanga_sequence_modifycount_3to1]
+guider decenter on
+guider mangaDither ditherPos=N
+
+apogee expose time=450.0 object=object
+boss exposure science itime=900 noreadout
+apogee dither namedpos=A
+apogee expose time=450.0 object=object
+
+boss exposure   readout
+guider mangaDither ditherPos=S
+
+apogee expose time=450.0 object=object
+boss exposure science itime=900 noreadout
+apogee dither namedpos=B
+apogee expose time=450.0 object=object
+
+boss exposure   readout
+guider mangaDither ditherPos=E
+
+apogee expose time=450.0 object=object
+boss exposure science itime=900 noreadout
+apogee dither namedpos=A
+apogee expose time=450.0 object=object
+
+boss exposure   readout
+guider decenter off
+
+
+[test_do_apogeemanga_sequence_modifycount_2to3]
+guider decenter on
+guider mangaDither ditherPos=N
+
+apogee expose time=450.0 object=object
+boss exposure science itime=900 noreadout
+apogee dither namedpos=A
+apogee expose time=450.0 object=object
+
+boss exposure   readout
+guider mangaDither ditherPos=S
+
+apogee expose time=450.0 object=object
+boss exposure science itime=900 noreadout
+apogee dither namedpos=B
+apogee expose time=450.0 object=object
+
+boss exposure   readout
+guider mangaDither ditherPos=E
+
+apogee expose time=450.0 object=object
+boss exposure science itime=900 noreadout
+apogee dither namedpos=A
+apogee expose time=450.0 object=object
+
+boss exposure   readout
+guider mangaDither ditherPos=N
+
+apogee expose time=450.0 object=object
+boss exposure science itime=900 noreadout
+apogee dither namedpos=B
+apogee expose time=450.0 object=object
+
+boss exposure   readout
+guider mangaDither ditherPos=S
+
+apogee expose time=450.0 object=object
+boss exposure science itime=900 noreadout
+apogee dither namedpos=A
+apogee expose time=450.0 object=object
+
+boss exposure   readout
+guider mangaDither ditherPos=E
+
+apogee expose time=450.0 object=object
+boss exposure science itime=900 noreadout
+apogee dither namedpos=B
+apogee expose time=450.0 object=object
+
+boss exposure   readout
+guider mangaDither ditherPos=N
+
+boss exposure science itime=900 noreadout
+apogee expose time=450.0 object=object
+apogee dither namedpos=A
+apogee expose time=450.0 object=object
+
+boss exposure   readout
+guider mangaDither ditherPos=S
+
+boss exposure science itime=900 noreadout
+apogee expose time=450.0 object=object
+apogee dither namedpos=B
+apogee expose time=450.0 object=object
+
+boss exposure   readout
+guider mangaDither ditherPos=E
+
+boss exposure science itime=900 noreadout
+apogee expose time=450.0 object=object
+apogee dither namedpos=A
+apogee expose time=450.0 object=object
+
+boss exposure   readout
+guider decenter off
 
 [test_do_apogeemanga_sequence_count_2_shutter_closed_at_A]
 apogee shutter open
