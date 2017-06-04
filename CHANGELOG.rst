@@ -6,8 +6,8 @@ Change Log
 
 This document records the main changes to the sopActor code.
 
-.. _changelog-v4_0_0:
-v4_0 (unreleased)
+.. _changelog-v3_9:
+v3_9 (unreleased)
 -----------------
 
 Changed
