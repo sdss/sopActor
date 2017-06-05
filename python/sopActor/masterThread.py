@@ -981,13 +981,14 @@ def do_goto_field_hartmann(cmd, cmdState, actorState):
     # - For eBOSS we do the same this but we only call hartmann collimate ignoreResiduals (same as
     #   collimate_boss).
 
+    args = 'ignoreResiduals'
     if actorState.survey == sopActor.BOSS or actorState.survey == sopActor.MANGA:
-        args = 'ignoreResiduals'
+        pass
     elif actorState.survey == sopActor.APOGEEMANGA:
         if actorState.surveyMode == sopActor.APOGEELEAD:
-            args = 'ignoreResiduals'
+            pass
         else:
-            args = 'ignoreResiduals minBlueCorrection'
+            args+= ' minBlueCorrection'
 
     multiCmd.append(sopActor.BOSS, Msg.HARTMANN, args=args)
     if not handle_multiCmd(multiCmd, cmd, cmdState, stageName, 'Failed to take hartmann sequence'):
@@ -1000,7 +1001,10 @@ def do_goto_field_hartmann(cmd, cmdState, actorState):
     sp2_resid = models['hartmann'].keyVarDict['sp2Residuals'][2]
 
     if sp1_resid != 'OK' or sp2_resid != 'OK':
-        if actorState.surveyMode != sopActor.APOGEELEAD:
+        if actorState.surveyMode == sopActor.APOGEELEAD:
+            cmd.warn('text="BOSS cameras are out of focus but continuing '
+                     'because this is an APOGEE lead plate."')
+        else:
             # Turns off the lamps before failing the command.
             if not doLamps(cmd, actorState, Ne=False, HgCd=False):
                 cmd.warn('text="Failed turning on lamps in preparation to fail '
@@ -1008,9 +1012,6 @@ def do_goto_field_hartmann(cmd, cmdState, actorState):
             fail_command(cmd, cmdState, 'Please, adjust the blue ring and run gotoField again. '
                                         'The corrector has been adjusted.')
             return False
-        else:
-            cmd.warn('text="BOSS cameras are out of focus but continuing '
-                     'because this is an APOGEE lead plate."')
 
     show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
 
