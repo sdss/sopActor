@@ -989,7 +989,7 @@ def do_goto_field_hartmann(cmd, cmdState, actorState):
         if actorState.surveyMode == sopActor.APOGEELEAD:
             pass
         else:
-            args+= ' minBlueCorrection'
+            args += ' minBlueCorrection'
 
     multiCmd.append(sopActor.BOSS, Msg.HARTMANN, args=args)
     if not handle_multiCmd(multiCmd, cmd, cmdState, stageName, 'Failed to take hartmann sequence'):
