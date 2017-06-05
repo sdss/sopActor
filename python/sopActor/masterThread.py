@@ -973,14 +973,16 @@ def do_goto_field_hartmann(cmd, cmdState, actorState):
     prep_quick_hartmann(multiCmd)
 
     # The behaviour for hartmanns depends on the leading survey:
-    # - If APOGEE is leading with call hartmann collimate ignoreResiduals so that the
-    #   collimator is always adjusted.
+    # - If APOGEE is leading we call hartmann collimate ignoreResiduals so that the
+    #   collimator is always adjusted. The blue ring correction will be output but a
+    #   failed hartmann WON'T stop the gotoField command.
     # - If MaNGA is leading we call hartmann collimate ignoreResiduals minBlueCorrection. This
     #   outputs only the minimum blue ring correction required to get the cameras into focus
     #   tolerance. If any of the cameras is out of focus we stop the goto_field command and turn
     #   the lamps off.
-    # - For eBOSS we do the same this but we only call hartmann collimate ignoreResiduals (same as
-    #   collimate_boss).
+    # - For eBOSS we do the same as for MaNGA lead but we only call
+    #   hartmann collimate ignoreResiduals (same as collimate_boss). A failed hartmann will
+    #   stop the gotoField command.
 
     args = 'ignoreResiduals'
     if actorState.survey == sopActor.BOSS or actorState.survey == sopActor.MANGA:
