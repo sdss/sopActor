@@ -106,7 +106,7 @@ mcp ne.on
 
 mcp ne.on
 mcp hgcd.on
-hartmann collimate
+hartmann collimate ignoreResiduals
 
 mcp ne.on
 mcp hgcd.on
@@ -142,7 +142,7 @@ tcc track 0.000000, 0.000000 icrs /rottype=object/rotang=0/rotwrap=mid
 [test_goto_field_boss_hartmann]
 mcp ne.on
 
-hartmann collimate
+hartmann collimate ignoreResiduals
 mcp hgcd.on
 
 mcp hgcd.off
@@ -189,7 +189,7 @@ mcp ne.on
 
 mcp ne.on
 mcp hgcd.on
-hartmann collimate
+hartmann collimate ignoreResiduals
 
 mcp ne.on
 mcp hgcd.on
@@ -219,7 +219,23 @@ mcp ne.on
 
 mcp ne.on
 mcp hgcd.on
-hartmann collimate
+hartmann collimate ignoreResiduals
+
+[test_goto_field_boss_hartmann_blue_fails]
+tcc axis status
+tcc axis init
+tcc track 0.000000, 0.000000 icrs /rottype=object/rotang=0/rotwrap=mid
+mcp hgcd.on
+mcp ff.off
+mcp ne.on
+
+mcp ne.on
+mcp hgcd.on
+hartmann collimate ignoreResiduals
+
+mcp hgcd.off
+mcp ff.off
+mcp ne.off
 
 [test_goto_field_boss_ffs_open_fails]
 tcc axis status
@@ -231,7 +247,7 @@ mcp ne.on
 
 mcp ne.on
 mcp hgcd.on
-hartmann collimate
+hartmann collimate ignoreResiduals
 
 mcp ne.on
 mcp hgcd.on
@@ -260,7 +276,7 @@ mcp ne.on
 
 mcp ne.on
 mcp hgcd.on
-hartmann collimate
+hartmann collimate ignoreResiduals minBlueCorrection
 
 mcp ne.on
 mcp hgcd.on
@@ -298,7 +314,7 @@ mcp ne.on
 
 mcp ne.on
 mcp hgcd.on
-hartmann collimate
+hartmann collimate ignoreResiduals minBlueCorrection
 
 mcp ne.on
 mcp hgcd.on
@@ -320,4 +336,38 @@ mcp ffs.open
 guider axes off
 guider scale off
 guider focus off
+guider on time=5
+
+[test_goto_field_apogeemanga_apogee_lead_hartmann_out_of_focus]
+tcc axis status
+tcc axis init
+tcc track 0.000000, 0.000000 icrs /rottype=object/rotang=0/rotwrap=mid
+mcp hgcd.on
+mcp ff.off
+mcp ne.on
+
+mcp ne.on
+mcp hgcd.on
+hartmann collimate ignoreResiduals
+
+mcp ne.on
+mcp hgcd.on
+
+boss exposure arc itime=4 noreadout
+
+mcp ne.off
+mcp hgcd.off
+mcp ff.on
+boss exposure   readout
+
+boss exposure flat itime=25 noreadout
+guider flat time=0.5
+
+mcp ff.off
+boss exposure   readout
+mcp ffs.open
+guider axes off
+guider scale off
+guider focus off
+
 guider on time=5
