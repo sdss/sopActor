@@ -20,7 +20,10 @@ Fixed
 * Ticket `#2715 <https://trac.sdss.org/ticket/2715>`_: Add MaStar survey mode
 * Ticker `#2763 <https://trac.sdss.org/ticket/2763>`_: Failure to update proper dither sequence when count modified during readout of last exposure
 * Ticket `#2483 <https://trac.sdss.org/ticket/2483>`_: Refactored SopActor to use SDSSActor, and moved sopActor_main to bin.
-Ticket `#2203 <https://trac.sdss.org/ticket/2203>`_: 3-minute timeout occurs after stopping gotoField command. ``CmdState.stop_tcc()`` now issues ``tcc track /stop`` instead of ``tcc axis stop``.
+* Ticket `#2203 <https://trac.sdss.org/ticket/2203>`_: 3-minute timeout occurs after stopping gotoField command. ``CmdState.stop_tcc()`` now issues ``tcc track /stop`` instead of ``tcc axis stop``.
+* Ticket `#2701 <https://trac.sdss.org/ticket/2701>`_: SOP Actions when hartmann fails on "gotoField". All hartmanns now report the minimum correction needed to get the blue ring within tolerance. Collimator correction is always applied. gotoField for APOGEE-led plates do not fail even if the hartmann fails.
+* Ticket `#2748 <https://trac.sdss.org/ticket/2748>`_: Don't allow a slew during MaNGA post-calibration. Slews are disabled during ``do_boss_calibs`` until the readout of the last exposure (usually an arc).
+
 
 
 .. x.y.z (unreleased)
