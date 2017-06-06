@@ -196,6 +196,13 @@ class CmdStateTester(sopTester.SopTester):
         self.cmdState.stop_boss_exposure()
         self._check_cmd(0,0,1,0,False) # nothing should happen except a warning.
 
+    def test_stop_boss_exposure_legible(self):
+
+        self._fake_boss_legible()
+        self.cmdState.stop_boss_exposure()
+        # self._check_cmd(0, 0, 2, 0, False)
+        self.assertEqual(self.cmd.calls, ['boss exposure stop',])
+
     def test_stop_apogee_exposure(self):
         self.cmdState.stop_apogee_exposure()
         self.assertEqual(self.cmd.calls, ['apogee expose stop',])
@@ -209,7 +216,7 @@ class TestGotoGangChange(CmdStateTester,unittest.TestCase):
 
     def test_abort(self):
         super(TestGotoGangChange,self).test_abort()
-        self.assertEqual(self.cmd.calls, ['apogee expose stop', 'tcc axis stop',])
+        self.assertEqual(self.cmd.calls, ['apogee expose stop', 'tcc track /stop',])
         self.assertFalse(self.cmdState.doDomeFlat)
         self.assertFalse(self.cmdState.doSlew)
 
@@ -232,7 +239,7 @@ class TestGotoField(CmdStateTester,unittest.TestCase):
         self.cmdState.setStages(['slew','calibs'])
         self._fake_boss_exposing()
         super(TestGotoField,self).test_abort()
-        self.assertEqual(self.cmd.calls, ['boss exposure stop','tcc axis stop'])
+        self.assertEqual(self.cmd.calls, ['boss exposure stop','tcc track /stop'])
 
 
 class TestGotoPosition(CmdStateTester, unittest.TestCase):

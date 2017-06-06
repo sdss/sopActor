@@ -56,7 +56,6 @@ class SopTester(TestHelper.ActorTester):
         self.name = 'sop'
         # so we can call SopCmds.
         self.actor = TestHelper.FakeActor(self.name, self.name+'Actor')
-
         super(SopTester,self).setUp()
         myGlobals.actorState = self.actorState
         actorState = myGlobals.actorState
@@ -141,6 +140,11 @@ class SopTester(TestHelper.ActorTester):
         """Pretend that boss is reading out."""
         self.cmd.bossNeedsReadout = False
         updateModel('boss',TestHelper.bossState['reading'])
+
+    def _fake_boss_legible(self):
+        """Pretend that boss is legible (stopped but not read)."""
+        self.cmd.bossNeedsReadout = True
+        updateModel('boss', TestHelper.bossState['legible'])
 
 #...
 

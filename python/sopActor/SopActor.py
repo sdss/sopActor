@@ -103,7 +103,7 @@ class SopActor(actorcore.Actor.SDSSActor):
         # Explicitly load other actor models.
         self.models = {}
         for actor in ['boss', 'guider', 'platedb', 'mcp',
-                      'sop', 'tcc', 'apogee']:
+                      'sop', 'tcc', 'apogee', 'hartmann']:
             self.models[actor] = opscore.actor.model.Model(actor)
 
         self.actorState = actorcore.Actor.ActorState(self, self.models)
