@@ -963,7 +963,18 @@ def goto_field_apogee(cmd, cmdState, actorState, slewTimeout):
 
 
 def do_goto_field_hartmann(cmd, cmdState, actorState):
-    """Handles taking hartmanns for goto_field, depending on survey."""
+    """Handles taking hartmanns for goto_field, depending on survey.
+
+    The behaviour for hartmanns depends on the leading survey:
+     - We always call hartmann collimate ignoreResiduals minBlueCorrection. This
+      outputs only the minimum blue ring correction required to get the cameras into focus
+      tolerance. The collimator is always adjusted, even if gotoField fails.
+    - If APOGEE is leading, gotoField won't fail even if the blue ring needs to be moved,
+      but the collimator will be adjusted.
+    - If MaNGA or eBOSS are leading and the blue ring needs adjusting, gotoField will
+      fail and turn off the lamps.
+
+    """
 
     stageName = 'hartmann'
     hartmannDelay = 210
@@ -971,24 +982,7 @@ def do_goto_field_hartmann(cmd, cmdState, actorState):
     multiCmd = SopMultiCommand(cmd, actorState.timeout + hartmannDelay, cmdState.name + '.hartmann')
     prep_quick_hartmann(multiCmd)
 
-    # The behaviour for hartmanns depends on the leading survey:
-    # - If APOGEE is leading with call hartmann collimate ignoreResiduals so that the
-    #   collimator is always adjusted.
-    # - If MaNGA is leading we call hartmann collimate ignoreResiduals minBlueCorrection. This
-    #   outputs only the minimum blue ring correction required to get the cameras into focus
-    #   tolerance. If any of the cameras is out of focus we stop the goto_field command and turn
-    #   the lamps off.
-    # - For eBOSS we do the same this but we only call hartmann collimate ignoreResiduals (same as
-    #   collimate_boss).
-
-    args = 'ignoreResiduals'
-    if actorState.survey == sopActor.BOSS or actorState.survey == sopActor.MANGA:
-        pass
-    elif actorState.survey == sopActor.APOGEEMANGA:
-        if actorState.surveyMode == sopActor.APOGEELEAD:
-            pass
-        else:
-            args+= ' minBlueCorrection'
+    args = 'ignoreResiduals minBlueCorrection'
 
     multiCmd.append(sopActor.BOSS, Msg.HARTMANN, args=args)
     if not handle_multiCmd(multiCmd, cmd, cmdState, stageName, 'Failed to take hartmann sequence'):
@@ -1280,7 +1274,8 @@ def collimate_boss(cmd,cmdState,actorState):
     # two full readouts here, since these are not subframe Hartmanns.
     multiCmd = SopMultiCommand(cmd, actorState.timeout + hartmannDuration + 2*readoutDuration, cmdState.name+'.collimate')
     prep_quick_hartmann(multiCmd)
-    multiCmd.append(sopActor.BOSS, Msg.HARTMANN, args="ignoreResiduals noSubFrame")
+    multiCmd.append(sopActor.BOSS, Msg.HARTMANN,
+                    args='ignoreResiduals noSubFrame minBlueCorrection')
     if not handle_multiCmd(multiCmd,cmd,cmdState,stageName,"Failed to collimate BOSS for afternoon checkout"):
         return
 
