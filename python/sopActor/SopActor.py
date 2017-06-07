@@ -161,4 +161,14 @@ class SopActorLocal(SopActor):
 
     def _readWarmUpTimes(self):
         """Sets the warm up times for the lamps from the config file."""
-        pass
+
+        warmupList = self.config.get('lamps', 'warmupTime').split()
+        sopActor.myGlobals.warmupTime = {}
+        for i in range(0, len(warmupList), 2):
+            k, v = warmupList[i:i + 2]
+            sopActor.myGlobals.warmupTime[{'ff': sopActor.FF_LAMP,
+                                           'hgcd': sopActor.HGCD_LAMP,
+                                           'ne': sopActor.NE_LAMP,
+                                           'wht': sopActor.WHT_LAMP,
+                                           'uv': sopActor.UV_LAMP
+                                           }[k.lower()]] = float(v)
