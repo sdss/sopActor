@@ -988,7 +988,8 @@ def do_goto_field_hartmann(cmd, cmdState, actorState):
     multiCmd = SopMultiCommand(cmd, actorState.timeout + hartmannDelay, cmdState.name + '.hartmann')
     prep_quick_hartmann(multiCmd)
 
-    args = 'ignoreResiduals minBlueCorrection'
+    # TODO: decide whether to add minBlueCorrection here depending on observers decision
+    args = 'ignoreResiduals'
 
     multiCmd.append(sopActor.BOSS, Msg.HARTMANN, args=args)
     if not handle_multiCmd(multiCmd, cmd, cmdState, stageName, 'Failed to take hartmann sequence'):
@@ -1280,8 +1281,9 @@ def collimate_boss(cmd,cmdState,actorState):
     # two full readouts here, since these are not subframe Hartmanns.
     multiCmd = SopMultiCommand(cmd, actorState.timeout + hartmannDuration + 2*readoutDuration, cmdState.name+'.collimate')
     prep_quick_hartmann(multiCmd)
+    # TODO: decide whether to add minBlueCorrection here depending on observers decision
     multiCmd.append(sopActor.BOSS, Msg.HARTMANN,
-                    args='ignoreResiduals noSubFrame minBlueCorrection')
+                    args='ignoreResiduals noSubFrame')
     if not handle_multiCmd(multiCmd,cmd,cmdState,stageName,"Failed to collimate BOSS for afternoon checkout"):
         return
 
