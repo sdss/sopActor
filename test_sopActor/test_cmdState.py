@@ -498,17 +498,37 @@ class TestDoMangaSequence(CmdStateTester, unittest.TestCase):
 
     def _update_ditherSeq(self, count):
         self.assertEqual(3, self.cmdState.count)
-        self.assertEqual(self.cmdState.dithers*3, self.cmdState.ditherSeq)
+        self.assertEqual(self.cmdState.dithers * 3, self.cmdState.ditherSeq)
         self.cmdState.count = count
         self.cmdState.reset_ditherSeq()
         self.assertEqual(count, self.cmdState.count)
-        self.assertEqual(self.cmdState.dithers*count, self.cmdState.ditherSeq)
+        self.assertEqual(self.cmdState.dithers * count, self.cmdState.ditherSeq)
 
     def test_update_ditherSeq_count1(self):
         self._update_ditherSeq(1)
 
     def test_update_ditherSeq_count2(self):
         self._update_ditherSeq(2)
+
+    def _update_etr_by_count(self, start, count, etr):
+        self.assertEqual(start, self.cmdState.etr)
+        self._update_ditherSeq(count)
+        self.cmdState.update_etr()
+        self.assertEqual(etr, self.cmdState.etr)
+
+    def test_update_etr_by_count1(self):
+        self._update_etr_by_count(135.0, 1, 45.0)
+
+    def test_update_etr_by_count2(self):
+        self._update_etr_by_count(135.0, 2, 90.0)
+
+    def test_update_etr_by_index(self):
+        self.assertEqual(135.0, self.cmdState.etr)
+        times = [120.0, 105.0, 90.0, 75.0, 60.0, 45.0, 30.0, 15.0, 0.0]
+        for i in range(len(times)):
+            self.cmdState.index += 1
+            self.cmdState.update_etr()
+            self.assertEqual(times[i], self.cmdState.etr)
 
     def _has_state_changed_true(self, oldstate, as_dict=None):
         self.cmdState.count = 1
@@ -655,6 +675,80 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
         self.cmdState.set_apogeeLead()
         self.assertEqual(self.cmdState.apogeeExpTime, 500)
         self.assertEqual(self.cmdState.apogee_long, False)
+
+    def _update_ditherSeq(self, count):
+        defdiths = 2
+        self.assertEqual(defdiths, self.cmdState.count)
+        self.cmdState.count = count
+        self.cmdState.reset_ditherSeq()
+        self.assertEqual(count, self.cmdState.count)
+
+    def _set_survey(self, lead):
+        if lead == 'manga':
+            self.cmdState.set_mangaDither()
+        elif lead == 'manga-stare':
+            self.cmdState.set_mangaStare()
+        elif lead == 'apogee':
+            self.cmdState.set_apogeeLead()
+        elif lead == 'apogee-double':
+            self.cmdState.set_apogeeLead(apogeeExpTime=1000)
+
+    def _default_etr(self, lead, etr):
+        self.assertEqual(0, self.cmdState.etr)
+        self._set_survey(lead)
+        self.assertAlmostEqual(etr, self.cmdState.etr, 2)
+
+    def test_default_etr_manga_dither(self):
+        self._default_etr('manga', 90.0)
+
+    def test_default_etr_manga_stare(self):
+        self._default_etr('manga-stare', 90.0)
+
+    def test_default_etr_apogee_single(self):
+        self._default_etr('apogee', 60.0)
+
+    def test_default_etr_apogee_double(self):
+        self._default_etr('apogee-double', 30.0)
+
+    def _update_etr_by_count(self, lead, start, count, etr):
+        self.assertEqual(start, self.cmdState.etr)
+        self._set_survey(lead)
+        self._update_ditherSeq(count)
+        self.cmdState.update_etr()
+        self.assertEqual(etr, self.cmdState.etr)
+
+    def test_update_etr_by_count1_manga(self):
+        self._update_etr_by_count('manga', 0, 1, 45.0)
+
+    def test_update_etr_by_count3_manga_stare(self):
+        self._update_etr_by_count('manga-stare', 0, 3, 135.0)
+
+    def test_update_etr_by_count1_apogee(self):
+        self._update_etr_by_count('apogee', 0, 1, 30.0)
+
+    def test_update_etr_by_count1_apogee_double(self):
+        self._update_etr_by_count('apogee-double', 0, 1, 15.0)
+
+    def _update_etr_by_index(self, lead, start, times):
+        self.assertEqual(0, self.cmdState.etr)
+        self._set_survey(lead)
+        self.assertEqual(start, self.cmdState.etr)
+        for i in range(len(times)):
+            self.cmdState.index += 1
+            self.cmdState.update_etr()
+            self.assertEqual(times[i], self.cmdState.etr)
+
+    def test_update_etr_by_index_manga(self):
+        times = [75.0, 60.0, 45.0, 30.0, 15.0, 0.0]
+        self._update_etr_by_index('manga', 90.0, times)
+
+    def test_update_etr_by_index_apogee(self):
+        times = [45.0, 30.0, 15.0, 0.0]
+        self._update_etr_by_index('apogee', 60.0, times)
+
+    def test_update_etr_by_index_apogee_double(self):
+        times = [22.5, 15.0, 7.5, 0.0]
+        self._update_etr_by_index('apogee-double', 30.0, times)
 
     def test_abort(self):
         self._fake_boss_exposing()

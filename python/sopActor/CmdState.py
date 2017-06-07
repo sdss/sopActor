@@ -204,6 +204,10 @@ class CmdState(object):
         self.index += 1
         self.genKeys()
 
+    def update_etr(self):
+        ''' Update the estimate time remaining for sequences '''
+        pass
+
     def isSlewingDisabled_BOSS(self):
         """Return False if the BOSS state is safe to start a slew."""
         safe_state = ('READING', 'IDLE', 'DONE', 'ABORTED')
@@ -558,7 +562,8 @@ class DoMangaSequenceCmd(CmdState):
                           ['expose', 'calibs', 'dither'],
                           keywords=dict(expTime=900.0,
                                         dithers='NSE',
-                                        count=3))
+                                        count=3,
+                                        etr=135.0))
         self.reset_ditherSeq()
 
     def reset_nonkeywords(self):
@@ -568,7 +573,8 @@ class DoMangaSequenceCmd(CmdState):
         """Setup to use this for MaNGA dither observations."""
         self.keywords = dict(expTime=900.0,
                              dithers='NSE',
-                             count=3)
+                             count=3,
+                             etr=135.0)
         self.count = 3
         self.dithers = 'NSE'
         if not (self.cmd and self.cmd.isAlive()):
@@ -578,7 +584,8 @@ class DoMangaSequenceCmd(CmdState):
         """Setup to use this for MaNGA Stare observations."""
         self.keywords = dict(expTime=900.0,
                              dithers='CCC',
-                             count=1)
+                             count=1,
+                             etr=45.0)
         self.count = 1
         self.dithers = 'CCC'
         if not (self.cmd and self.cmd.isAlive()):
@@ -586,11 +593,18 @@ class DoMangaSequenceCmd(CmdState):
 
     def reset_ditherSeq(self):
         """Reset dither sequence based on dithers and count."""
-        self.ditherSeq = self.dithers*self.count
+        self.ditherSeq = self.dithers * self.count
+
+    def update_etr(self):
+        ''' Update the estimated time remaining '''
+        remaining_dithers = self.ditherSeq[self.index:]
+        num = len(remaining_dithers)
+        self.etr = (num * self.expTime) / 60.
 
     def getUserKeys(self):
         msg = []
         msg.append("%s_ditherSeq=%s,%s" % (self.name, self.ditherSeq, self.index))
+        msg.append('{0}_etr={1}'.format(self.name, self.etr))
         return msg
 
     def exposures_remain(self):
@@ -718,33 +732,45 @@ class DoApogeeMangaDitherCmd(CmdState):
 class DoApogeeMangaSequenceCmd(CmdState):
     def __init__(self):
         CmdState.__init__(self, 'doApogeeMangaSequence',
-                          ['expose','calibs','dither'],
+                          ['expose', 'calibs', 'dither'],
                           keywords=dict(mangaDithers='NSE',
                                         count=2,
+                                        etr=0,
                                         comment=''))
-        self.mangaExpTime=0
-        self.apogeeExpTime=0
+        self.mangaExpTime = 0
+        self.apogeeExpTime = 0
+        self.etr = 0
         self.apogee_long = False
         self.reset_ditherSeq()
 
+    def set_default_etr(self, exptime):
+        ''' Sets the default estimated time remaining based on survey lead '''
+        num = self.count * len(self.mangaDithers)
+        self.etr = (num * exptime) / 60.
+        self.keywords['etr'] = self.etr
+
     def set_apogeeLead(self, apogeeExpTime=None):
         """Setup to use this for APOGEE lead observations."""
-        self.keywords=dict(mangaDithers='CC',
-                           count=2,
-                           comment='')
+        self.keywords = dict(mangaDithers='CC',
+                             count=2,
+                             comment='')
 
         self.mangaDithers = 'CC'
         self.count = 2
-        self.mangaExpTime=900.0
+        self.mangaExpTime = 900.0
+        self.set_default_etr(self.mangaExpTime)
 
         if apogeeExpTime is None or apogeeExpTime <= 500:
             self.apogee_long = False
             self.apogeeExpTime = 500.
             self.keywords['apogeeExpTime'] = 500.
+            #self.set_default_etr(self.apogeeExpTime)
         else:
             self.apogee_long = True
             self.apogeeExpTime = 1000.
             self.keywords['apogeeExpTime'] = 1000.
+            #self.set_default_etr(self.apogeeExpTime)
+            self.etr /= 2.0 # divide by 2 here to account for double length exposures for a given C
 
         self.readout = True
         if not (self.cmd and self.cmd.isAlive()):
@@ -752,13 +778,15 @@ class DoApogeeMangaSequenceCmd(CmdState):
 
     def set_mangaDither(self):
         """Setup to use this for MaNGA dither observations."""
-        self.keywords=dict(mangaDithers='NSE',
-                           count=2,
-                           comment='')
+        self.keywords = dict(mangaDithers='NSE',
+                             count=2,
+                             etr=0,
+                             comment='')
         self.count = 2
         self.mangaDithers = 'NSE'
-        self.mangaExpTime=900.0
-        self.apogeeExpTime=450.0
+        self.mangaExpTime = 900.0
+        self.apogeeExpTime = 450.0
+        self.set_default_etr(self.mangaExpTime)
         self.readout = False
         self.apogee_long = False
         if not (self.cmd and self.cmd.isAlive()):
@@ -766,31 +794,42 @@ class DoApogeeMangaSequenceCmd(CmdState):
 
     def set_mangaStare(self):
         """Setup to use this for MaNGA stare observations."""
-        self.keywords=dict(mangaDithers='CCC',
-                           count=2,
-                           comment='')
+        self.keywords = dict(mangaDithers='CCC',
+                             count=2,
+                             etr=0,
+                             comment='')
         self.count = 2
         self.mangaDithers = 'CCC'
-        self.mangaExpTime=900.0
-        self.apogeeExpTime=450.0
+        self.mangaExpTime = 900.0
+        self.set_default_etr(self.mangaExpTime)
+        self.apogeeExpTime = 450.0
         self.readout = False
         self.apogee_long = False
         if not (self.cmd and self.cmd.isAlive()):
             self.reset_ditherSeq()
 
     def reset_nonkeywords(self):
-        super(DoApogeeMangaSequenceCmd,self).reset_nonkeywords()
+        super(DoApogeeMangaSequenceCmd, self).reset_nonkeywords()
         self.reset_ditherSeq()
 
     def reset_ditherSeq(self):
         """Reset dither sequence based on dithers,count parameters."""
-        self.mangaDitherSeq = self.mangaDithers*self.count
+        self.mangaDitherSeq = self.mangaDithers * self.count
         # Note: Two APOGEE exposures are taken for each MaNGA exposure.
+
+    def update_etr(self):
+        ''' Update the estimate time remaining in the dithersequence '''
+        remaining_dithers = self.mangaDitherSeq[self.index:]
+        num = len(remaining_dithers)
+        self.etr = (num * self.mangaExpTime) / 60.
+        if self.apogee_long:
+            self.etr /= 2.0
 
     def getUserKeys(self):
         msg = []
         msg.append("%s_ditherSeq=%s,%s" % (self.name, self.mangaDitherSeq, self.index))
         msg.append("%s_expTime=%s,%s" % (self.name, self.mangaExpTime, self.apogeeExpTime))
+        msg.append("{0}_etr={1}".format(self.name, self.etr))
         return msg
 
     def exposures_remain(self):
