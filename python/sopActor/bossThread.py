@@ -98,7 +98,7 @@ def main(actor, queues):
                 if cmdVar.didFail:
                     msg.cmd.error('text="BOSS failed on %s"'%cmdTxt)
 
-                if hasattr(msg, 'finish_msg', False):
+                if getattr(msg, 'finish_msg', False):
                     msg.cmd.inform(mgs.finish_msg)
 
                 msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=not cmdVar.didFail)
