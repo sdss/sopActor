@@ -276,7 +276,7 @@ mcp ne.on
 
 mcp ne.on
 mcp hgcd.on
-hartmann collimate ignoreResiduals minBlueCorrection
+hartmann collimate ignoreResiduals
 
 mcp ne.on
 mcp hgcd.on
@@ -314,7 +314,7 @@ mcp ne.on
 
 mcp ne.on
 mcp hgcd.on
-hartmann collimate ignoreResiduals minBlueCorrection
+hartmann collimate ignoreResiduals
 
 mcp ne.on
 mcp hgcd.on
