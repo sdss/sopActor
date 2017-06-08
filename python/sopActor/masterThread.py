@@ -671,7 +671,7 @@ def do_manga_sequence(cmd, cmdState, actorState):
     finish_command(cmd, cmdState, actorState, finishMsg)
 
 
-def do_one_apogeemanga_dither(cmd, cmdState, actorState):
+def do_one_apogeemanga_dither(cmd, cmdState, actorState, sequenceState):
     """A single APOGEE/MaNGA co-observing dither."""
 
     stageName = 'expose'
@@ -688,9 +688,18 @@ def do_one_apogeemanga_dither(cmd, cmdState, actorState):
     duration = flushDuration + expTime + actorState.timeout + guiderDecenterDuration
     if readout:
         duration += readoutDuration
+
+    if cmdState.apogee_long:
+        finish_msg = '%s_ditherSeq=%s,%s' % (sequenceState.name,
+                                             sequenceState.mangaDitherSeq,
+                                             sequenceState.index + 1)
+    else:
+        finish_msg = None
+
     multiCmd = SopMultiCommand(cmd, duration, cmdState.name+".expose")
     multiCmd.append(sopActor.BOSS, Msg.EXPOSE,
-                    expTime=mangaExpTime, expType="science", readout=readout)
+                    expTime=mangaExpTime, expType="science", readout=readout,
+                    finish_msg=finish_msg)
     multiCmd.append(sopActor.APOGEE, Msg.APOGEE_DITHER_SET,
                     expTime=apogeeExpTime,dithers=apogeeDithers,
                     expType="object", comment=cmdState.comment)
@@ -745,7 +754,7 @@ def do_apogeemanga_sequence(cmd, cmdState, actorState):
         pendingReadout = not cmdState.readout
         stageName = 'expose'
         cmdState.setStageState(stageName, 'running')
-        if not do_one_apogeemanga_dither(cmd, ditherState, actorState):
+        if not do_one_apogeemanga_dither(cmd, ditherState, actorState, cmdState):
             cmdState.setStageState(stageName, 'failed')
             failMsg = "failed one dither of a MaNGA dither sequence"
             break
