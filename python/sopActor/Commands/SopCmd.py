@@ -422,6 +422,7 @@ class SopCmd(object):
             cmdState.dithers = dithers
             cmdState.count = count
             cmdState.reset_ditherSeq()
+            cmdState.update_etr()
 
             if cmdState.index >= len(cmdState.ditherSeq):
                 cmd.warn('text="Modified exposure sequence is shorter than position in current sequence."')
@@ -493,6 +494,7 @@ class SopCmd(object):
             cmdState.mangaDithers = mangaDithers
             cmdState.count = count
             cmdState.reset_ditherSeq()
+            cmdState.update_etr()
 
             if cmdState.index >= len(cmdState.mangaDitherSeq):
                 cmd.warn('text="Modified exposure sequence is shorter than position in current sequence."')

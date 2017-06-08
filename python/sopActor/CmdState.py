@@ -604,8 +604,14 @@ class DoMangaSequenceCmd(CmdState):
     def getUserKeys(self):
         msg = []
         msg.append("%s_ditherSeq=%s,%s" % (self.name, self.ditherSeq, self.index))
-        msg.append('{0}_etr={1}'.format(self.name, self.etr))
+        msg.append('{0}_etr={1},{2}'.format(self.name, self.etr, self.keywords['etr']))
         return msg
+
+    def took_exposure(self):
+        """Update keys after an exposure and output them."""
+        self.index += 1
+        self.update_etr()
+        self.genKeys()
 
     def exposures_remain(self):
         """Return True if there are any exposures left to be taken."""
@@ -829,7 +835,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
         msg = []
         msg.append("%s_ditherSeq=%s,%s" % (self.name, self.mangaDitherSeq, self.index))
         msg.append("%s_expTime=%s,%s" % (self.name, self.mangaExpTime, self.apogeeExpTime))
-        msg.append("{0}_etr={1}".format(self.name, self.etr))
+        msg.append("{0}_etr={1},{2}".format(self.name, self.etr, self.keywords['etr']))
         return msg
 
     def exposures_remain(self):
@@ -847,6 +853,10 @@ class DoApogeeMangaSequenceCmd(CmdState):
         else:
             self.index += 1
 
+        # update the etr
+        self.update_etr()
+
+        # generating keys
         self.genKeys()
 
     @property

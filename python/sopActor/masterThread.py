@@ -604,6 +604,7 @@ def do_manga_sequence(cmd, cmdState, actorState):
     pendingReadout = False
     # set at start, and then update after each exposure.
     dither = cmdState.ditherSeq[cmdState.index]
+    cmdState.update_etr()
     while cmdState.exposures_remain():
         ditherState = actorState.doMangaDither
         ditherState.reinitialize(cmd)
@@ -728,6 +729,7 @@ def do_apogeemanga_sequence(cmd, cmdState, actorState):
 
     # set at start, and then update after each exposure.
     mangaDither = cmdState.mangaDitherSeq[cmdState.index]
+    cmdState.update_etr()
     while cmdState.exposures_remain():
         ditherState = actorState.doApogeeMangaDither
         # ditherState = CmdState.DoApogeeMangaDitherCmd()
