@@ -976,7 +976,7 @@ class TestApogeeMangaScience(MasterThreadTester):
 
         mangaDithers = 'CC'
         count = 1
-        self._do_apogeemanga_sequence(7, 43, 0, 0, mangaDithers, count,
+        self._do_apogeemanga_sequence(7, 44, 0, 0, mangaDithers, count,
                                       surveyMode='APOGEE lead')
 
     def test_do_apogeemanga_sequence_apogee_lead_count2_CC_long_exposure(self):
@@ -987,7 +987,7 @@ class TestApogeeMangaScience(MasterThreadTester):
 
         mangaDithers = 'CC'
         count = 2
-        self._do_apogeemanga_sequence(12, 65, 0, 0, mangaDithers, count,
+        self._do_apogeemanga_sequence(12, 67, 0, 0, mangaDithers, count,
                                       surveyMode='APOGEE lead')
 
     def test_do_manga_led_sequence_after_apogee_long_lead_sequence(self):
