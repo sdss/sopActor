@@ -67,22 +67,22 @@ class TestGuider(MasterThreadTester):
 
     def test_guider_start_ffsClosed(self):
         """ffs open, 3x axis clear, guider on"""
-        self._guider_start(5,18,0,0)
+        self._guider_start(6,19,0,0)
     def test_guider_start_ffsOpen(self):
         """3x axis clear, guider on"""
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
-        self._guider_start(4,15,0,0)
+        self._guider_start(5,16,0,0)
     def test_guider_start_arcsOn(self):
         """ffs open, he off, hgcd off, 3x axis clear, guider on"""
         sopTester.updateModel('mcp',TestHelper.mcpState['arcs'])
-        self._guider_start(7,18,0,0)
+        self._guider_start(8,19,0,0)
     def test_guider_start_flatsOn(self):
         """ffs open, flat off, 3x axis clear, guider on"""
         sopTester.updateModel('mcp',TestHelper.mcpState['flats'])
-        self._guider_start(6,18,0,0)
+        self._guider_start(7,19,0,0)
     def test_guider_start_fails(self):
         self.cmd.failOn = "guider on time=5"
-        self._guider_start(5,13,0,1,finish=True,didFail=True)
+        self._guider_start(6,14,0,1,finish=True,didFail=True)
 
     def _guider_flat(self,nCall,nInfo,nWarn,nErr,finish=False,didFail=False):
         """Helper for running guider flat tests."""
@@ -177,7 +177,7 @@ class TestGotoField(MasterThreadTester):
         """
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
-        self._goto_feld_apogee(12,43,0,0,cmdState)
+        self._goto_feld_apogee(13,44,0,0,cmdState)
     def test_goto_field_apogee_no_guider(self):
         """axis status, axis init, slew"""
         cmdState = self.actorState.gotoField
@@ -192,7 +192,7 @@ class TestGotoField(MasterThreadTester):
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
         cmdState.doSlew = False
-        self._goto_feld_apogee(8,34,0,0,cmdState)
+        self._goto_feld_apogee(9,35,0,0,cmdState)
     def test_goto_field_apogee_no_slew_decenter_off(self):
         """
         FF on, guider flat, FF off, open FFS
@@ -210,7 +210,7 @@ class TestGotoField(MasterThreadTester):
         self._prep_bypass('gangToCart',clear=True)
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
-        self._goto_feld_apogee(12,41,4,0,cmdState)
+        self._goto_feld_apogee(13,42,4,0,cmdState)
 
 
     def test_goto_field_apogee_no_slew_shutter_open(self):
@@ -222,7 +222,7 @@ class TestGotoField(MasterThreadTester):
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
         cmdState.doSlew = False
-        self._goto_feld_apogee(9,34,0,0,cmdState)
+        self._goto_feld_apogee(10,35,0,0,cmdState)
 
     def _goto_field_boss(self, nCall, nInfo, nWarn, nErr, cmdState, finish=False, didFail=False):
         masterThread.goto_field_boss(self.cmd,cmdState,myGlobals.actorState,self.timeout)
@@ -231,7 +231,7 @@ class TestGotoField(MasterThreadTester):
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
-        self._goto_field_boss(25,99,0,0,cmdState)
+        self._goto_field_boss(26,100,0,0,cmdState)
     def test_goto_field_boss_slew(self):
         """
         axis status, axis init, slew
@@ -341,21 +341,21 @@ class TestGotoField(MasterThreadTester):
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
-        self._goto_field_apogeemanga(25,99,0,0,cmdState)
+        self._goto_field_apogeemanga(26,100,0,0,cmdState)
 
     def test_goto_field_apogeemanga_all_shutter_open(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_parked'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
-        self._goto_field_apogeemanga(26,106,0,0,cmdState)
+        self._goto_field_apogeemanga(27,107,0,0,cmdState)
 
     def test_goto_field_apogeemanga_apogee_lead_hartmann_out_of_focus(self):
         sopTester.updateModel('mcp', TestHelper.mcpState['all_off'])
         sopTester.updateModel('hartmann', TestHelper.hartmannState['blue_fails'])
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
-        self._goto_field_apogeemanga(25, 99, 1, 0, cmdState, surveyMode=sopActor.APOGEELEAD)
+        self._goto_field_apogeemanga(26, 100, 1, 0, cmdState, surveyMode=sopActor.APOGEELEAD)
 
     def test_goto_field_cartridge_mismatch(self):
         """Tests gotoField if there is a mismatch between MCP and guider."""

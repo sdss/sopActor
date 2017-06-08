@@ -781,11 +781,11 @@ class SopCmd(object):
         sopState.queues[sopActor.MASTER].put(Msg.GOTO_FIELD, cmd, replyQueue=self.replyQueue,
                                              actorState=sopState, cmdState=cmdState)
 
-    def gotoPosition(self, cmd, name, az, alt, rot):
+    def gotoPosition(self, cmd, cmdState, name, az=None, alt=None, rot=None):
         """Goto a specified alt/az/[rot] position, named 'name'."""
 
         sopState = myGlobals.actorState
-        cmdState = sopState.gotoPosition
+        cmdState = cmdState or sopState.gotoPosition
         keywords = cmd.cmd.keywords
 
         blocked = self.isSlewingDisabled(cmd)
@@ -804,9 +804,9 @@ class SopCmd(object):
             return
 
         cmdState.reinitialize(cmd, output=False)
-        cmdState.set('alt', alt)
-        cmdState.set('az', az)
-        cmdState.set('rot', rot)
+        cmdState.set('alt', alt or cmdState.alt)
+        cmdState.set('az', az or cmdState.az)
+        cmdState.set('rot', rot or cmdState.rot)
 
         activeStages = ['slew']
         cmdState.setupCommand(cmd, activeStages)
@@ -818,22 +818,24 @@ class SopCmd(object):
     def gotoInstrumentChange(self, cmd):
         """Go to the instrument change position: alt=90 az=121 rot=0"""
 
-        self.gotoPosition(cmd, "instrument change", 121, 90, 0)
+        cmdState = myGlobals.actorState.gotoInstrumentChange
+        self.gotoPosition(cmd, cmdState, 'instrument change')
 
     def gotoStow(self, cmd):
         """Go to the stow position: alt=30, az=121, rot=0"""
 
-        self.gotoPosition(cmd, "stow", 121, 30, 0)
+        cmdState = myGlobals.actorState.gotoStow
+        self.gotoPosition(cmd, cmdState, "stow", 121, 30, 0)
 
     def gotoAll60(self, cmd):
         """Go to the startup check position: alt=60, az=60, rot=60"""
 
-        self.gotoPosition(cmd, "stow", 60, 60, 60)
+        self.gotoPosition(cmd, None, "stow", 60, 60, 60)
 
     def gotoStow60(self, cmd):
         """Go to the resting position: alt=60, az=121, rot=0"""
 
-        self.gotoPosition(cmd, "stow", 121, 60, 0)
+        self.gotoPosition(cmd, None, "stow", 121, 60, 0)
 
     def gotoGangChange(self, cmd):
         """Go to the gang connector change position"""
@@ -1068,6 +1070,8 @@ class SopCmd(object):
         sopState.doApogeeSkyFlats = CmdState.DoApogeeSkyFlatsCmd()
         sopState.gotoGangChange = CmdState.GotoGangChangeCmd()
         sopState.gotoPosition = CmdState.GotoPositionCmd()
+        sopState.gotoInstrumentChange = CmdState.GotoInstrumentChangeCmd()
+        sopState.gotoStow = CmdState.GotoStowCmd()
         sopState.doApogeeDomeFlat = CmdState.DoApogeeDomeFlatCmd()
         sopState.hartmann = CmdState.HartmannCmd()
         sopState.collimateBoss = CmdState.CollimateBossCmd()

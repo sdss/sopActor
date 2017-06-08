@@ -24,6 +24,8 @@ guider focus off
 
 guider on time=5
 
+guider decenter off
+
 [test_goto_field_apogee_no_guider]
 tcc axis status
 
@@ -45,6 +47,8 @@ guider focus off
 
 guider on time=5
 
+guider decenter off
+
 [test_goto_field_apogee_no_slew_decenter_off]
 mcp ff.on
 
@@ -52,13 +56,14 @@ guider flat time=0.5
 
 mcp ff.off
 mcp ffs.open
-guider decenter off
 
 guider axes off
 guider scale off
 guider focus off
 
 guider on time=5
+
+guider decenter off
 
 [test_goto_field_apogee_bypass_gangToCart]
 mcp ff.on
@@ -78,6 +83,9 @@ guider focus off
 
 guider on time=5
 
+guider decenter off
+
+
 [test_goto_field_apogee_no_slew_shutter_open]
 apogee shutter close
 mcp ff.on
@@ -92,6 +100,9 @@ guider scale off
 guider focus off
 
 guider on time=5
+
+guider decenter off
+
 
 [test_goto_field_boss_all]
 # Because the axis init happens as a precondition along with the lamp on
@@ -129,6 +140,9 @@ guider axes off
 guider scale off
 guider focus off
 guider on time=5
+
+guider decenter off
+
 
 [test_goto_field_boss_slew]
 tcc axis status
@@ -171,13 +185,14 @@ guider flat time=0.5
 
 mcp ff.off
 mcp ffs.open
-guider decenter off
 
 guider axes off
 guider scale off
 guider focus off
 
 guider on time=5
+
+guider decenter off
 
 [test_goto_field_boss_flat_on_fails]
 tcc axis status
@@ -302,6 +317,8 @@ guider focus off
 
 guider on time=5
 
+guider decenter off
+
 [test_goto_field_apogeemanga_all_shutter_open]
 apogee shutter close
 
@@ -337,6 +354,7 @@ guider axes off
 guider scale off
 guider focus off
 guider on time=5
+guider decenter off
 
 [test_goto_field_apogeemanga_apogee_lead_hartmann_out_of_focus]
 tcc axis status
@@ -369,5 +387,5 @@ mcp ffs.open
 guider axes off
 guider scale off
 guider focus off
-
 guider on time=5
+guider decenter off
