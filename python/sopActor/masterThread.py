@@ -671,7 +671,7 @@ def do_manga_sequence(cmd, cmdState, actorState):
     finish_command(cmd, cmdState, actorState, finishMsg)
 
 
-def do_one_apogeemanga_dither(cmd, cmdState, actorState, sequenceState):
+def do_one_apogeemanga_dither(cmd, cmdState, actorState, sequenceState=None):
     """A single APOGEE/MaNGA co-observing dither."""
 
     stageName = 'expose'
@@ -689,7 +689,7 @@ def do_one_apogeemanga_dither(cmd, cmdState, actorState, sequenceState):
     if readout:
         duration += readoutDuration
 
-    if cmdState.apogee_long:
+    if sequenceState and cmdState.apogee_long:
         finish_msg = '%s_ditherSeq=%s,%s' % (sequenceState.name,
                                              sequenceState.mangaDitherSeq,
                                              sequenceState.index + 1)
