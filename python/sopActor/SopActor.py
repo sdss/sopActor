@@ -73,9 +73,7 @@ class SopActor(actorcore.Actor.SDSSActor):
                                        configFile=configFile,
                                        makeCmdrConnection=makeCmdrConnection)
 
-        self.headURL = ('$HeadURL: http://svn.sdss.org/repo/operations/'
-                        'general/actors/sopActor/trunk/python/sopActor/'
-                        'sopActor_main.py $')
+        self.headURL = '$HeadURL$'
 
         self.logger.setLevel(debugLevel)
         self.logger.propagate = True
