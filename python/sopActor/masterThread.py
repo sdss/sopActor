@@ -690,8 +690,7 @@ def do_one_apogeemanga_dither(cmd, cmdState, actorState):
         duration += readoutDuration
     multiCmd = SopMultiCommand(cmd, duration, cmdState.name+".expose")
     multiCmd.append(sopActor.BOSS, Msg.EXPOSE,
-                    expTime=mangaExpTime, expType="science", readout=readout
-                    cmdState=cmdState, apogee_long_index=True if cmdState.apogee_long else False)
+                    expTime=mangaExpTime, expType="science", readout=readout)
     multiCmd.append(sopActor.APOGEE, Msg.APOGEE_DITHER_SET,
                     expTime=apogeeExpTime,dithers=apogeeDithers,
                     expType="object", comment=cmdState.comment)

@@ -27,23 +27,23 @@ def single_hartmann(cmd, actorState, replyQueue, expTime, mask):
     """Take a single hartmann frame, with one hartmann in position."""
     expType = 'arc'
     expTimeCmd, readoutCmd = getExpTimeCmd(expTime, expType, cmd)
-
+    
     validMasks = ('left','right','out')
     if mask.lower() not in validMasks:
         err = qstr("Do not understand Hartmann mask '%s'."%mask)
         cmd.error('text=%s'%err)
         replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
         return
-
+        
     cmd.inform('text=\"Taking a %gs %s Hartmann exposure.\"'%(expTime,mask))
-
+    
     timeLim = expTime + 180.0  # seconds
     timeLim += 100
     cmdVar = actorState.actor.cmdr.call(actor="boss", forUserCmd=cmd,
                                         cmdStr=("exposure %s %s hartmann=%s" %
                                                 (expType, expTimeCmd, mask)),
                                         keyVars=[], timeLim=timeLim)
-
+    
     replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=cmd, success=not cmdVar.didFail)
 #...
 
@@ -97,18 +97,11 @@ def main(actor, queues):
                                                     keyVars=[], timeLim=timeLim)
                 if cmdVar.didFail:
                     msg.cmd.error('text="BOSS failed on %s"'%cmdTxt)
-
-                if getattr(msg, 'apogee_long_index', False):
-                    cmdState = msg.cmdState
-                    msg.cmd.append('%s_ditherSeq=%s,%s' % (cmdState.name,
-                                                           cmdState.mangaDitherSeq,
-                                                           cmdState.index + 1))
-
                 msg.replyQueue.put(Msg.EXPOSURE_FINISHED, cmd=msg.cmd, success=not cmdVar.didFail)
-
+                
             elif msg.type == Msg.SINGLE_HARTMANN:
                 single_hartmann(msg.cmd, actorState, msg.replyQueue, msg.expTime, msg.mask)
-
+                
             elif msg.type == Msg.HARTMANN:
                 args = getattr(msg, 'args', None)
                 hartmann(msg.cmd, actorState, msg.replyQueue, args)
