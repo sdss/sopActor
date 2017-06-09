@@ -85,7 +85,7 @@ class SopActor(actorcore.Actor.SDSSActor):
             ('master', sopActor.MASTER, masterThread),
             ('boss', sopActor.BOSS, bossThread),
             ('apogee', sopActor.APOGEE, apogeeThread),
-            ('apogeeScript', sopActor.APOGEE_SCRIPT, apogeeThread),
+            ('apogeeScript', sopActor.APOGEE_SCRIPT, apogeeThread.apogeeScript),
             ('script', sopActor.SCRIPT, scriptThread),
             ('guider', sopActor.GUIDER, guiderThread),
             ('gcamera', sopActor.GCAMERA, gcameraThread),
