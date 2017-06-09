@@ -23,7 +23,7 @@ Fixed
 * Ticket `#2203 <https://trac.sdss.org/ticket/2203>`_: 3-minute timeout occurs after stopping gotoField command. ``CmdState.stop_tcc()`` now issues ``tcc track /stop`` instead of ``tcc axis stop``.
 * Ticket `#2701 <https://trac.sdss.org/ticket/2701>`_: SOP Actions when hartmann fails on "gotoField". All hartmanns now report the minimum correction needed to get the blue ring within tolerance. Collimator correction is always applied. gotoField for APOGEE-led plates do not fail even if the hartmann fails.
 * Ticket `#2748 <https://trac.sdss.org/ticket/2748>`_: Don't allow a slew during MaNGA post-calibration. Slews are disabled during ``do_boss_calibs`` until the readout of the last exposure (usually an arc).
-
+* Ticket `#2805 <https://trac.sdss.org/ticket/2805>`_: STUI SOP should display estimated time remaining for dither sets.
 
 
 .. x.y.z (unreleased)
