@@ -461,6 +461,7 @@ class DoApogeeScienceCmd(CmdState):
                                         comment=""))
         self.etr = self.keywords['etr']
         self.num_dithers = 2
+        self.readout_time = 10.
 
     def reset_nonkeywords(self):
         self.expType = "object"
@@ -495,7 +496,7 @@ class DoApogeeScienceCmd(CmdState):
     def update_etr(self):
         ''' Update the estimated time remaining '''
         num_pairs = self.remaining_pairs()
-        self.etr = (self.num_dithers * num_pairs * self.expTime) / 60.
+        self.etr = (self.num_dithers * num_pairs * (self.expTime + self.readout_time)) / 60.
 
     def remaining_pairs(self):
         ''' Return the number of remaining exposures '''
@@ -604,6 +605,7 @@ class DoMangaSequenceCmd(CmdState):
                                         count=3,
                                         etr=135.0))
         self.reset_ditherSeq()
+        self.readout_time = 60.0
 
     def reset_nonkeywords(self):
         super(DoMangaSequenceCmd, self).reset_nonkeywords()
@@ -638,7 +640,7 @@ class DoMangaSequenceCmd(CmdState):
         ''' Update the estimated time remaining '''
         remaining_dithers = self.ditherSeq[self.index:]
         num = len(remaining_dithers)
-        self.etr = (num * self.expTime) / 60.
+        self.etr = (num * (self.expTime + self.readout_time)) / 60.
 
     def getUserKeys(self):
         msg = []
@@ -785,6 +787,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
         self.mangaExpTime = 0
         self.apogeeExpTime = 0
         self.etr = 0
+        self.readout_time = 60.0
         self.apogee_long = False
         self.reset_ditherSeq()
 
@@ -866,7 +869,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
         ''' Update the estimate time remaining in the dithersequence '''
         remaining_dithers = self.mangaDitherSeq[self.index:]
         num = len(remaining_dithers)
-        self.etr = (num * self.mangaExpTime) / 60.
+        self.etr = (num * (self.mangaExpTime + self.readout_time)) / 60.
         if self.apogee_long:
             self.etr /= 2.0
 
