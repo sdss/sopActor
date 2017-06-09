@@ -442,7 +442,10 @@ class DoApogeeScienceCmd(CmdState):
                           ['expose'],
                           keywords=dict(ditherPairs=4,
                                         expTime=500,
+                                        etr=66.67,
                                         comment=""))
+        self.etr = self.keywords['etr']
+        self.num_dithers = 2
 
     def reset_nonkeywords(self):
         self.expType = "object"
@@ -457,10 +460,31 @@ class DoApogeeScienceCmd(CmdState):
             self.keywords['expTime'] = value
             self.expTime = value
 
+        # updating the default etr
+        self.update_etr()
+
     def getUserKeys(self):
         msg = []
-        msg.append('%s_index=%d,%d' % (self.name,self.index,self.ditherPairs))
+        msg.append('%s_index=%d,%d' % (self.name, self.index, self.ditherPairs))
+        msg.append('{0}_etr={1},{2}' % (self.name, self.etr, self.keywords['etr']))
         return msg
+
+    def took_exposure(self):
+        """Update keys after an exposure and output them."""
+        self.index += 1
+        # update etr
+        self.update_etr()
+        # generate keys
+        self.genKeys()
+
+    def update_etr(self):
+        ''' Update the estimated time remaining '''
+        num_pairs = self.remaining_pairs()
+        self.etr = (self.num_dithers * num_pairs * self.expTime) / 60.
+
+    def remaining_pairs(self):
+        ''' Return the number of remaining exposures '''
+        return self.ditherPairs - self.index
 
     def exposures_remain(self):
         """Return True if there are any exposures left to be taken."""
@@ -479,7 +503,7 @@ class DoApogeeScienceCmd(CmdState):
     def abort(self):
         self.ditherPairs = self.index
         self.stop_apogee_exposure()
-        super(DoApogeeScienceCmd,self).abort()
+        super(DoApogeeScienceCmd, self).abort()
 
 
 class DoApogeeSkyFlatsCmd(CmdState):
@@ -776,7 +800,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
             self.apogeeExpTime = 1000.
             self.keywords['apogeeExpTime'] = 1000.
             #self.set_default_etr(self.apogeeExpTime)
-            self.etr /= 2.0 # divide by 2 here to account for double length exposures for a given C
+            self.etr /= 2.0  # divide by 2 here to account for double length exposures for a given C
 
         self.readout = True
         if not (self.cmd and self.cmd.isAlive()):

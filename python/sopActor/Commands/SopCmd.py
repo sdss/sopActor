@@ -304,17 +304,20 @@ class SopCmd(object):
         # Modify running doApogeeScience command
         if self.modifiable(cmd, cmdState):
             if "ditherPairs" in keywords:
-                cmdState.set('ditherPairs',int(keywords["ditherPairs"].values[0]))
+                cmdState.set('ditherPairs', int(keywords["ditherPairs"].values[0]))
 
             if "expTime" in keywords:
-                cmdState.set('expTime',int(keywords["expTime"].values[0]))
+                cmdState.set('expTime', int(keywords["expTime"].values[0]))
+
+            # update the etr
+            cmdState.update_etr()
 
             self.status(cmd, threads=False, finish=True, oneCommand=name)
             return
 
         cmdState.reinitialize(cmd)
         ditherPairs = int(keywords["ditherPairs"].values[0]) if "ditherPairs" in keywords else None
-        cmdState.set('ditherPairs',ditherPairs)
+        cmdState.set('ditherPairs', ditherPairs)
         comment = keywords["comment"].values[0] if "comment" in keywords else None
         cmdState.comment = comment
         expTime = float(keywords["expTime"].values[0]) if "expTime" in keywords else None

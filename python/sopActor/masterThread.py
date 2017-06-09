@@ -527,7 +527,7 @@ def do_apogee_science(cmd, cmdState, actorState, finishMsg=None):
     stageName = 'expose'
     cmdState.setStageState(stageName, 'running')
     show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
-
+    cmdState.update_etr()
     while cmdState.exposures_remain():
         expTime = cmdState.expTime
         dithers = get_next_apogee_dither_pair(actorState)

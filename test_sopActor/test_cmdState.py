@@ -352,6 +352,57 @@ class TestDoApogeeScience(CmdStateTester,unittest.TestCase):
         self.assertEqual(self.cmdState.expTime,500)
         self.assertEqual(self.cmdState.keywords['expTime'],500)
 
+    def _assert_etr_defaults(self, exptime=None):
+        defval = 66.67 if not exptime else 133.33
+        self.assertAlmostEqual(defval, self.cmdState.etr, 2)
+        self.assertEqual(4, self.cmdState.ditherPairs)
+        self.assertEqual(0, self.cmdState.index)
+
+    def _update_etr(self, etr, exptime=None):
+        self.cmdState.set_apogee_expTime(exptime)
+        self._assert_etr_defaults(exptime)
+        self.cmdState.update_etr()
+        self.assertAlmostEqual(etr, self.cmdState.etr, 2)
+
+    def test_update_etr_single(self):
+        self._update_etr(66.67)
+
+    def test_update_etr_double(self):
+        self._update_etr(133.33, exptime=1000.)
+
+    def _update_count(self, count):
+        self.cmdState.set('ditherPairs', count)
+        self.assertEqual(count, self.cmdState.ditherPairs)
+
+    def _update_etr_count(self, count, etr, exptime=None):
+        self.cmdState.set_apogee_expTime(exptime)
+        self._assert_etr_defaults(exptime=exptime)
+        self._update_count(count)
+        self.cmdState.update_etr()
+        self.assertAlmostEqual(etr, self.cmdState.etr, 2)
+
+    def test_update_etr_count2(self):
+        self._update_etr_count(2, 33.33)
+
+    def test_update_etr_count2_double(self):
+        self._update_etr_count(2, 66.67, exptime=1000.)
+
+    def _update_etr_by_index(self, times, exptime=None):
+        self.cmdState.set_apogee_expTime(exptime)
+        self._assert_etr_defaults(exptime=exptime)
+        for i in xrange(len(times)):
+            self.cmdState.index += 1
+            self.cmdState.update_etr()
+            self.assertAlmostEqual(times[i], self.cmdState.etr, 2)
+
+    def test_update_etr_by_index(self):
+        times = [50., 33.33, 16.67, 0.00]
+        self._update_etr_by_index(times)
+
+    def test_update_etr_by_index_double(self):
+        times = [100., 66.67, 33.33, 0.00]
+        self._update_etr_by_index(times, exptime=1000.)
+
 
 class TestDoApogeeSkyFlats(CmdStateTester,unittest.TestCase):
     def setUp(self):
