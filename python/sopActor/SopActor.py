@@ -73,9 +73,7 @@ class SopActor(actorcore.Actor.SDSSActor):
                                        configFile=configFile,
                                        makeCmdrConnection=makeCmdrConnection)
 
-        self.headURL = ('$HeadURL: http://svn.sdss.org/repo/operations/'
-                        'general/actors/sopActor/trunk/python/sopActor/'
-                        'sopActor_main.py $')
+        self.headURL = '$HeadURL$'
 
         self.logger.setLevel(debugLevel)
         self.logger.propagate = True
@@ -87,7 +85,7 @@ class SopActor(actorcore.Actor.SDSSActor):
             ('master', sopActor.MASTER, masterThread),
             ('boss', sopActor.BOSS, bossThread),
             ('apogee', sopActor.APOGEE, apogeeThread),
-            ('apogeeScript', sopActor.APOGEE_SCRIPT, apogeeThread),
+            ('apogeeScript', sopActor.APOGEE_SCRIPT, apogeeThread.script_main),
             ('script', sopActor.SCRIPT, scriptThread),
             ('guider', sopActor.GUIDER, guiderThread),
             ('gcamera', sopActor.GCAMERA, gcameraThread),

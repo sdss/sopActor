@@ -325,6 +325,20 @@ class GotoPositionCmd(CmdState):
         super(GotoPositionCmd, self).abort()
 
 
+class GotoInstrumentChangeCmd(GotoPositionCmd):
+
+    def __init__(self):
+        CmdState.__init__(self, 'gotoInstrumentChange', ['slew'],
+                          keywords=dict(alt=90, az=121, rot=0))
+
+
+class GotoStowCmd(GotoPositionCmd):
+
+    def __init__(self):
+        CmdState.__init__(self, 'gotoStow', ['slew'],
+                          keywords=dict(alt=30, az=121, rot=0))
+
+
 class DoApogeeDomeFlatCmd(CmdState):
     def __init__(self):
         CmdState.__init__(self, 'doApogeeDomeFlat',
@@ -348,6 +362,7 @@ class CollimateBossCmd(CmdState):
     def __init__(self):
         CmdState.__init__(self, 'collimateBoss',
                           ['collimate', 'cleanup'])
+
 
 class GotoFieldCmd(CmdState):
     def __init__(self):

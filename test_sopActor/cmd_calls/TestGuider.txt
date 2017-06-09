@@ -7,12 +7,16 @@ guider focus off
 
 guider on time=5
 
+guider decenter off
+
 [test_guider_start_ffsOpen]
 guider axes off
 guider focus off
 guider scale off
 
 guider on time=5
+
+guider decenter off
 
 [test_guider_start_arcsOn]
 mcp ffs.open
@@ -25,6 +29,8 @@ guider focus off
 
 guider on time=5
 
+guider decenter off
+
 [test_guider_start_flatsOn]
 mcp ffs.open
 mcp ff.off
@@ -35,6 +41,8 @@ guider focus off
 
 guider on time=5
 
+guider decenter off
+
 [test_guider_start_fails]
 mcp ffs.open
 
@@ -43,6 +51,8 @@ guider scale off
 guider focus off
 
 guider on time=5
+
+guider decenter off
 
 [test_guider_flat_ffsClosed]
 mcp ff.on
