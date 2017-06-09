@@ -457,7 +457,7 @@ class DoApogeeScienceCmd(CmdState):
                           ['expose'],
                           keywords=dict(ditherPairs=4,
                                         expTime=500,
-                                        etr=66.67,
+                                        etr=68.0,
                                         comment=""))
         self.etr = self.keywords['etr']
         self.num_dithers = 2
@@ -603,7 +603,7 @@ class DoMangaSequenceCmd(CmdState):
                           keywords=dict(expTime=900.0,
                                         dithers='NSE',
                                         count=3,
-                                        etr=135.0))
+                                        etr=144.0))
         self.reset_ditherSeq()
         self.readout_time = 60.0
 
@@ -615,7 +615,7 @@ class DoMangaSequenceCmd(CmdState):
         self.keywords = dict(expTime=900.0,
                              dithers='NSE',
                              count=3,
-                             etr=135.0)
+                             etr=144.0)
         self.count = 3
         self.dithers = 'NSE'
         if not (self.cmd and self.cmd.isAlive()):
@@ -626,7 +626,7 @@ class DoMangaSequenceCmd(CmdState):
         self.keywords = dict(expTime=900.0,
                              dithers='CCC',
                              count=1,
-                             etr=45.0)
+                             etr=48.0)
         self.count = 1
         self.dithers = 'CCC'
         if not (self.cmd and self.cmd.isAlive()):
@@ -794,7 +794,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
     def set_default_etr(self, exptime):
         ''' Sets the default estimated time remaining based on survey lead '''
         num = self.count * len(self.mangaDithers)
-        self.etr = (num * exptime) / 60.
+        self.etr = (num * (exptime + self.readout_time)) / 60.
         self.keywords['etr'] = self.etr
 
     def set_apogeeLead(self, apogeeExpTime=None):

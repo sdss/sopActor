@@ -353,7 +353,7 @@ class TestDoApogeeScience(CmdStateTester,unittest.TestCase):
         self.assertEqual(self.cmdState.keywords['expTime'],500)
 
     def _assert_etr_defaults(self, exptime=None):
-        defval = 66.67 if not exptime else 133.33
+        defval = 68.0 if not exptime else 134.67
         self.assertAlmostEqual(defval, self.cmdState.etr, 2)
         self.assertEqual(4, self.cmdState.ditherPairs)
         self.assertEqual(0, self.cmdState.index)
@@ -365,10 +365,10 @@ class TestDoApogeeScience(CmdStateTester,unittest.TestCase):
         self.assertAlmostEqual(etr, self.cmdState.etr, 2)
 
     def test_update_etr_single(self):
-        self._update_etr(66.67)
+        self._update_etr(68.0)
 
     def test_update_etr_double(self):
-        self._update_etr(133.33, exptime=1000.)
+        self._update_etr(134.67, exptime=1000.)
 
     def _update_count(self, count):
         self.cmdState.set('ditherPairs', count)
@@ -382,10 +382,10 @@ class TestDoApogeeScience(CmdStateTester,unittest.TestCase):
         self.assertAlmostEqual(etr, self.cmdState.etr, 2)
 
     def test_update_etr_count2(self):
-        self._update_etr_count(2, 33.33)
+        self._update_etr_count(2, 34.0)
 
     def test_update_etr_count2_double(self):
-        self._update_etr_count(2, 66.67, exptime=1000.)
+        self._update_etr_count(2, 67.33, exptime=1000.)
 
     def _update_etr_by_index(self, times, exptime=None):
         self.cmdState.set_apogee_expTime(exptime)
@@ -396,11 +396,11 @@ class TestDoApogeeScience(CmdStateTester,unittest.TestCase):
             self.assertAlmostEqual(times[i], self.cmdState.etr, 2)
 
     def test_update_etr_by_index(self):
-        times = [50., 33.33, 16.67, 0.00]
+        times = [51.0, 34.0, 17.0, 0.00]
         self._update_etr_by_index(times)
 
     def test_update_etr_by_index_double(self):
-        times = [100., 66.67, 33.33, 0.00]
+        times = [101.0, 67.33, 33.67, 0.00]
         self._update_etr_by_index(times, exptime=1000.)
 
 
@@ -568,14 +568,14 @@ class TestDoMangaSequence(CmdStateTester, unittest.TestCase):
         self.assertEqual(etr, self.cmdState.etr)
 
     def test_update_etr_by_count1(self):
-        self._update_etr_by_count(135.0, 1, 45.0)
+        self._update_etr_by_count(144.0, 1, 48.0)
 
     def test_update_etr_by_count2(self):
-        self._update_etr_by_count(135.0, 2, 90.0)
+        self._update_etr_by_count(144.0, 2, 96.0)
 
     def test_update_etr_by_index(self):
-        self.assertEqual(135.0, self.cmdState.etr)
-        times = [120.0, 105.0, 90.0, 75.0, 60.0, 45.0, 30.0, 15.0, 0.0]
+        self.assertEqual(144.0, self.cmdState.etr)
+        times = [128.0, 112.0, 96.0, 80.0, 64.0, 48.0, 32.0, 16.0, 0.0]
         for i in range(len(times)):
             self.cmdState.index += 1
             self.cmdState.update_etr()
@@ -750,16 +750,16 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
         self.assertAlmostEqual(etr, self.cmdState.etr, 2)
 
     def test_default_etr_manga_dither(self):
-        self._default_etr('manga', 90.0)
+        self._default_etr('manga', 96.0)
 
     def test_default_etr_manga_stare(self):
-        self._default_etr('manga-stare', 90.0)
+        self._default_etr('manga-stare', 96.0)
 
     def test_default_etr_apogee_single(self):
-        self._default_etr('apogee', 60.0)
+        self._default_etr('apogee', 64.0)
 
     def test_default_etr_apogee_double(self):
-        self._default_etr('apogee-double', 30.0)
+        self._default_etr('apogee-double', 32.0)
 
     def _update_etr_by_count(self, lead, start, count, etr):
         self.assertEqual(start, self.cmdState.etr)
@@ -769,16 +769,16 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
         self.assertEqual(etr, self.cmdState.etr)
 
     def test_update_etr_by_count1_manga(self):
-        self._update_etr_by_count('manga', 0, 1, 45.0)
+        self._update_etr_by_count('manga', 0, 1, 48.0)
 
     def test_update_etr_by_count3_manga_stare(self):
-        self._update_etr_by_count('manga-stare', 0, 3, 135.0)
+        self._update_etr_by_count('manga-stare', 0, 3, 144.0)
 
     def test_update_etr_by_count1_apogee(self):
-        self._update_etr_by_count('apogee', 0, 1, 30.0)
+        self._update_etr_by_count('apogee', 0, 1, 32.0)
 
     def test_update_etr_by_count1_apogee_double(self):
-        self._update_etr_by_count('apogee-double', 0, 1, 15.0)
+        self._update_etr_by_count('apogee-double', 0, 1, 16.0)
 
     def _update_etr_by_index(self, lead, start, times):
         self.assertEqual(0, self.cmdState.etr)
@@ -790,16 +790,16 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
             self.assertEqual(times[i], self.cmdState.etr)
 
     def test_update_etr_by_index_manga(self):
-        times = [75.0, 60.0, 45.0, 30.0, 15.0, 0.0]
-        self._update_etr_by_index('manga', 90.0, times)
+        times = [80.0, 64.0, 48.0, 32.0, 16.0, 0.0]
+        self._update_etr_by_index('manga', 96.0, times)
 
     def test_update_etr_by_index_apogee(self):
-        times = [45.0, 30.0, 15.0, 0.0]
-        self._update_etr_by_index('apogee', 60.0, times)
+        times = [48.0, 32.0, 16.0, 0.0]
+        self._update_etr_by_index('apogee', 64.0, times)
 
     def test_update_etr_by_index_apogee_double(self):
-        times = [22.5, 15.0, 7.5, 0.0]
-        self._update_etr_by_index('apogee-double', 30.0, times)
+        times = [24.0, 16.0, 8.0, 0.0]
+        self._update_etr_by_index('apogee-double', 32.0, times)
 
     def test_abort(self):
         self._fake_boss_exposing()
