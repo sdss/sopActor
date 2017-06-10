@@ -812,13 +812,10 @@ class DoApogeeMangaSequenceCmd(CmdState):
             self.apogee_long = False
             self.apogeeExpTime = 500.
             self.keywords['apogeeExpTime'] = 500.
-            #self.set_default_etr(self.apogeeExpTime)
         else:
             self.apogee_long = True
             self.apogeeExpTime = 1000.
             self.keywords['apogeeExpTime'] = 1000.
-            #self.set_default_etr(self.apogeeExpTime)
-            self.etr /= 2.0  # divide by 2 here to account for double length exposures for a given C
 
         self.readout = True
         if not (self.cmd and self.cmd.isAlive()):
@@ -870,8 +867,6 @@ class DoApogeeMangaSequenceCmd(CmdState):
         remaining_dithers = self.mangaDitherSeq[self.index:]
         num = len(remaining_dithers)
         self.etr = (num * (self.mangaExpTime + self.readout_time)) / 60.
-        if self.apogee_long:
-            self.etr /= 2.0
 
     def getUserKeys(self):
         msg = []

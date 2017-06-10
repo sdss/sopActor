@@ -759,7 +759,7 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
         self._default_etr('apogee', 64.0)
 
     def test_default_etr_apogee_double(self):
-        self._default_etr('apogee-double', 32.0)
+        self._default_etr('apogee-double', 64.0)
 
     def _update_etr_by_count(self, lead, start, count, etr):
         self.assertEqual(start, self.cmdState.etr)
@@ -778,7 +778,7 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
         self._update_etr_by_count('apogee', 0, 1, 32.0)
 
     def test_update_etr_by_count1_apogee_double(self):
-        self._update_etr_by_count('apogee-double', 0, 1, 16.0)
+        self._update_etr_by_count('apogee-double', 0, 1, 32.0)
 
     def _update_etr_by_index(self, lead, start, times):
         self.assertEqual(0, self.cmdState.etr)
@@ -798,8 +798,8 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
         self._update_etr_by_index('apogee', 64.0, times)
 
     def test_update_etr_by_index_apogee_double(self):
-        times = [24.0, 16.0, 8.0, 0.0]
-        self._update_etr_by_index('apogee-double', 32.0, times)
+        times = [48.0, 32.0, 16.0, 0.0]
+        self._update_etr_by_index('apogee-double', 64.0, times)
 
     def test_abort(self):
         self._fake_boss_exposing()
