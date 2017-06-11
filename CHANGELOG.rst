@@ -7,14 +7,14 @@ Change Log
 This document records the main changes to the sopActor code.
 
 .. _changelog-v3_9:
-v3_9 (unreleased)
+v3_9 (2017-06-11)
 -----------------
 
 Added
 ^^^^^
 
 * Better reporting  of current dither index in double length APOGEE-MaNGA sequences. ``doApogeeMangaSequence_ditherSeq`` is now output after each MaNGA exposure.
-* Outputting new keyword of estimated time remaining for apogee and manger dither sequences
+* Outputting new keyword of estimated time remaining for apogee and manga dither sequences.
 
 Changed
 ^^^^^^^
