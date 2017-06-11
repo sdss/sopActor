@@ -800,7 +800,7 @@ class SopCmd(object):
             return
 
         if 'stop' in keywords or 'abort' in keywords:
-            self.stop_cmd(cmd, cmdState, sopState, 'gotoPosition')
+            self.stop_cmd(cmd, cmdState, sopState, name)
             return
 
         if self.modifiable(cmd, cmdState):
@@ -824,13 +824,13 @@ class SopCmd(object):
         """Go to the instrument change position: alt=90 az=121 rot=0"""
 
         cmdState = myGlobals.actorState.gotoInstrumentChange
-        self.gotoPosition(cmd, cmdState, 'instrument change')
+        self.gotoPosition(cmd, cmdState, 'gotoInstrumentChange')
 
     def gotoStow(self, cmd):
         """Go to the stow position: alt=30, az=121, rot=0"""
 
         cmdState = myGlobals.actorState.gotoStow
-        self.gotoPosition(cmd, cmdState, "stow", 121, 30, 0)
+        self.gotoPosition(cmd, cmdState, 'gotoStow')
 
     def gotoAll60(self, cmd):
         """Go to the startup check position: alt=60, az=60, rot=60"""
@@ -1037,6 +1037,8 @@ class SopCmd(object):
         sopState.hartmann.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.collimateBoss.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.gotoPosition.genKeys(cmd=cmd, trimKeys=oneCommand)
+        sopState.gotoInstrumentChange.genKeys(cmd=cmd, trimKeys=oneCommand)
+        sopState.gotoStow.genKeys(cmd=cmd, trimKeys=oneCommand)
 
         # TBD: threads arg is only used with "geek" option, apparently?
         # TBD: I guess its useful for live debugging of the threads.
