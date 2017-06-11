@@ -331,12 +331,18 @@ class GotoInstrumentChangeCmd(GotoPositionCmd):
         CmdState.__init__(self, 'gotoInstrumentChange', ['slew'],
                           keywords=dict(alt=90, az=121, rot=0))
 
+    def abort(self):
+        super(GotoInstrumentChangeCmd, self).abort()
+
 
 class GotoStowCmd(GotoPositionCmd):
 
     def __init__(self):
         CmdState.__init__(self, 'gotoStow', ['slew'],
                           keywords=dict(alt=30, az=121, rot=0))
+
+    def abort(self):
+        super(GotoStowCmd, self).abort()
 
 
 class DoApogeeDomeFlatCmd(CmdState):

@@ -6,6 +6,21 @@ Change Log
 
 This document records the main changes to the sopActor code.
 
+.. _changelog-v3_9_2:
+v3_9_2 (2017-06-11)
+-------------------
+
+Fixed
+^^^^^
+* Fixes a bug aborting ``gotoInstrumentChange`` or ``gotoStow``.
+
+
+v3_9_1
+------
+
+This version was skipped.
+
+
 .. _changelog-v3_9:
 v3_9 (2017-06-11)
 -----------------
