@@ -390,6 +390,7 @@ class TestDoApogeeScience(CmdStateTester,unittest.TestCase):
     def _update_etr_by_index(self, times, exptime=None):
         self.cmdState.set_apogee_expTime(exptime)
         self._assert_etr_defaults(exptime=exptime)
+        print(self.cmdState.getUserKeys())
         for i in xrange(len(times)):
             self.cmdState.index += 1
             self.cmdState.update_etr()
@@ -402,6 +403,11 @@ class TestDoApogeeScience(CmdStateTester,unittest.TestCase):
     def test_update_etr_by_index_double(self):
         times = [101.0, 67.33, 33.67, 0.00]
         self._update_etr_by_index(times, exptime=1000.)
+
+    def test_getUserKeys(self):
+        keys = self.cmdState.getUserKeys()
+        self.assertTrue(any("doApogeeScience_index" in k for k in keys))
+        self.assertTrue(any("doApogeeScience_etr" in k for k in keys))
 
 
 class TestDoApogeeSkyFlats(CmdStateTester,unittest.TestCase):
@@ -580,6 +586,11 @@ class TestDoMangaSequence(CmdStateTester, unittest.TestCase):
             self.cmdState.index += 1
             self.cmdState.update_etr()
             self.assertEqual(times[i], self.cmdState.etr)
+
+    def test_getUserKeys(self):
+        keys = self.cmdState.getUserKeys()
+        self.assertTrue(any("doMangaSequence_ditherSeq" in k for k in keys))
+        self.assertTrue(any("doMangaSequence_etr" in k for k in keys))
 
     def _has_state_changed_true(self, oldstate, as_dict=None):
         self.cmdState.count = 1
@@ -800,6 +811,12 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
     def test_update_etr_by_index_apogee_double(self):
         times = [48.0, 32.0, 16.0, 0.0]
         self._update_etr_by_index('apogee-double', 64.0, times)
+
+    def test_getUserKeys(self):
+        keys = self.cmdState.getUserKeys()
+        self.assertTrue(any("doApogeeMangaSequence_expTime" in k for k in keys))
+        self.assertTrue(any("doApogeeMangaSequence_ditherSeq" in k for k in keys))
+        self.assertTrue(any("doApogeeMangaSequence_etr" in k for k in keys))
 
     def test_abort(self):
         self._fake_boss_exposing()

@@ -6,6 +6,14 @@ Change Log
 
 This document records the main changes to the sopActor code.
 
+.. _changelog-v3_9_4:
+v3_9_4 (unreleased)
+-------------------
+
+Fixed
+^^^^^
+* Fixed a bug with outputting of the doApogeeScience_index keyword in the CmdState getUserKeys
+
 .. _changelog-v3_9_3:
 v3_9_3 (2017-06-11)
 -------------------

@@ -488,7 +488,7 @@ class DoApogeeScienceCmd(CmdState):
     def getUserKeys(self):
         msg = []
         msg.append('%s_index=%d,%d' % (self.name, self.index, self.ditherPairs))
-        msg.append('{0}_etr={1},{2}' % (self.name, self.etr, self.keywords['etr']))
+        msg.append('{0}_etr={1},{2}'.format(self.name, self.etr, self.keywords['etr']))
         return msg
 
     def took_exposure(self):
