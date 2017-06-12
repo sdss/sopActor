@@ -7,7 +7,7 @@ Change Log
 This document records the main changes to the sopActor code.
 
 .. _changelog-v3_9_4:
-v3_9_4 (unreleased)
+v3_9_4 (2017-06-12)
 -------------------
 
 Fixed
