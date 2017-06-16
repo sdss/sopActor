@@ -772,6 +772,45 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
         self.cmdState.reset_ditherSeq()
         self.assertEqual(count, self.cmdState.count)
 
+    def _modify_ditherSeq(self, count, dithers, expseq, lead):
+        self._set_survey(lead)
+        self.assertEqual(2, self.cmdState.count)
+        self.assertEqual(self.cmdState.mangaDithers * 2, self.cmdState.mangaDitherSeq)
+        self.cmdState.count = count
+        self.cmdState.mangaDithers = dithers
+        self.cmdState.update_ditherSeq()
+        self.assertEqual(count, self.cmdState.count)
+        self.assertEqual(dithers, self.cmdState.mangaDithers)
+        self.assertEqual(expseq, self.cmdState.mangaDitherSeq)
+
+    def test_modify_ditherSeq_3es(self):
+        self._modify_ditherSeq(3, 'ES', 'NESESES', 'manga')
+
+    def test_modify_ditherSeq_1ee(self):
+        self._modify_ditherSeq(1, 'EE', 'NEE', 'manga')
+
+    def test_modify_ditherSeq_2sn(self):
+        self._modify_ditherSeq(2, 'SN', 'NSNSN', 'manga')
+
+    def test_modify_ditherSeq_middlen(self):
+        self.cmdState.index = 4
+        self._modify_ditherSeq(1, 'N', 'NSENSN', 'manga')
+
+    def test_modify_ditherSeq_firste(self):
+        self.cmdState.index = 1
+        self._modify_ditherSeq(1, 'E', 'NSE', 'manga')
+
+    def test_modify_ditherSeq_mangac(self):
+        self.cmdState.index = 2
+        self._modify_ditherSeq(1, 'C', 'CCCC', 'manga-stare')
+
+    def test_modify_ditherSeq_1c(self):
+        self._modify_ditherSeq(1, 'C', 'CC', 'apogee')
+
+    def test_modify_ditherSeq_4c(self):
+        self.cmdState.index = 1
+        self._modify_ditherSeq(4, 'C', 'CCCCCC', 'apogee')
+
     def _set_survey(self, lead):
         if lead == 'manga':
             self.cmdState.set_mangaDither()

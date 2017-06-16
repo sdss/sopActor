@@ -742,38 +742,40 @@ class TestDoApogeeMangaDither(SopCmdTester,unittest.TestCase):
         self._check_cmd(0,2,0,0,True,True)
 
 
-class TestDoApogeeMangaSequence(SopCmdTester,unittest.TestCase):
+class TestDoApogeeMangaSequence(SopCmdTester, unittest.TestCase):
     def _doApogeeMangaSequence(self, expect, args=''):
         stages = ['expose', 'dither', 'calibs']
         queue = myGlobals.actorState.queues[sopActor.MASTER]
-        msg = self._run_cmd('doApogeeMangaSequence %s'%(args),queue)
-        self.assertEqual(msg.type,sopActor.Msg.DO_APOGEEMANGA_SEQUENCE)
-        stages = dict(zip(stages,['idle']*len(stages)))
-        self.assertEqual(msg.cmdState.stages,stages)
-        self.assertEqual(msg.cmdState.mangaExpTime,expect['mangaExpTime'])
-        self.assertEqual(msg.cmdState.apogeeExpTime,expect['apogeeExpTime'])
-        self.assertEqual(msg.cmdState.mangaDithers,expect['mangaDithers'])
-        self.assertEqual(msg.cmdState.count,expect['count'])
+        msg = self._run_cmd('doApogeeMangaSequence %s' % (args), queue)
+        self.assertEqual(msg.type, sopActor.Msg.DO_APOGEEMANGA_SEQUENCE)
+        stages = dict(zip(stages, ['idle'] * len(stages)))
+        self.assertEqual(msg.cmdState.stages, stages)
+        self.assertEqual(msg.cmdState.mangaExpTime, expect['mangaExpTime'])
+        self.assertEqual(msg.cmdState.apogeeExpTime, expect['apogeeExpTime'])
+        self.assertEqual(msg.cmdState.mangaDithers, expect['mangaDithers'])
+        self.assertEqual(msg.cmdState.count, expect['count'])
         return msg
 
     def test_doApogeeMangaSequence_mangaDither(self):
         sopTester.updateModel('platedb',
                               TestHelper.platedbState['apgoeemangaDither'])
         self._update_cart(2, 'APOGEE-2&MaNGA', 'MaNGA dither')
-        expect = {'mangaExpTime':900,
-                  'apogeeExpTime':450,
-                  'mangaDithers':'NSE',
-                  'count':2}
+        expect = {'mangaExpTime': 900,
+                  'apogeeExpTime': 450,
+                  'mangaDithers': 'NSE',
+                  'count': 2}
         self._doApogeeMangaSequence(expect)
+
     def test_doApogeeMangaSequence_mangaStare(self):
         sopTester.updateModel('platedb',
                               TestHelper.platedbState['apgoeemangaStare'])
         self._update_cart(2, 'APOGEE-2&MaNGA', 'MaNGA stare')
-        expect = {'mangaExpTime':900,
-                  'apogeeExpTime':450,
-                  'mangaDithers':'CCC',
-                  'count':2}
+        expect = {'mangaExpTime': 900,
+                  'apogeeExpTime': 450,
+                  'mangaDithers': 'CCC',
+                  'count': 2}
         self._doApogeeMangaSequence(expect)
+
     def test_doApogeeMangaSequence_mangaMaStar(self):
         sopTester.updateModel('platedb',
                               TestHelper.platedbState['apogeemangaMaStar'])
@@ -783,25 +785,27 @@ class TestDoApogeeMangaSequence(SopCmdTester,unittest.TestCase):
                   'mangaDithers': 'CCC',
                   'count': 2}
         self._doApogeeMangaSequence(expect)
+
     def test_doApogeeMangaSequence_apogeeLead(self):
         sopTester.updateModel('platedb',
                               TestHelper.platedbState['apogeeLead'])
         self._update_cart(2, 'APOGEE-2&MaNGA', 'APOGEE lead')
-        expect = {'mangaExpTime':900,
-                  'apogeeExpTime':500,
-                  'mangaDithers':'CC',
-                  'count':2}
+        expect = {'mangaExpTime': 900,
+                  'apogeeExpTime': 500,
+                  'mangaDithers': 'CC',
+                  'count': 2}
         self._doApogeeMangaSequence(expect)
+
     def test_doApogeeMangaSequence_apogeeLead_CCC_count1(self):
         sopTester.updateModel('platedb',
                               TestHelper.platedbState['apogeeLead'])
         self._update_cart(2, 'APOGEE-2&MaNGA', 'APOGEE lead')
-        expect = {'mangaExpTime':900,
-                  'apogeeExpTime':500,
-                  'mangaDithers':'CCC',
-                  'count':1}
+        expect = {'mangaExpTime': 900,
+                  'apogeeExpTime': 500,
+                  'mangaDithers': 'CCC',
+                  'count': 1}
         args = 'mangaDithers=CCC count=1'
-        self._doApogeeMangaSequence(expect,args)
+        self._doApogeeMangaSequence(expect, args)
 
     def test_doApogeeMangaSequence_abort(self):
         self.actorState.doApogeeMangaSequence.cmd = self.cmd
@@ -812,30 +816,35 @@ class TestDoApogeeMangaSequence(SopCmdTester,unittest.TestCase):
         self._update_cart(2, 'APOGEE-2&MaNGA', 'MaNGA dither')
         queue = myGlobals.actorState.queues[sopActor.MASTER]
         # create something we can modify.
-        msg = self._run_cmd('doApogeeMangaSequence %s'%args1, queue)
-        msgNew = self._run_cmd('doApogeeMangaSequence %s'%args2, queue, empty=True)
+        msg = self._run_cmd('doApogeeMangaSequence %s' % args1, queue)
+        msgNew = self._run_cmd('doApogeeMangaSequence %s' % args2, queue, empty=True)
         self.assertIsNone(msgNew)
-        self._check_cmd(*cmd_levels,finish=True, didFail=didFail)
+        self._check_cmd(*cmd_levels, finish=True, didFail=didFail)
         return msg
 
     def test_doApogeeMangaSequence_modify_count1(self):
-        msg = self._doApogeeMangaSequence_modify('mangaDithers=ESN count=2','mangaDithers=ESN count=1')
-        self.assertEqual(msg.cmdState.mangaDithers,'ESN')
-        self.assertEqual(msg.cmdState.count,1)
-        self.assertEqual(msg.cmdState.mangaDitherSeq,'ESN')
+        msg = self._doApogeeMangaSequence_modify('mangaDithers=ESN count=2', 'mangaDithers=ESN count=1')
+        self.assertEqual(msg.cmdState.mangaDithers, 'ESN')
+        self.assertEqual(msg.cmdState.count, 1)
+        self.assertEqual(msg.cmdState.mangaDitherSeq, 'EESN')
 
     def test_doApogeeMangaSequence_modify_count2(self):
-        msg = self._doApogeeMangaSequence_modify('mangaDithers=NSE count=1','mangaDithers=NSE count=2')
-        self.assertEqual(msg.cmdState.mangaDithers,'NSE')
-        self.assertEqual(msg.cmdState.count,2)
-        self.assertEqual(msg.cmdState.mangaDitherSeq,'NSENSE')
+        msg = self._doApogeeMangaSequence_modify('mangaDithers=NSE count=1', 'mangaDithers=NSE count=2')
+        self.assertEqual(msg.cmdState.mangaDithers, 'NSE')
+        self.assertEqual(msg.cmdState.count, 2)
+        self.assertEqual(msg.cmdState.mangaDitherSeq, 'NNSENSE')
 
-    def test_doApogeeMangaSequence_modify_not_dithers(self):
-        msg = self._doApogeeMangaSequence_modify('mangaDithers=NSE count=2','mangaDithers=SEN count=1',(0,2,0,0),True)
-        self.assertEqual(msg.cmdState.mangaDithers,'NSE')
-        self.assertEqual(msg.cmdState.count,2)
-        self.assertEqual(msg.cmdState.mangaDitherSeq,'NSENSE')
-        self.assertTrue(self.cmd.didFail)
+    def test_doApogeeMangaSequence_modify_dithers(self):
+        msg = self._doApogeeMangaSequence_modify('mangaDithers=NSE count=2', 'mangaDithers=SEN count=1')
+        self.assertEqual(msg.cmdState.count, 1)
+        self.assertEqual(msg.cmdState.mangaDithers, 'SEN')
+        self.assertEqual(msg.cmdState.mangaDitherSeq, 'NSEN')
+
+    def test_doApogeeMangaSequence_modify_dithers_alls(self):
+        msg = self._doApogeeMangaSequence_modify('mangaDithers=NSE count=2', 'mangaDithers=SS count=2')
+        self.assertEqual(msg.cmdState.count, 2)
+        self.assertEqual(msg.cmdState.mangaDithers, 'SS')
+        self.assertEqual(msg.cmdState.mangaDitherSeq, 'NSSSS')
 
     def test_doApogeeMangaSequence_after_apogeeLead_long(self):
         sopTester.updateModel('platedb',
@@ -845,10 +854,10 @@ class TestDoApogeeMangaSequence(SopCmdTester,unittest.TestCase):
         sopTester.updateModel('platedb',
                               TestHelper.platedbState['apogeeLead'])
         self._update_cart(2, 'APOGEE-2&MaNGA', 'APOGEE lead')
-        expect = {'mangaExpTime':900,
-                  'apogeeExpTime':500,
-                  'mangaDithers':'CC',
-                  'count':2}
+        expect = {'mangaExpTime': 900,
+                  'apogeeExpTime': 500,
+                  'mangaDithers': 'CC',
+                  'count': 2}
         msg = self._doApogeeMangaSequence(expect)
         self.assertEqual(msg.cmdState.apogee_long, False)
 

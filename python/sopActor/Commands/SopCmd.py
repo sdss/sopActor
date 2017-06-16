@@ -486,9 +486,9 @@ class SopCmd(object):
             # Modify running doMangaDither command
             if "mangaDithers" in keywords:
                 newMangaDithers = keywords['mangaDithers'].values[0]
-                if (newMangaDithers != cmdState.mangaDithers):
-                    cmd.fail('text="Cannot modify APOGEE/MaNGA dither pattern, only counts."')
-                    return
+                # if (newMangaDithers != cmdState.mangaDithers):
+                #     cmd.fail('text="Cannot modify APOGEE/MaNGA dither pattern, only counts."')
+                #     return
                 mangaDithers = newMangaDithers
 
             if "count" in keywords:
@@ -496,7 +496,7 @@ class SopCmd(object):
 
             cmdState.mangaDithers = mangaDithers
             cmdState.count = count
-            cmdState.reset_ditherSeq()
+            cmdState.update_ditherSeq()
             cmdState.update_etr()
 
             if cmdState.index >= len(cmdState.mangaDitherSeq):

@@ -870,6 +870,13 @@ class DoApogeeMangaSequenceCmd(CmdState):
         super(DoApogeeMangaSequenceCmd, self).reset_nonkeywords()
         self.reset_ditherSeq()
 
+    def update_ditherSeq(self):
+        ''' Updates the dither sequence with new dithers, and count '''
+        current_ditherSeq = self.mangaDitherSeq
+        past_ditherSeq = current_ditherSeq[:self.index + 1]
+        new_ditherSeq = past_ditherSeq + (self.mangaDithers * self.count)
+        self.mangaDitherSeq = new_ditherSeq
+
     def reset_ditherSeq(self):
         """Reset dither sequence based on dithers,count parameters."""
         self.mangaDitherSeq = self.mangaDithers * self.count
