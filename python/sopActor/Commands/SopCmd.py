@@ -413,9 +413,9 @@ class SopCmd(object):
             # Modify running doMangaDither command
             if "dithers" in keywords:
                 newDithers = keywords['dithers'].values[0]
-                if (newDithers != cmdState.dithers):
-                    cmd.fail('text="Cannot modify MaNGA dither pattern, only counts."')
-                    return
+                # if (newDithers != cmdState.dithers):
+                #     cmd.fail('text="Cannot modify MaNGA dither pattern, only counts."')
+                #     return
                 dithers = newDithers
 
             if "count" in keywords:
@@ -424,7 +424,7 @@ class SopCmd(object):
             # Updating the dithers, count, and/or ditherSeq with new values
             cmdState.dithers = dithers
             cmdState.count = count
-            cmdState.reset_ditherSeq()
+            cmdState.update_ditherSeq()
             cmdState.update_etr()
 
             if cmdState.index >= len(cmdState.ditherSeq):

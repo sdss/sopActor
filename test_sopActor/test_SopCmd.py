@@ -644,20 +644,25 @@ class TestDoMangaSequence(SopCmdTester, unittest.TestCase):
         msg = self._doMangaSequence_modify('dithers=NSE count=2', 'dithers=NSE count=1')
         self.assertEqual(msg.cmdState.dithers, 'NSE')
         self.assertEqual(msg.cmdState.count, 1)
-        self.assertEqual(msg.cmdState.ditherSeq, 'NSE')
+        self.assertEqual(msg.cmdState.ditherSeq, 'NNSE')
 
     def test_doMangaSequence_modify_count_1to2(self):
         msg = self._doMangaSequence_modify('dithers=NSE count=1', 'dithers=NSE count=2')
         self.assertEqual(msg.cmdState.dithers, 'NSE')
         self.assertEqual(msg.cmdState.count, 2)
-        self.assertEqual(msg.cmdState.ditherSeq, 'NSENSE')
+        self.assertEqual(msg.cmdState.ditherSeq, 'NNSENSE')
 
-    def test_doMangaSequence_modify_not_dithers(self):
-        msg = self._doMangaSequence_modify('dithers=NSE count=2', 'dithers=SEN count=1', (0, 2, 0, 0), True)
-        self.assertEqual(msg.cmdState.dithers, 'NSE')
-        self.assertEqual(msg.cmdState.count, 2)
-        self.assertEqual(msg.cmdState.ditherSeq, 'NSENSE')
-        self.assertTrue(self.cmd.didFail)
+    def test_doMangaSequence_modify_dithers(self):
+        msg = self._doMangaSequence_modify('dithers=NSE count=2', 'dithers=SEN count=1')
+        self.assertEqual(msg.cmdState.count, 1)
+        self.assertEqual(msg.cmdState.dithers, 'SEN')
+        self.assertEqual(msg.cmdState.ditherSeq, 'NSEN')
+
+    def test_doMangaSequence_modify_dithers_alle(self):
+        msg = self._doMangaSequence_modify('dithers=NSE count=3', 'dithers=EE count=3')
+        self.assertEqual(msg.cmdState.count, 3)
+        self.assertEqual(msg.cmdState.dithers, 'EE')
+        self.assertEqual(msg.cmdState.ditherSeq, 'NEEEEEE')
 
 
 class TestDoApogeeMangaDither(SopCmdTester,unittest.TestCase):

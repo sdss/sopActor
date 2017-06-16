@@ -638,6 +638,13 @@ class DoMangaSequenceCmd(CmdState):
         if not (self.cmd and self.cmd.isAlive()):
             self.reset_ditherSeq()
 
+    def update_ditherSeq(self):
+        """ Updates the dither sequence based on new dithers and count. """
+        current_ditherSeq = self.ditherSeq
+        past_ditherSeq = current_ditherSeq[:self.index + 1]
+        new_ditherSeq = past_ditherSeq + (self.dithers * self.count)
+        self.ditherSeq = new_ditherSeq
+
     def reset_ditherSeq(self):
         """Reset dither sequence based on dithers and count."""
         self.ditherSeq = self.dithers * self.count

@@ -730,6 +730,51 @@ class TestMangaScience(MasterThreadTester):
         cmdState = self.actorState.doMangaSequence
         self._do_manga_sequence(29, 239, 0, 0, count, dithers)
 
+    def test_do_manga_sequence_modifydithers_1e(self):
+        sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
+
+        def modify_dithers():
+            cmdState.count = 1
+            cmdState.dithers = 'E'
+            cmdState.update_ditherSeq()
+        self.cmd.runOn = ('guider mangaDither ditherPos=S', modify_dithers)
+        self.cmd.runOnCount = 1
+
+        count = 2
+        dithers = 'NSE'
+        cmdState = self.actorState.doMangaSequence
+        self._do_manga_sequence(11, 95, 0, 0, count, dithers)
+
+    def test_do_manga_sequence_modifydithers_1esn(self):
+        sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
+
+        def modify_dithers():
+            cmdState.count = 1
+            cmdState.dithers = 'ESN'
+            cmdState.update_ditherSeq()
+        self.cmd.runOn = ('guider mangaDither ditherPos=S', modify_dithers)
+        self.cmd.runOnCount = 2
+
+        count = 2
+        dithers = 'NSE'
+        cmdState = self.actorState.doMangaSequence
+        self._do_manga_sequence(26, 215, 0, 0, count, dithers)
+
+    def test_do_manga_sequence_modifydithers_2sn(self):
+        sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
+
+        def modify_dithers():
+            cmdState.count = 2
+            cmdState.dithers = 'SN'
+            cmdState.update_ditherSeq()
+        self.cmd.runOn = ('guider mangaDither ditherPos=N', modify_dithers)
+        self.cmd.runOnCount = 1
+
+        count = 1
+        dithers = 'NSE'
+        cmdState = self.actorState.doMangaSequence
+        self._do_manga_sequence(17, 143, 0, 0, count, dithers)
+
 
 class TestApogeeMangaScience(MasterThreadTester):
     def _do_one_apogeemanga_dither(self, nCall, nInfo, nWarn, nErr, mangaDither,

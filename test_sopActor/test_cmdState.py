@@ -567,6 +567,33 @@ class TestDoMangaSequence(CmdStateTester, unittest.TestCase):
     def test_update_ditherSeq_count2(self):
         self._update_ditherSeq(2)
 
+    def _modify_ditherSeq(self, count, dithers, expseq):
+        self.assertEqual(3, self.cmdState.count)
+        self.assertEqual(self.cmdState.dithers * 3, self.cmdState.ditherSeq)
+        self.cmdState.count = count
+        self.cmdState.dithers = dithers
+        self.cmdState.update_ditherSeq()
+        self.assertEqual(count, self.cmdState.count)
+        self.assertEqual(dithers, self.cmdState.dithers)
+        self.assertEqual(expseq, self.cmdState.ditherSeq)
+
+    def test_modify_ditherSeq_3es(self):
+        self._modify_ditherSeq(3, 'ES', 'NESESES')
+
+    def test_modify_ditherSeq_1ee(self):
+        self._modify_ditherSeq(1, 'EE', 'NEE')
+
+    def test_modify_ditherSeq_2sn(self):
+        self._modify_ditherSeq(2, 'SN', 'NSNSN')
+
+    def test_modify_ditherSeq_middlen(self):
+        self.cmdState.index = 4
+        self._modify_ditherSeq(1, 'N', 'NSENSN')
+
+    def test_modify_ditherSeq_firste(self):
+        self.cmdState.index = 1
+        self._modify_ditherSeq(1, 'E', 'NSE')
+
     def _update_etr_by_count(self, start, count, etr):
         self.assertEqual(start, self.cmdState.etr)
         self._update_ditherSeq(count)
