@@ -6,6 +6,19 @@ Change Log
 
 This document records the main changes to the sopActor code.
 
+.. _changelog-v3_9_5:
+v3_9_5 (unreleased)
+-------------------
+
+Added
+^^^^^
+* Dither sequences for DoMangaSequence and DoApogeeMangaSequence are now modifiable.
+
+Fixed
+^^^^^
+* Ticket `#2460 <https://trac.sdss.org/ticket/2460>`_: Cannot modify MaNGA Dithers within SOP
+
+
 .. _changelog-v3_9_4:
 v3_9_4 (2017-06-12)
 -------------------
