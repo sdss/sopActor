@@ -139,7 +139,7 @@ class Queue(_Queue.PriorityQueue):
         self.name = name
 
     def __str__(self):
-        return self.name
+        return str(self.name)
 
     def put(self, arg0, *args, **kwds):
         """
