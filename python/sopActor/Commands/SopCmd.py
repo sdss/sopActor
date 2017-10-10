@@ -124,7 +124,7 @@ class SopCmd(object):
             ("collimateBoss", "", self.collimateBoss),
             ("lampsOff", "", self.lampsOff),
             ("ping", "", self.ping),
-            ("restart", "[<threads>] [keepQueues]", self.restart),
+            ("restart", "[keepQueues]", self.restart),
             ("gotoField", "[<arcTime>] [<flatTime>] [<guiderFlatTime>] [<guiderTime>] [noSlew] [noHartmann] [noCalibs] [noGuider] [abort] [keepOffsets]", self.gotoField),
             ("gotoInstrumentChange", "[abort] [stop]", self.gotoInstrumentChange),
             ("gotoStow", "[abort] [stop]", self.gotoStow),
@@ -928,15 +928,7 @@ class SopCmd(object):
 
         sopState = myGlobals.actorState
 
-        threads = cmd.cmd.keywords["threads"].values if "threads" in cmd.cmd.keywords else None
         keepQueues = True if "keepQueues" in cmd.cmd.keywords else False
-
-        if threads == ["pdb"]:
-            cmd.warn('text="The sopActor is about to break to a pdb prompt"')
-            import pdb; pdb.set_trace()
-            cmd.finish('text="We now return you to your regularly scheduled sop session"')
-            return
-
 
         if sopState.restartCmd:
             sopState.restartCmd.finish("text=\"secundum verbum tuum in pace\"")
@@ -949,7 +941,7 @@ class SopCmd(object):
         sopState.restartCmd = cmd
 
         sopState.actor.startThreads(sopState, cmd, restart=True,
-                                    restartThreads=threads, restartQueues=not keepQueues)
+                                    restartQueues=not keepQueues)
 
     def reinit(self, cmd):
         """ (engineering command) Recreate the objects which hold the state of the various top-level commands. """
