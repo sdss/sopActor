@@ -39,6 +39,8 @@ def goto_position(cmd, cmdState, actorState):
 
     finishMsg = "On position."
 
+    # TODO: I think this line does not do anything. It should be removed and
+    # then tested.
     multiCmd = master.SopMultiCommand(cmd, actorState.timeout + 100,
                                       cmdState.name + ".slew")
     cmdState.setStageState('slew', 'running')
