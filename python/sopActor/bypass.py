@@ -22,7 +22,7 @@ class Bypass(object):
 
         # The bypasses in these groups are mutually-contradictory.
         self.cartBypasses = ("isBoss", "isApogee",
-                             "isMangaDither", "isMangaStare", 'isMastar',
+                             "isMangaDither", "isMangaStare", 'isMaStar',
                              "isApogeeLead", "isApogeeMangaDither", "isApogeeMangaStare",
                              'isApogeeMangaMaStar')
         self.gangBypasses = ('gangToPodium', 'gangToCart')
