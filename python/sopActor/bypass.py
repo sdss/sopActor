@@ -14,17 +14,17 @@ class Bypass(object):
         for ss in ("ffs", "lamp_ff", "lamp_hgcd", "lamp_ne",
                    "axes", "slewToField", "guiderDark",
                    "isBoss", "isApogee",
-                   "isMangaDither", "isMangaStare", 'isMangaMastar',
+                   "isMangaDither", "isMangaStare", 'isMaStar',
                    "isApogeeLead", "isApogeeMangaDither", "isApogeeMangaStare",
-                   'isApogeeMangaMastar',
+                   'isApogeeMangaMaStar',
                    "gangToCart", "gangToPodium"):
             self._bypassed[ss] = False
 
         # The bypasses in these groups are mutually-contradictory.
         self.cartBypasses = ("isBoss", "isApogee",
-                             "isMangaDither", "isMangaStare", 'isMangaMastar',
+                             "isMangaDither", "isMangaStare", 'isMastar',
                              "isApogeeLead", "isApogeeMangaDither", "isApogeeMangaStare",
-                             'isApogeeMangaMastar')
+                             'isApogeeMangaMaStar')
         self.gangBypasses = ('gangToPodium', 'gangToCart')
 
     def set(self, name, bypassed=True):
