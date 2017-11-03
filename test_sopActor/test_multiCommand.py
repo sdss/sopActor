@@ -14,6 +14,15 @@ class PreconditionUnneeded(Precondition):
         return False
 
 class TestMultiCommand(sopTester.SopTester,unittest.TestCase):
+
+    def __init__(self, *args, **kwargs):
+        """Load up the cmd calls for this test class."""
+
+        unittest.TestCase.__init__(self, *args, **kwargs)
+
+        class_name = self.id().split('.')[-2]
+        self._load_cmd_calls(class_name)
+
     def setUp(self):
         self.verbose = True
         self.tid = sopTester.TEST_QUEUE
@@ -105,5 +114,5 @@ class TestMultiCommand(sopTester.SopTester,unittest.TestCase):
 
 if __name__ == '__main__':
     verbosity = 2
-    
+
     unittest.main(verbosity=verbosity)

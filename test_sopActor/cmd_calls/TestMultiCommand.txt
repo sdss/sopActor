@@ -1,17 +1,13 @@
-[test_start_nopre]
+[test_run_nopre]
 testMultiCmd sopActor.LAMP_ON
 testMultiCmd sopActor.FFS_MOVE
 
-[test_start_nopre]
+[test_run_pre]
 testMultiCmd sopActor.LAMP_ON
 testMultiCmd sopActor.FFS_MOVE
 testMultiCmd sopActor.STATUS
 testMultiCmd sopActor.SLEW
 
-[test_start_nopre_fails]
-testMultiCmd sopActor.LAMP_ON
-testMultiCmd sopActor.FFS_MOVE
-
-[test_start_timesout]
+[test_run_nopre_fails]
 testMultiCmd sopActor.LAMP_ON
 testMultiCmd sopActor.FFS_MOVE
