@@ -355,7 +355,8 @@ class TestGotoField(MasterThreadTester):
         sopTester.updateModel('hartmann', TestHelper.hartmannState['blue_fails'])
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
-        self._goto_field_apogeemanga(26, 100, 1, 0, cmdState, surveyMode=sopActor.APOGEELEAD)
+        self._goto_field_apogeemanga(12, 36, 0, 0, cmdState, didFail=True, finish=True,
+                                     surveyMode=sopActor.APOGEELEAD)
 
     def test_goto_field_cartridge_mismatch(self):
         """Tests gotoField if there is a mismatch between MCP and guider."""

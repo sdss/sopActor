@@ -368,24 +368,6 @@ mcp ne.on
 mcp hgcd.on
 hartmann collimate ignoreResiduals
 
-mcp ne.on
-mcp hgcd.on
-
-boss exposure arc itime=4 noreadout
-
+mcp ff.off
 mcp ne.off
 mcp hgcd.off
-mcp ff.on
-boss exposure   readout
-
-boss exposure flat itime=25 noreadout
-guider flat time=0.5
-
-mcp ff.off
-boss exposure   readout
-mcp ffs.open
-guider axes off
-guider scale off
-guider focus off
-guider on time=5
-guider decenter off

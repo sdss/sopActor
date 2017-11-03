@@ -984,18 +984,7 @@ def goto_field_apogee(cmd, cmdState, actorState, slewTimeout):
 
 
 def do_goto_field_hartmann(cmd, cmdState, actorState):
-    """Handles taking hartmanns for goto_field, depending on survey.
-
-    The behaviour for hartmanns depends on the leading survey:
-     - We always call hartmann collimate ignoreResiduals minBlueCorrection. This
-      outputs only the minimum blue ring correction required to get the cameras into focus
-      tolerance. The collimator is always adjusted, even if gotoField fails.
-    - If APOGEE is leading, gotoField won't fail even if the blue ring needs to be moved,
-      but the collimator will be adjusted.
-    - If MaNGA or eBOSS are leading and the blue ring needs adjusting, gotoField will
-      fail and turn off the lamps.
-
-    """
+    """Handles taking hartmanns for goto_field, depending on survey."""
 
     stageName = 'hartmann'
     hartmannDelay = 210
@@ -1017,17 +1006,13 @@ def do_goto_field_hartmann(cmd, cmdState, actorState):
     sp2_resid = models['hartmann'].keyVarDict['sp2Residuals'][2]
 
     if sp1_resid != 'OK' or sp2_resid != 'OK':
-        if actorState.surveyMode == sopActor.APOGEELEAD:
-            cmd.warn('text="BOSS cameras are out of focus but continuing '
-                     'because this is an APOGEE lead plate."')
-        else:
-            # Turns off the lamps before failing the command.
-            if not doLamps(cmd, actorState, Ne=False, HgCd=False):
-                cmd.warn('text="Failed turning on lamps in preparation to fail '
-                         'the hartmann sequence."')
-            fail_command(cmd, cmdState, 'Please, adjust the blue ring and run gotoField again. '
-                                        'The corrector has been adjusted.')
-            return False
+        # Turns off the lamps before failing the command.
+        if not doLamps(cmd, actorState, Ne=False, HgCd=False):
+            cmd.warn('text="Failed turning on lamps in preparation to fail '
+                     'the hartmann sequence."')
+        fail_command(cmd, cmdState, 'Please, adjust the blue ring and run gotoField again. '
+                                    'The corrector has been adjusted.')
+        return False
 
     show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
 
