@@ -633,8 +633,12 @@ class DoMangaSequenceCmd(CmdState):
                              dithers='NSE',
                              count=2,
                              etr=66.0)
+
         self.count = 2
         self.dithers = 'NSE'
+        self.expTime = 600
+        self.etr = 66.0
+
         if not (self.cmd and self.cmd.isAlive()):
             self.reset_ditherSeq()
 
