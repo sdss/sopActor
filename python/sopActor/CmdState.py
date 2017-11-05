@@ -736,6 +736,14 @@ class DoMangaDitherCmd(CmdState):
         else:
             return False
 
+    def set_manga10(self):
+        """Sets exposure time for MaNGA 10min survey mode."""
+
+        self.keywords = dict(expTime=600.0, dither='C')
+
+        self.dither = 'C'
+        self.expTime = 600
+
     def abort(self):
         self.stop_boss_exposure(wait=True)
         super(DoMangaDitherCmd,self).abort()

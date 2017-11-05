@@ -1130,6 +1130,7 @@ class SopCmd(object):
             if surveyMode is sopActor.MANGADITHER:
                 sopState.doMangaSequence.set_mangaDither()
             if surveyMode is sopActor.MANGA10:
+                sopState.doMangaDither.set_manga10()
                 sopState.doMangaSequence.set_manga10()
             if surveyMode is sopActor.MANGASTARE or surveyMode is sopActor.MASTAR:
                 sopState.doMangaSequence.set_mangaStare()
