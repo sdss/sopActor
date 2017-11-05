@@ -50,7 +50,7 @@ def goto_position(cmd, cmdState, actorState):
     alt = cmdState.alt
     rot = cmdState.rot
 
-    slewDuration = 60
+    slewDuration = 120
     multiCmd = MultiCommand(cmd, slewDuration + actorState.timeout, None)
 
     # Start with an axis init, in case the axes are not clear.
