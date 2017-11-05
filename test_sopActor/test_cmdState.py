@@ -720,11 +720,19 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
         self.assertFalse(self.cmdState.readout)
         self.assertEqual(self.cmdState.mangaExpTime, 900)
         self.assertEqual(self.cmdState.apogeeExpTime, 450)
+
+    def test_manga10(self):
+        self.cmdState.set_manga10()
+        self.assertFalse(self.cmdState.readout)
+        self.assertEqual(self.cmdState.mangaExpTime, 600)
+        self.assertEqual(self.cmdState.apogeeExpTime, 300)
+
     def test_mangaStare(self):
         self.cmdState.set_mangaStare()
         self.assertFalse(self.cmdState.readout)
         self.assertEqual(self.cmdState.mangaExpTime, 900)
         self.assertEqual(self.cmdState.apogeeExpTime, 450)
+
     def test_apogeeLead(self):
         self.cmdState.set_apogeeLead()
         self.assertTrue(self.cmdState.readout)
@@ -1025,10 +1033,16 @@ class TestDoApogeeMangaDither(CmdStateTester,unittest.TestCase):
         self.cmdState.set_apogeeLead()
         self.assertEqual(self.cmdState.mangaExpTime, 900)
         self.assertEqual(self.cmdState.apogeeExpTime, 500)
+
     def test_manga(self):
         self.cmdState.set_manga()
         self.assertEqual(self.cmdState.mangaExpTime, 900)
         self.assertEqual(self.cmdState.apogeeExpTime, 450)
+
+    def test_manga10(self):
+        self.cmdState.set_manga10()
+        self.assertEqual(self.cmdState.mangaExpTime, 600)
+        self.assertEqual(self.cmdState.apogeeExpTime, 300)
 
     def test_set_apogee_expTime_None(self):
         self.cmdState.apogeeExpTime = -9999

@@ -21,3 +21,9 @@ guider setRefractionBalance plateType="APOGEE-2&MaNGA" surveyMode="MaNGA stare"
 
 [test_bypass_isApogeeMangaMaStar]
 guider setRefractionBalance plateType="APOGEE-2&MaNGA" surveyMode="MaStar"
+
+[test_bypass_isManga10]
+guider setRefractionBalance plateType="MaNGA" surveyMode="MaNGA 10min"
+
+[test_bypass_isApogeeManga10]
+guider setRefractionBalance plateType="APOGEE-2&MaNGA" surveyMode="MaNGA 10min"

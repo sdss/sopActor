@@ -31,6 +31,7 @@ survey_dict = {'UNKNOWN':sopActor.UNKNOWN, 'ecamera':sopActor.ECAMERA,
 surveyMode_dict = {'None':None, None:None,
                    'APOGEE lead':sopActor.APOGEELEAD,
                    'MaNGA dither':sopActor.MANGADITHER,
+                   'MaNGA 10min': sopActor.MANGA10,
                    'MaNGA stare':sopActor.MANGASTARE,
                    'MaStar': sopActor.MASTAR}
 
@@ -42,6 +43,7 @@ survey_inv_dict = {sopActor.UNKNOWN:'UNKNOWN', sopActor.ECAMERA:'ecamera',
                    sopActor.APOGEEMANGA:'APOGEE-2&MaNGA'}
 surveyMode_inv_dict = {None:'None',
                        sopActor.MANGADITHER:'MaNGA dither',
+                       sopActor.MANGA10: 'MaNGA 10min',
                        sopActor.MANGASTARE:'MaNGA stare',
                        sopActor.APOGEELEAD:'APOGEE lead',
                        sopActor.MASTAR: 'MaStar'}
@@ -1127,6 +1129,8 @@ class SopCmd(object):
                                       'doMangaDither','doMangaSequence',]
             if surveyMode is sopActor.MANGADITHER:
                 sopState.doMangaSequence.set_mangaDither()
+            if surveyMode is sopActor.MANGA10:
+                sopState.doMangaSequence.set_manga10()
             if surveyMode is sopActor.MANGASTARE or surveyMode is sopActor.MASTAR:
                 sopState.doMangaSequence.set_mangaStare()
         elif survey is sopActor.APOGEEMANGA:
@@ -1142,6 +1146,9 @@ class SopCmd(object):
             if surveyMode is sopActor.MANGADITHER:
                 sopState.doApogeeMangaDither.set_manga()
                 sopState.doApogeeMangaSequence.set_mangaDither()
+            if surveyMode is sopActor.MANGA10:
+                sopState.doApogeeMangaDither.set_manga10()
+                sopState.doApogeeMangaSequence.set_manga10()
             if surveyMode is sopActor.MANGASTARE or surveyMode is sopActor.MASTAR:
                 sopState.doApogeeMangaDither.set_manga()
                 sopState.doApogeeMangaSequence.set_mangaStare()
@@ -1188,6 +1195,10 @@ class SopCmd(object):
             cmd.warn('text="We are lying about this being a MaNGA Dither cartridge"')
             sopState.survey = sopActor.MANGA
             sopState.surveyMode = sopActor.MANGADITHER
+        elif bypass.get('isManga10'):
+            cmd.warn('text="We are lying about this being a MaNGA 10min cartridge"')
+            sopState.survey = sopActor.MANGA
+            sopState.surveyMode = sopActor.MANGA10
         elif bypass.get('isApogeeMangaStare'):
             cmd.warn('text="We are lying about this being an APOGEE&MaNGA Stare cartridge"')
             sopState.survey = sopActor.APOGEEMANGA
@@ -1200,6 +1211,10 @@ class SopCmd(object):
             cmd.warn('text="We are lying about this being a APOGEE&MaNGA Dither cartridge"')
             sopState.survey = sopActor.APOGEEMANGA
             sopState.surveyMode = sopActor.MANGADITHER
+        elif bypass.get('isApogeeManga10'):
+            cmd.warn('text="We are lying about this being a APOGEE&MaNGA 10min cartridge"')
+            sopState.survey = sopActor.APOGEEMANGA
+            sopState.surveyMode = sopActor.MANGA10
         elif bypass.get('isApogeeLead'):
             cmd.warn('text="We are lying about this being an APOGEE&MaNGA, APOGEE Lead cartridge"')
             sopState.survey = sopActor.APOGEEMANGA

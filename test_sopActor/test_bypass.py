@@ -43,8 +43,9 @@ class TestBypass(unittest.TestCase):
 
     def test_clear_cart_bypasses(self):
         carts = ["isBoss", "isApogee",
-                 "isMangaDither", "isMangaStare",
-                 "isApogeeLead", "isApogeeMangaDither", "isApogeeMangaStare"]
+                 "isMangaDither", "isMangaStare", 'isManga10',
+                 "isApogeeLead", "isApogeeMangaDither", "isApogeeMangaStare",
+                 'isApogeeManga10']
         for x in self.bypass._bypassed:
             self.bypass._bypassed[x] = True
         self.bypass.clear_cart_bypasses()
@@ -75,8 +76,9 @@ class TestBypass(unittest.TestCase):
         result = self.bypass.set(name)
         self.assertTrue(result)
         for x in ["isBoss", "isApogee",
-                  "isMangaDither", "isMangaStare",
-                  "isApogeeLead", "isApogeeMangaDither", "isApogeeMangaStare",]:
+                  "isMangaDither", "isMangaStare", 'isManga10',
+                  "isApogeeLead", "isApogeeMangaDither", "isApogeeMangaStare",
+                  'isApogeeManga10']:
             if name != x:
                 self.assertFalse(self.bypass.get(x), '%s should not be set'%x)
             else:
@@ -138,7 +140,5 @@ class TestBypass(unittest.TestCase):
 
 if __name__ == '__main__':
     verbosity = 2
-    
+
     unittest.main(verbosity=verbosity)
-
-

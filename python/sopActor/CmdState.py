@@ -627,6 +627,17 @@ class DoMangaSequenceCmd(CmdState):
         if not (self.cmd and self.cmd.isAlive()):
             self.reset_ditherSeq()
 
+    def set_manga10(self):
+        """Setup to use this for MaNGA dithered 10 min exposures."""
+        self.keywords = dict(expTime=600.0,
+                             dithers='NSE',
+                             count=2,
+                             etr=66.0)
+        self.count = 2
+        self.dithers = 'NSE'
+        if not (self.cmd and self.cmd.isAlive()):
+            self.reset_ditherSeq()
+
     def set_mangaStare(self):
         """Setup to use this for MaNGA Stare observations."""
         self.keywords = dict(expTime=900.0,
@@ -766,6 +777,15 @@ class DoApogeeMangaDitherCmd(CmdState):
         self.apogeeExpTime=450.0
         self.apogee_long = False
 
+    def set_manga10(self):
+        """Setup to use this for MaNGA 10m observations."""
+
+        self.keywords = dict(mangaDither='C', comment='')
+        self.mangaDither = 'C'
+        self.mangaExpTime = 600.0
+        self.apogeeExpTime = 300.0
+        self.apogee_long = False
+
     def getUserKeys(self):
         msg = []
         msg.append("%s_expTime=%s,%s" % (self.name, self.mangaExpTime, self.apogeeExpTime))
@@ -844,6 +864,23 @@ class DoApogeeMangaSequenceCmd(CmdState):
         self.mangaDithers = 'NSE'
         self.mangaExpTime = 900.0
         self.apogeeExpTime = 450.0
+        self.set_default_etr(self.mangaExpTime)
+        self.readout = False
+        self.apogee_long = False
+        if not (self.cmd and self.cmd.isAlive()):
+            self.reset_ditherSeq()
+
+    def set_manga10(self):
+        """Setup to use this for MaNGA dithered 10 min exposures."""
+
+        self.keywords = dict(mangaDithers='NSE',
+                             count=2,
+                             etr=0,
+                             comment='')
+        self.count = 2
+        self.mangaDithers = 'NSE'
+        self.mangaExpTime = 600.0
+        self.apogeeExpTime = 300.0
         self.set_default_etr(self.mangaExpTime)
         self.readout = False
         self.apogee_long = False

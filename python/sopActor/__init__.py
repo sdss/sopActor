@@ -22,6 +22,7 @@ except NameError:
     class MANGASTARE(): pass
     class MASTAR(): pass
     class MANGADITHER(): pass
+    class MANGA10(): pass
     class APOGEELEAD(): pass
     class APOGEEMANGA(): pass
     class ECAMERA(): pass
