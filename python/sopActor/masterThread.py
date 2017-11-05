@@ -794,9 +794,19 @@ def do_apogeemanga_sequence(cmd, cmdState, actorState):
         multiCmd = SopMultiCommand(cmd, actorState.timeout,cmdState.name+'.cleanup')
 
     if failMsg:
+
         # handle the readout, but don't touch lamps, guider state, etc.
+
+        # If we get here when the exposure has been aborted the multicommand
+        # won't do anything unless we set ignoreAborting to True.
+        if actorState.aborting is True:
+            actorState.ignoreAborting = True
+
         if pendingReadout and not multiCmd.run():
             cmd.error('text="Failed to readout last exposure"')
+
+        actorState.ignoreAborting = False  # Resets ignoreAborting
+
         return fail_command(cmd, cmdState, failMsg)
 
     finish_command(cmd,cmdState,actorState,finishMsg)
