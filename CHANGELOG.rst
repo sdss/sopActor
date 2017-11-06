@@ -23,7 +23,7 @@ Fixed
 ^^^^^
 * Ticket `#2460 <https://trac.sdss.org/ticket/2460>`_: Cannot modify MaNGA Dithers within SOP.
 * Ticket `#2860 https://trac.sdss.org/ticket/2810`_: multicommand timeouts crash SOP.
-* Ticket `#2707 https://trac.sdss.org/ticket/2707`: unclean stop of MaNGA sequences.
+* Ticket `#2707 https://trac.sdss.org/ticket/2707`_: unclean stop of MaNGA sequences.
 
 
 .. _changelog-v3_9_4:
