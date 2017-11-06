@@ -631,13 +631,13 @@ class DoMangaSequenceCmd(CmdState):
         """Setup to use this for MaNGA dithered 10 min exposures."""
         self.keywords = dict(expTime=600.0,
                              dithers='NSE',
-                             count=2,
-                             etr=66.0)
+                             count=1,
+                             etr=33.0)
 
-        self.count = 2
+        self.count = 1
         self.dithers = 'NSE'
         self.expTime = 600
-        self.etr = 66.0
+        self.etr = 33.0
 
         if not (self.cmd and self.cmd.isAlive()):
             self.reset_ditherSeq()
@@ -886,10 +886,10 @@ class DoApogeeMangaSequenceCmd(CmdState):
         """Setup to use this for MaNGA dithered 10 min exposures."""
 
         self.keywords = dict(mangaDithers='NSE',
-                             count=2,
+                             count=1,
                              etr=0,
                              comment='')
-        self.count = 2
+        self.count = 1
         self.mangaDithers = 'NSE'
         self.mangaExpTime = 600.0
         self.apogeeExpTime = 300.0
