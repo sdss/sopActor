@@ -7,16 +7,23 @@ Change Log
 This document records the main changes to the sopActor code.
 
 .. _changelog-v3_9_5:
-v3_9_5 (unreleased)
+v3_9_5 (1017-11-06)
 -------------------
 
 Added
 ^^^^^
 * Dither sequences for DoMangaSequence and DoApogeeMangaSequence are now modifiable.
+* Added ``MaNGA 10min`` survey mode for IC342 observations.
+
+Changed
+^^^^^^^
+* APOGEE-MaNGA, APOGEE-led fail on gotoField if blue ring is out of range.
 
 Fixed
 ^^^^^
-* Ticket `#2460 <https://trac.sdss.org/ticket/2460>`_: Cannot modify MaNGA Dithers within SOP
+* Ticket `#2460 <https://trac.sdss.org/ticket/2460>`_: Cannot modify MaNGA Dithers within SOP.
+* Ticket `#2860 https://trac.sdss.org/ticket/2810`_: multicommand timeouts crash SOP.
+* Ticket `#2707 https://trac.sdss.org/ticket/2707`: unclean stop of MaNGA sequences.
 
 
 .. _changelog-v3_9_4:
