@@ -73,7 +73,7 @@ class SopActor(actorcore.Actor.SDSSActor):
                                        configFile=configFile,
                                        makeCmdrConnection=makeCmdrConnection)
 
-        self.headURL = '$HeadURL$'
+        self.version = sopActor.__version__
 
         self.logger.setLevel(debugLevel)
         self.logger.propagate = True
