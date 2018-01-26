@@ -59,12 +59,17 @@ def main(actor, queues):
                 if maxTime == 0.0:
                     maxTime = 30.0
 
-                msg.cmd.warn('text="firing off script line: %s %s (maxTime=%0.1f)"' % (actorName, cmdStr, maxTime))
+                msg.cmd.warn('text="firing off script line: %s %s (maxTime=%0.1f)"' % (actorName,
+                                                                                       cmdStr,
+                                                                                       maxTime))
                 cmdVar = actorState.actor.cmdr.call(actor=actorName, forUserCmd=msg.cmd,
                                                     cmdStr=cmdStr,
                                                     timeLim=maxTime+15)
                 if cmdVar.didFail:
-                    msg.cmd.fail('text="Script %s failed to run %s %s"' % (runningScript.name, actorName, cmdStr))
+                    msg.cmd.fail('text="Script %s failed to run %s %s"' % (runningScript.name,
+                                                                           actorName, cmdStr))
+                    runningScript.abortScript()
+                    runningScript.genStatus()
                     runningScript = None
                 else:
                     actorState.queues[myQueueName].put(Msg.SCRIPT_STEP, msg.cmd)
@@ -77,6 +82,7 @@ def main(actor, queues):
 
                 # Just signal that we are done.
                 runningScript.stop()
+                runningScript.genStatus()
 
                 msg.cmd.finish('text="all scripts have stopped."' % (runningScript.name))
                 runningScript = None
