@@ -11,11 +11,18 @@
 
 
 from __future__ import print_function, division, absolute_import
+
+import sys
+
 from sopActor import Msg, SopActor, Queue
 
 # start a new SopActor
 if __name__ == "__main__":
-    sop = SopActor.SopActor.newActor()
+
+    if len(sys.argv) > 1:
+        location = sys.argv[1]
+    else:
+        location = None
+
+    sop = SopActor.SopActor.newActor(location=location)
     sop.run(Msg=Msg, queueClass=Queue)
-
-
