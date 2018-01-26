@@ -6,8 +6,19 @@ Change Log
 
 This document records the main changes to the sopActor code.
 
+.. _changelog-3.10.0:
+v3.10.0 (unreleased)
+-------------------
+
+Added
+^^^^^
+* Using new versioning pattern, ``X.Y.Z``.
+* ``sopActor_main.py`` now accepts a location value. If no value is provided the behaviour is the same as in the past.
+* PEP8 beautified ``SopCmd.py``.
+
+
 .. _changelog-v3_9_5:
-v3_9_5 (1017-11-06)
+v3_9_5 (2017-11-06)
 -------------------
 
 Added
