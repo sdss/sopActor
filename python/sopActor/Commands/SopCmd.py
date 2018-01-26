@@ -1091,15 +1091,18 @@ class SopCmd(object):
                                              survey=sopState.survey,
                                              scriptName=cmd.cmd.keywords["scriptName"].values[0])
 
-    def listScripts(self, cmd):
+    def listScripts(self, cmd, finish=True):
         """ List available script names for the runScript command."""
+
         path = os.path.join(os.environ['SOPACTOR_DIR'], 'scripts', '*.inp')
         scripts = glob.glob(path)
         scripts = ','.join(
             os.path.splitext(
                 os.path.basename(s))[0] for s in scripts)
         cmd.inform('availableScripts="%s"' % scripts)
-        cmd.finish('')
+
+        if finish:
+            cmd.finish('')
 
     def stopScript(self, cmd):
         """Stops any running script."""
@@ -1242,6 +1245,9 @@ class SopCmd(object):
                         cmd.warn("")
             finally:
                 sopState.ignoreAborting = False
+
+        # Outputs available scripts
+        self.listScripts(cmd, finish=False)
 
         if finish:
             cmd.finish("")
