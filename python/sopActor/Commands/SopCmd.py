@@ -1104,6 +1104,7 @@ class SopCmd(object):
     def stopScript(self, cmd):
         """Stops any running script."""
 
+        sopState = myGlobals.actorState
         sopState.queues[sopActor.SCRIPT].put(Msg.STOP_SCRIPT, cmd, replyQueue=self.replyQueue)
 
     def ping(self, cmd):
