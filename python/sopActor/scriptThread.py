@@ -78,6 +78,9 @@ def main(actor, queues):
                 # Just signal that we are done.
                 runningScript.stop()
 
+                msg.cmd.finish('text="all scripts have stopped."' % (runningScript.name))
+                runningScript = None
+
             elif msg.type == Msg.STATUS:
                 msg.cmd.inform('text="%s thread"' % threadName)
                 msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)

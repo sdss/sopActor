@@ -15,6 +15,7 @@ Added
 * Using new versioning pattern, ``X.Y.Z``.
 * ``sopActor_main.py`` now accepts a location value. If no value is provided the behaviour is the same as in the past.
 * PEP8 beautified ``SopCmd.py``.
+* Added `stopScript` command.
 
 
 .. _changelog-v3_9_5:

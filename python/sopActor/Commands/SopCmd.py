@@ -197,6 +197,7 @@ class SopCmd(object):
             ("reinit", "", self.reinit),
             ("runScript", "<scriptName>", self.runScript),
             ("listScripts", "", self.listScripts),
+            ('stopScript', '', self.stopScript)
             ]
 
     def stop_cmd(self, cmd, cmdState, sopState, name):
@@ -1099,6 +1100,11 @@ class SopCmd(object):
                 os.path.basename(s))[0] for s in scripts)
         cmd.inform('availableScripts="%s"' % scripts)
         cmd.finish('')
+
+    def stopScript(self, cmd):
+        """Stops any running script."""
+
+        sopState.queues[sopActor.SCRIPT].put(Msg.STOP_SCRIPT, cmd, replyQueue=self.replyQueue)
 
     def ping(self, cmd):
         """ Query sop for liveness/happiness. """
