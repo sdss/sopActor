@@ -84,7 +84,7 @@ def main(actor, queues):
                 runningScript.stopScript()
                 runningScript.genStatus()
 
-                msg.cmd.finish('text="all scripts have stopped."' % (runningScript.name))
+                msg.cmd.finish('text="all scripts have stopped."')
                 runningScript = None
 
             elif msg.type == Msg.STATUS:
