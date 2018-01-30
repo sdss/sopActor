@@ -20,6 +20,7 @@ def main(actor, queues):
     threadName = "script"
     myQueueName = sopActor.SCRIPT
     runningScript = None
+    stopped = False
 
     while True:
         actorState = myGlobals.actorState
@@ -41,12 +42,17 @@ def main(actor, queues):
 
                 scriptName = msg.scriptName
                 runningScript = script.Script(msg.cmd, scriptName)
+                stopped = False
                 actorState.queues[myQueueName].put(Msg.SCRIPT_STEP, msg.cmd)
 
             elif msg.type == Msg.SCRIPT_STEP:
+
+                if stopped is True:
+                    continue
+
                 if not runningScript:
                     msg.cmd.fail('text="%s thread is not running a script, so cannot step it."' %
-                             (threadName))
+                                 (threadName))
                     continue
 
                 scriptLine = runningScript.fetchNextStep()
@@ -71,9 +77,6 @@ def main(actor, queues):
                     runningScript.abortScript()
                     runningScript.genStatus()
                     runningScript = None
-                elif runningScript is None:
-                    # Script has been stopped somewhere else.
-                    pass
                 else:
                     actorState.queues[myQueueName].put(Msg.SCRIPT_STEP, msg.cmd)
 
@@ -89,6 +92,7 @@ def main(actor, queues):
 
                 msg.cmd.finish('text="all scripts have stopped."')
                 runningScript = None
+                stopped = True
 
                 msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
 
