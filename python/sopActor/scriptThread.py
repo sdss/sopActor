@@ -81,7 +81,7 @@ def main(actor, queues):
                     continue
 
                 # Just signal that we are done.
-                runningScript.stop()
+                runningScript.stopScript()
                 runningScript.genStatus()
 
                 msg.cmd.finish('text="all scripts have stopped."' % (runningScript.name))
