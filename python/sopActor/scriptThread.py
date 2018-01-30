@@ -71,6 +71,9 @@ def main(actor, queues):
                     runningScript.abortScript()
                     runningScript.genStatus()
                     runningScript = None
+                elif runningScript is None:
+                    # Script has been stopped somewhere else.
+                    pass
                 else:
                     actorState.queues[myQueueName].put(Msg.SCRIPT_STEP, msg.cmd)
 
