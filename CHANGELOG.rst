@@ -15,7 +15,7 @@ Added
 * Using new versioning pattern, ``X.Y.Z``.
 * ``sopActor_main.py`` now accepts a location value. If no value is provided the behaviour is the same as in the past.
 * PEP8 beautified ``SopCmd.py``.
-* Added `stopScript` command and other changes to allow STUI to show a script widget in the SOP GUI window.
+* Added ``stopScript`` command and other changes to allow STUI to show a script widget in the SOP GUI window.
 
 
 .. _changelog-v3_9_5:
