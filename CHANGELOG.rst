@@ -6,9 +6,19 @@ Change Log
 
 This document records the main changes to the sopActor code.
 
+.. _changelog-3.10.1:
+v3.10.1 (2018-02-01)
+--------------------
+
+Fixed
+^^^^^
+
+* Forgot to remove the ``dev`` suffix in the version when released ``3.10.0``.
+
+
 .. _changelog-3.10.0:
-v3.10.0 (unreleased)
--------------------
+v3.10.0 (2018-02-01)
+--------------------
 
 Added
 ^^^^^
