@@ -1031,7 +1031,7 @@ def do_goto_field_hartmann(cmd, cmdState, actorState):
 
 def goto_field_boss(cmd, cmdState, actorState, slewTimeout):
     """Process a goto field sequence for a BOSS plate."""
-    print('Hoooooola', list(actorState.models['tcc'].keyVarDict['axisCmdState']))
+
     pendingReadout = False
     stageName = ''
 
@@ -1048,7 +1048,7 @@ def goto_field_boss(cmd, cmdState, actorState, slewTimeout):
 
         if not _run_slew(cmd,cmdState, actorState, multiCmd):
             return False
-        print('Hoooooola', list(actorState.models['tcc'].keyVarDict['axisCmdState']))
+
         if 'Halted' in list(actorState.models['tcc'].keyVarDict['axisCmdState']):
             cmd.warn('text="TCC axes are halted. Stopping gotoField."')
             return False
