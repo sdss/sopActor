@@ -6,13 +6,23 @@ Change Log
 
 This document records the main changes to the sopActor code.
 
+
+.. _changelog-3.10.2:
+v3.10.2 (unreleased)
+--------------------
+
+Fixed
+^^^^^
+* Ticket `#2859 <https://trac.sdss.org/ticket/2859>`_: GOTOField should stop to take hartmann if the slew field.
+* Lots of `nInfo` in tests that were out of date after adding the `availableScripts` output to the status.
+
+
 .. _changelog-3.10.1:
 v3.10.1 (2018-02-01)
 --------------------
 
 Fixed
 ^^^^^
-
 * Forgot to remove the ``dev`` suffix in the version when released ``3.10.0``.
 
 
@@ -55,6 +65,7 @@ v3_9_4 (2017-06-12)
 Fixed
 ^^^^^
 * Fixed a bug with outputting of the doApogeeScience_index keyword in the CmdState getUserKeys
+
 
 .. _changelog-v3_9_3:
 v3_9_3 (2017-06-11)
