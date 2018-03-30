@@ -67,19 +67,19 @@ class TestGuider(MasterThreadTester):
 
     def test_guider_start_ffsClosed(self):
         """ffs open, 3x axis clear, guider on"""
-        self._guider_start(6,19,0,0)
+        self._guider_start(6,20,0,0)
     def test_guider_start_ffsOpen(self):
         """3x axis clear, guider on"""
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
-        self._guider_start(5,16,0,0)
+        self._guider_start(5,17,0,0)
     def test_guider_start_arcsOn(self):
         """ffs open, he off, hgcd off, 3x axis clear, guider on"""
         sopTester.updateModel('mcp',TestHelper.mcpState['arcs'])
-        self._guider_start(8,19,0,0)
+        self._guider_start(8,20,0,0)
     def test_guider_start_flatsOn(self):
         """ffs open, flat off, 3x axis clear, guider on"""
         sopTester.updateModel('mcp',TestHelper.mcpState['flats'])
-        self._guider_start(7,19,0,0)
+        self._guider_start(7,20,0,0)
     def test_guider_start_fails(self):
         self.cmd.failOn = "guider on time=5"
         self._guider_start(6,14,0,1,finish=True,didFail=True)
@@ -93,10 +93,10 @@ class TestGuider(MasterThreadTester):
         self._check_cmd(nCall, nInfo, nWarn, nErr, finish, didFail=didFail)
     def test_guider_flat_ffsClosed(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
-        self._guider_flat(2,18,0,0)
+        self._guider_flat(2,19,0,0)
     def test_guider_flat_ffsOpen(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
-        self._guider_flat(3,18,0,0)
+        self._guider_flat(3,19,0,0)
     def test_guider_flat_fails(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
         self.cmd.failOn = "guider flat time=0.5"
@@ -111,10 +111,10 @@ class TestGuider(MasterThreadTester):
         self._check_cmd(nCall,nInfo,nWarn,nErr, finish, didFail=didFail)
     def test_guider_flat_apogeeShutter_open(self):
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
-        self._guider_flat_apogeeShutter(3,18,0,0)
+        self._guider_flat_apogeeShutter(3,19,0,0)
     def test_guider_flat_apogeeShutter_closed(self):
         sopTester.updateModel('apogee',TestHelper.apogeeState['A_closed'])
-        self._guider_flat_apogeeShutter(2,18,0,0)
+        self._guider_flat_apogeeShutter(2,19,0,0)
 
     def _deactivate_guider_decenter(self,nCall,nInfo,nWarn,nErr, didFail=False):
         stageName = 'dither'
@@ -177,7 +177,7 @@ class TestGotoField(MasterThreadTester):
         """
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
-        self._goto_feld_apogee(13,44,0,0,cmdState)
+        self._goto_feld_apogee(13,46,0,0,cmdState)
     def test_goto_field_apogee_no_guider(self):
         """axis status, axis init, slew"""
         cmdState = self.actorState.gotoField
@@ -192,7 +192,7 @@ class TestGotoField(MasterThreadTester):
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
         cmdState.doSlew = False
-        self._goto_feld_apogee(9,35,0,0,cmdState)
+        self._goto_feld_apogee(9,37,0,0,cmdState)
     def test_goto_field_apogee_no_slew_decenter_off(self):
         """
         FF on, guider flat, FF off, open FFS
@@ -203,14 +203,14 @@ class TestGotoField(MasterThreadTester):
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
         cmdState.doSlew = False
-        self._goto_feld_apogee(9,35,0,0,cmdState)
+        self._goto_feld_apogee(9,37,0,0,cmdState)
     def test_goto_field_apogee_bypass_gangToCart(self):
         """Testing for a potential problem on SJD 56993,
         with gotoField not slewing when gang bypass had been set."""
         self._prep_bypass('gangToCart',clear=True)
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
-        self._goto_feld_apogee(13,42,4,0,cmdState)
+        self._goto_feld_apogee(13,44,4,0,cmdState)
 
 
     def test_goto_field_apogee_no_slew_shutter_open(self):
@@ -222,7 +222,7 @@ class TestGotoField(MasterThreadTester):
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
         cmdState.doSlew = False
-        self._goto_feld_apogee(10,35,0,0,cmdState)
+        self._goto_feld_apogee(10,37,0,0,cmdState)
 
     def _goto_field_boss(self, nCall, nInfo, nWarn, nErr, cmdState, finish=False, didFail=False):
         masterThread.goto_field_boss(self.cmd,cmdState,myGlobals.actorState,self.timeout)
@@ -231,7 +231,7 @@ class TestGotoField(MasterThreadTester):
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
-        self._goto_field_boss(26,100,0,0,cmdState)
+        self._goto_field_boss(26,105,0,0,cmdState)
     def test_goto_field_boss_slew(self):
         """
         axis status, axis init, slew
@@ -244,7 +244,7 @@ class TestGotoField(MasterThreadTester):
         cmdState.doCalibs = False
         cmdState.arcTime = 0
         cmdState.flatTime = 0
-        self._goto_field_boss(3,25,0,0,cmdState)
+        self._goto_field_boss(3,26,0,0,cmdState)
     def test_goto_field_boss_hartmann(self):
         """
         ne on, hgcd on, ff off, doHartmann, ne off, hgcd off
@@ -257,7 +257,7 @@ class TestGotoField(MasterThreadTester):
         cmdState.arcTime = 0
         cmdState.flatTime = 0
         cmdState.doGuider = False
-        self._goto_field_boss(5,28,0,0,cmdState)
+        self._goto_field_boss(5,29,0,0,cmdState)
     def test_goto_field_boss_calibs(self):
         """
         see cmd_calls/TestGotoField.txt for command list.
@@ -268,7 +268,7 @@ class TestGotoField(MasterThreadTester):
         cmdState.doSlew = False
         cmdState.doHartmann = False
         cmdState.doGuider = False
-        self._goto_field_boss(10,55,0,0,cmdState)
+        self._goto_field_boss(10,57,0,0,cmdState)
     def test_goto_field_boss_guider(self):
         """
         Start with decentered guiding on, to check that we clear it.
@@ -283,7 +283,7 @@ class TestGotoField(MasterThreadTester):
         cmdState.doCalibs = False
         cmdState.arcTime = 0
         cmdState.flatTime = 0
-        self._goto_field_boss(9,35,0,0,cmdState)
+        self._goto_field_boss(9,37,0,0,cmdState)
 
     def test_goto_field_boss_flat_on_fails(self):
         """Fail on ff.on, but still readout the arc."""
@@ -291,7 +291,7 @@ class TestGotoField(MasterThreadTester):
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
         self.cmd.failOn = "mcp ff.on"
-        self._goto_field_boss(16,68,0,1,cmdState,didFail=True,finish=True)
+        self._goto_field_boss(16,71,0,1,cmdState,didFail=True,finish=True)
     def test_goto_field_boss_ne_on_fails(self):
         """Fail on ne.on."""
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
@@ -309,7 +309,7 @@ class TestGotoField(MasterThreadTester):
         # Should produce 0 errors, but the failure usually (not always!)
         # cascades through to hgcd lampThread.
         # I'm pretty sure that's not correct.
-        self._goto_field_boss(9,33,0,1,cmdState,didFail=True,finish=True)
+        self._goto_field_boss(9,34,0,1,cmdState,didFail=True,finish=True)
 
     def test_goto_field_boss_hartmann_blue_fails(self):
         """Hartmann succeeds but the blue ring move is out of tolerance."""
@@ -320,7 +320,7 @@ class TestGotoField(MasterThreadTester):
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
 
-        self._goto_field_boss(12, 36, 0, 0, cmdState, didFail=True, finish=True)
+        self._goto_field_boss(12, 37, 0, 0, cmdState, didFail=True, finish=True)
 
     def test_goto_field_boss_ffs_open_fails(self):
         """Fail on ffs.open, but still readout flat."""
@@ -328,7 +328,7 @@ class TestGotoField(MasterThreadTester):
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
         self.cmd.failOn = "mcp ffs.open"
-        self._goto_field_boss(21,98,1,1,cmdState,didFail=True,finish=True)
+        self._goto_field_boss(21,102,1,1,cmdState,didFail=True,finish=True)
 
     def _goto_field_apogeemanga(self, nCall, nInfo, nWarn, nErr, cmdState,
                                 finish=False, didFail=False, surveyMode=None):
@@ -341,21 +341,21 @@ class TestGotoField(MasterThreadTester):
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
-        self._goto_field_apogeemanga(26,100,0,0,cmdState)
+        self._goto_field_apogeemanga(26,105,0,0,cmdState)
 
     def test_goto_field_apogeemanga_all_shutter_open(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_parked'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
-        self._goto_field_apogeemanga(27,107,0,0,cmdState)
+        self._goto_field_apogeemanga(27,112,0,0,cmdState)
 
     def test_goto_field_apogeemanga_apogee_lead_hartmann_out_of_focus(self):
         sopTester.updateModel('mcp', TestHelper.mcpState['all_off'])
         sopTester.updateModel('hartmann', TestHelper.hartmannState['blue_fails'])
         cmdState = self.actorState.gotoField
         cmdState.reinitialize(self.cmd)
-        self._goto_field_apogeemanga(12, 36, 0, 0, cmdState, didFail=True, finish=True,
+        self._goto_field_apogeemanga(12, 37, 0, 0, cmdState, didFail=True, finish=True,
                                      surveyMode=sopActor.APOGEELEAD)
 
     def test_goto_field_cartridge_mismatch(self):
@@ -371,7 +371,7 @@ class TestGotoField(MasterThreadTester):
         cmdState.reinitialize(self.cmd)
 
         masterThread.goto_field(self.cmd, cmdState, myGlobals.actorState)
-        self._check_cmd(0, 13, 0, 0, finish=True, didFail=True)
+        self._check_cmd(0, 14, 0, 0, finish=True, didFail=True)
 
 
 class TestApogeeSkyFlats(MasterThreadTester):
@@ -385,7 +385,7 @@ class TestApogeeSkyFlats(MasterThreadTester):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('guider',TestHelper.guiderState['guiderOn'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
-        self._do_apogee_sky_flats(8,46,0,0)
+        self._do_apogee_sky_flats(8,47,0,0)
     def test_do_apogee_sky_flats_fails_tcc(self):
         self.cmd.failOn = 'tcc offset arc 0.01,0.0'
         self._do_apogee_sky_flats(1,6,0,0, didFail=True)
@@ -394,7 +394,7 @@ class TestApogeeSkyFlats(MasterThreadTester):
         sopTester.updateModel('apogee',TestHelper.apogeeState['A_closed'])
         self.cmd.failOn = 'tcc offset arc 0.01,0.0'
         self._prep_bypass('axes',clear=True)
-        self._do_apogee_sky_flats(8,44,2,0)
+        self._do_apogee_sky_flats(8,45,2,0)
 
 
 
@@ -407,18 +407,18 @@ class TestHartmann(MasterThreadTester):
         self._check_cmd(nCall,nInfo,nWarn,nErr,finish,didFail)
     def test_hartmann_open(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
-        self._hartmann(9,53,0,0)
+        self._hartmann(9,56,0,0)
     def test_hartmann_closed(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
-        self._hartmann(7,52,0,0)
+        self._hartmann(7,55,0,0)
     def test_hartmann_fails(self):
         self.cmd.failOn="boss exposure arc itime=4 hartmann=left"
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
-        self._hartmann(4,22,0,0,didFail=True)
+        self._hartmann(4,23,0,0,didFail=True)
     def test_hartmann_fails_cleanup(self):
         self.cmd.failOn="mcp ne.off"
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
-        self._hartmann(7,52,0,1,didFail=True)
+        self._hartmann(7,55,0,1,didFail=True)
 
 
 class TestCollimateBoss(MasterThreadTester):
@@ -430,18 +430,18 @@ class TestCollimateBoss(MasterThreadTester):
         self._check_cmd(nCall,nInfo,nWarn,nErr,finish,didFail)
     def test_collimate_boss_open(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
-        self._collimate_boss(10,41,0,0)
+        self._collimate_boss(10,43,0,0)
     def test_collimate_boss_closed(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
-        self._collimate_boss(8,40,0,0)
+        self._collimate_boss(8,42,0,0)
     def test_collimate_boss_fails(self):
         self.cmd.failOn="hartmann collimate ignoreResiduals noSubFrame"
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
-        self._collimate_boss(7,25,0,1,didFail=True)
+        self._collimate_boss(7,26,0,1,didFail=True)
     def test_collimate_boss_ffs_close_fails(self):
         self.cmd.failOn="mcp ffs.close"
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
-        self._collimate_boss(4,16,1,0,didFail=True)
+        self._collimate_boss(4,17,1,0,didFail=True)
 
 
 class TestBossScience(MasterThreadTester):
@@ -459,7 +459,7 @@ class TestBossScience(MasterThreadTester):
         """One call per requested exposure"""
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         nExp = 2
-        self._do_boss_science(nExp,34,0,0,nExp=nExp)
+        self._do_boss_science(nExp,35,0,0,nExp=nExp)
 
 
 class TestApogeeScience(MasterThreadTester):
@@ -486,12 +486,12 @@ class TestApogeeScience(MasterThreadTester):
         """open shutter, one call per exposure/dither moves"""
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['A_closed'])
-        self._do_apogee_science(13,71,0,0,ditherPairs=4)
+        self._do_apogee_science(13,72,0,0,ditherPairs=4)
     def test_do_apogee_science_1_pair_B_open(self):
         """one call per exposure/dither move"""
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
-        self._do_apogee_science(3,29,0,0,ditherPairs=1)
+        self._do_apogee_science(3,30,0,0,ditherPairs=1)
 
     def test_do_apogee_science_500s_after_1000s_cart7(self):
         """Tests if expTime is set to 500s after a double length exposure."""
@@ -547,13 +547,13 @@ class TestMangaScience(MasterThreadTester):
     def test_do_one_manga_dither(self):
         sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
         dither = 'N'
-        self._do_one_manga_dither(3, 19, 0, 0, dither=dither)
+        self._do_one_manga_dither(3, 20, 0, 0, dither=dither)
 
     def test_do_one_manga_dither_fails_exposure(self):
         sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
         self.cmd.failOn = 'boss exposure science itime=900'
         dither = 'N'
-        self._do_one_manga_dither(3, 19, 0, 1, dither=dither, didFail=True)
+        self._do_one_manga_dither(3, 20, 0, 1, dither=dither, didFail=True)
 
     def _do_manga_dither(self, nCall, nInfo, nWarn, nErr, dither='N', didFail=False):
         cmdState = self.actorState.doMangaDither
@@ -565,7 +565,7 @@ class TestMangaScience(MasterThreadTester):
     def test_do_manga_dither(self):
         sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
         dither = 'N'
-        self._do_manga_dither(4, 27, 0, 0, dither=dither)
+        self._do_manga_dither(4, 28, 0, 0, dither=dither)
 
     def test_do_manga_dither_after_sequence(self):
         """See ticket #2107 for the bug that this tickles."""
@@ -580,17 +580,17 @@ class TestMangaScience(MasterThreadTester):
         masterThread.do_apogeemanga_sequence(self.cmd, cmdState, myGlobals.actorState)
         self.cmd.reset()
         self.cmd.verbose = self.verbose
-        self._do_manga_dither(4, 27, 0, 0, dither=dither)
+        self._do_manga_dither(4, 28, 0, 0, dither=dither)
 
     def test_do_manga_dither_fails_ffs(self):
         self.cmd.failOn = "mcp ffs.open"
         dither = 'S'
-        self._do_manga_dither(4, 27, 1, 0, dither=dither, didFail=True)
+        self._do_manga_dither(4, 28, 1, 0, dither=dither, didFail=True)
 
     def test_do_manga_dither_fails_dither(self):
         self.cmd.failOn = "guider mangaDither ditherPos=S"
         dither = 'S'
-        self._do_manga_dither(4, 27, 0, 1, dither=dither, didFail=True)
+        self._do_manga_dither(4, 28, 0, 1, dither=dither, didFail=True)
 
     def _do_manga_sequence(self, nCall, nInfo, nWarn, nErr, count, dithers='NSE', didFail=False, checkcmds=True):
         self._update_cart(1, 'MaNGA')
@@ -608,19 +608,19 @@ class TestMangaScience(MasterThreadTester):
         sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
         count = 3
         dithers = 'NSE'
-        self._do_manga_sequence(29, 239, 0, 0, count, dithers)
+        self._do_manga_sequence(29, 249, 0, 0, count, dithers)
 
     def test_do_manga_sequence_one_set(self):
         sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
         count = 1
         dithers = 'NSE'
-        self._do_manga_sequence(11, 95, 0, 0, count, dithers)
+        self._do_manga_sequence(11, 99, 0, 0, count, dithers)
 
     def test_do_manga_sequence_two_sets(self):
         sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
         count = 2
         dithers = 'NSE'
-        self._do_manga_sequence(20, 167, 0, 0, count, dithers)
+        self._do_manga_sequence(20, 174, 0, 0, count, dithers)
 
     # Spawn a new process
     def _start_thread(self, method, wait=2, mp=None, name='masterthread'):
@@ -639,7 +639,7 @@ class TestMangaScience(MasterThreadTester):
         self.cmd.failOn = 'boss exposure science itime=900 noreadout'
         count = 3
         dithers = 'NSE'
-        self._do_manga_sequence(5, 44, 0, 1, count, dithers, didFail=True)
+        self._do_manga_sequence(5, 46, 0, 1, count, dithers, didFail=True)
 
     def test_do_manga_sequence_modifycount_on_dither(self):
         sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
@@ -654,7 +654,7 @@ class TestMangaScience(MasterThreadTester):
         count = 1
         dithers = 'NSE'
         cmdState = self.actorState.doMangaSequence
-        self._do_manga_sequence(20, 167, 0, 0, count, dithers)
+        self._do_manga_sequence(20, 174, 0, 0, count, dithers)
 
     def test_do_manga_sequence_modifycount_on_boss(self):
         sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
@@ -669,7 +669,7 @@ class TestMangaScience(MasterThreadTester):
         count = 1
         dithers = 'NSE'
         cmdState = self.actorState.doMangaSequence
-        self._do_manga_sequence(20, 167, 0, 0, count, dithers)
+        self._do_manga_sequence(20, 174, 0, 0, count, dithers)
 
     def test_do_manga_sequence_modifycount_on_readout(self):
         sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
@@ -684,7 +684,7 @@ class TestMangaScience(MasterThreadTester):
         count = 1
         dithers = 'NSE'
         cmdState = self.actorState.doMangaSequence
-        self._do_manga_sequence(20, 170, 0, 0, count, dithers)
+        self._do_manga_sequence(20, 177, 0, 0, count, dithers)
 
     def test_do_manga_sequence_modifycount_2to1(self):
         sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
@@ -699,7 +699,7 @@ class TestMangaScience(MasterThreadTester):
         count = 2
         dithers = 'NSE'
         cmdState = self.actorState.doMangaSequence
-        self._do_manga_sequence(11, 95, 0, 0, count, dithers)
+        self._do_manga_sequence(11, 99, 0, 0, count, dithers)
 
     def test_do_manga_sequence_modifycount_3to1(self):
         sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
@@ -714,7 +714,7 @@ class TestMangaScience(MasterThreadTester):
         count = 3
         dithers = 'NSE'
         cmdState = self.actorState.doMangaSequence
-        self._do_manga_sequence(11, 95, 0, 0, count, dithers)
+        self._do_manga_sequence(11, 99, 0, 0, count, dithers)
 
     def test_do_manga_sequence_modifycount_2to3(self):
         sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
@@ -729,7 +729,7 @@ class TestMangaScience(MasterThreadTester):
         count = 2
         dithers = 'NSE'
         cmdState = self.actorState.doMangaSequence
-        self._do_manga_sequence(29, 239, 0, 0, count, dithers)
+        self._do_manga_sequence(29, 249, 0, 0, count, dithers)
 
     def test_do_manga_sequence_modifydithers_1e(self):
         sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
@@ -744,7 +744,7 @@ class TestMangaScience(MasterThreadTester):
         count = 2
         dithers = 'NSE'
         cmdState = self.actorState.doMangaSequence
-        self._do_manga_sequence(11, 95, 0, 0, count, dithers)
+        self._do_manga_sequence(11, 99, 0, 0, count, dithers)
 
     def test_do_manga_sequence_modifydithers_1esn(self):
         sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
@@ -759,7 +759,7 @@ class TestMangaScience(MasterThreadTester):
         count = 2
         dithers = 'NSE'
         cmdState = self.actorState.doMangaSequence
-        self._do_manga_sequence(26, 215, 0, 0, count, dithers)
+        self._do_manga_sequence(26, 224, 0, 0, count, dithers)
 
     def test_do_manga_sequence_modifydithers_2sn(self):
         sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
@@ -774,7 +774,7 @@ class TestMangaScience(MasterThreadTester):
         count = 1
         dithers = 'NSE'
         cmdState = self.actorState.doMangaSequence
-        self._do_manga_sequence(17, 143, 0, 0, count, dithers)
+        self._do_manga_sequence(17, 149, 0, 0, count, dithers)
 
 
 class TestApogeeMangaScience(MasterThreadTester):
@@ -819,7 +819,7 @@ class TestApogeeMangaScience(MasterThreadTester):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
         mangaDither = 'N'
-        self._do_apogeemanga_dither(7,36,0,0, mangaDither)
+        self._do_apogeemanga_dither(7,37,0,0, mangaDither)
     def test_do_apogeemanga_dither_gang_at_podium(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
@@ -843,12 +843,12 @@ class TestApogeeMangaScience(MasterThreadTester):
         self.cmd.reset()
         self.cmd.verbose = self.verbose
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
-        self._do_apogeemanga_dither(7,36,0,0, mangaDither)
+        self._do_apogeemanga_dither(7,37,0,0, mangaDither)
     def test_do_apogeemanga_dither_apogee_lead_long_exposure(self):
         sopTester.updateModel('mcp', TestHelper.mcpState['apogee_science'])
         sopTester.updateModel('apogee', TestHelper.apogeeState['B_open'])
         mangaDither = 'C'
-        self._do_apogeemanga_dither(7, 36, 0, 0, mangaDither,
+        self._do_apogeemanga_dither(7, 37, 0, 0, mangaDither,
                                     surveyMode='APOGEE lead', apogee_long=True)
 
     def test_do_apogeemanga_dither_guider_dither_fails(self):
@@ -889,7 +889,7 @@ class TestApogeeMangaScience(MasterThreadTester):
                               TestHelper.platedbState['apgoeemangaDither'])
         mangaDithers = 'NSE'
         count = 1
-        self._do_apogeemanga_sequence(20,99,0,0, mangaDithers, count)
+        self._do_apogeemanga_sequence(20,100,0,0, mangaDithers, count)
 
     def test_do_apogeemanga_sequence_count_2(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
@@ -898,7 +898,7 @@ class TestApogeeMangaScience(MasterThreadTester):
                               TestHelper.platedbState['apgoeemangaDither'])
         mangaDithers = 'NSE'
         count = 2
-        self._do_apogeemanga_sequence(38,177,0,0, mangaDithers, count)
+        self._do_apogeemanga_sequence(38,178,0,0, mangaDithers, count)
 
     def test_do_apogeemanga_sequence_modifycount_on_dither(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
@@ -916,7 +916,7 @@ class TestApogeeMangaScience(MasterThreadTester):
         count = 1
         self.cmd.runOn = ('guider mangaDither ditherPos=E', update_counts)
         self.cmd.runOnCount = 1
-        self._do_apogeemanga_sequence(38,177,0,0, mangaDithers, count)
+        self._do_apogeemanga_sequence(38,178,0,0, mangaDithers, count)
 
     def test_do_apogeemanga_sequence_modifycount_on_readout(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
@@ -934,7 +934,7 @@ class TestApogeeMangaScience(MasterThreadTester):
         count = 1
         self.cmd.runOn = ('boss exposure   readout', update_counts)
         self.cmd.runOnCount = 3
-        self._do_apogeemanga_sequence(38,180,0,0, mangaDithers, count)
+        self._do_apogeemanga_sequence(38,181,0,0, mangaDithers, count)
 
     def test_do_apogeemanga_sequence_modifycount_2to1(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
@@ -952,7 +952,7 @@ class TestApogeeMangaScience(MasterThreadTester):
         count = 2
         self.cmd.runOn = ('guider mangaDither ditherPos=S', update_counts)
         self.cmd.runOnCount = 1
-        self._do_apogeemanga_sequence(20,99,0,0, mangaDithers, count)
+        self._do_apogeemanga_sequence(20,100,0,0, mangaDithers, count)
 
     def test_do_apogeemanga_sequence_modifycount_3to1(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
@@ -970,7 +970,7 @@ class TestApogeeMangaScience(MasterThreadTester):
         count = 3
         self.cmd.runOn = ('guider mangaDither ditherPos=S', update_counts)
         self.cmd.runOnCount = 1
-        self._do_apogeemanga_sequence(20,99,0,0, mangaDithers, count)
+        self._do_apogeemanga_sequence(20,100,0,0, mangaDithers, count)
 
     def test_do_apogeemanga_sequence_modifycount_2to3(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
@@ -988,7 +988,7 @@ class TestApogeeMangaScience(MasterThreadTester):
         count = 2
         self.cmd.runOn = ('guider mangaDither ditherPos=S', update_counts)
         self.cmd.runOnCount = 2
-        self._do_apogeemanga_sequence(56,255,0,0, mangaDithers, count)
+        self._do_apogeemanga_sequence(56,256,0,0, mangaDithers, count)
 
     def test_do_apogeemanga_sequence_modifydithers_1e(self):
         sopTester.updateModel('mcp', TestHelper.mcpState['apogee_science'])
@@ -1006,7 +1006,7 @@ class TestApogeeMangaScience(MasterThreadTester):
         count = 2
         self.cmd.runOn = ('guider mangaDither ditherPos=S', modify_dithers)
         self.cmd.runOnCount = 1
-        self._do_apogeemanga_sequence(20, 99, 0, 0, mangaDithers, count)
+        self._do_apogeemanga_sequence(20, 100, 0, 0, mangaDithers, count)
 
     def test_do_apogeemanga_sequence_modifydithers_1sn(self):
         sopTester.updateModel('mcp', TestHelper.mcpState['apogee_science'])
@@ -1024,7 +1024,7 @@ class TestApogeeMangaScience(MasterThreadTester):
         count = 2
         self.cmd.runOn = ('guider mangaDither ditherPos=S', modify_dithers)
         self.cmd.runOnCount = 2
-        self._do_apogeemanga_sequence(44, 203, 0, 0, mangaDithers, count)
+        self._do_apogeemanga_sequence(44, 204, 0, 0, mangaDithers, count)
 
     def test_do_apogeemanga_sequence_modifydithers_2ee(self):
         sopTester.updateModel('mcp', TestHelper.mcpState['apogee_science'])
@@ -1042,7 +1042,7 @@ class TestApogeeMangaScience(MasterThreadTester):
         count = 2
         self.cmd.runOn = ('guider mangaDither ditherPos=N', modify_dithers)
         self.cmd.runOnCount = 2
-        self._do_apogeemanga_sequence(50, 229, 0, 0, mangaDithers, count)
+        self._do_apogeemanga_sequence(50, 230, 0, 0, mangaDithers, count)
 
     def test_do_apogeemanga_sequence_count_2_shutter_closed_at_A(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_science'])
@@ -1051,7 +1051,7 @@ class TestApogeeMangaScience(MasterThreadTester):
                               TestHelper.platedbState['apgoeemangaDither'])
         mangaDithers = 'NSE'
         count = 2
-        self._do_apogeemanga_sequence(39,177,0,0, mangaDithers, count)
+        self._do_apogeemanga_sequence(39,178,0,0, mangaDithers, count)
 
     def test_do_apogeemanga_sequence_gang_podium(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
@@ -1067,7 +1067,7 @@ class TestApogeeMangaScience(MasterThreadTester):
                               TestHelper.platedbState['apgoeemangaDither'])
         mangaDithers = 'CC'
         count = 1
-        self._do_apogeemanga_sequence(10,63,0,0, mangaDithers, count, surveyMode='APOGEE lead')
+        self._do_apogeemanga_sequence(10,64,0,0, mangaDithers, count, surveyMode='APOGEE lead')
 
     def test_do_apogeemanga_sequence_apogee_lead_count1_CC_long_exposure(self):
         sopTester.updateModel('mcp', TestHelper.mcpState['apogee_science'])
@@ -1077,7 +1077,7 @@ class TestApogeeMangaScience(MasterThreadTester):
 
         mangaDithers = 'CC'
         count = 1
-        self._do_apogeemanga_sequence(7, 44, 0, 0, mangaDithers, count,
+        self._do_apogeemanga_sequence(7, 45, 0, 0, mangaDithers, count,
                                       surveyMode='APOGEE lead')
 
     def test_do_apogeemanga_sequence_apogee_lead_count2_CC_long_exposure(self):
@@ -1088,7 +1088,7 @@ class TestApogeeMangaScience(MasterThreadTester):
 
         mangaDithers = 'CC'
         count = 2
-        self._do_apogeemanga_sequence(12, 67, 0, 0, mangaDithers, count,
+        self._do_apogeemanga_sequence(12, 68, 0, 0, mangaDithers, count,
                                       surveyMode='APOGEE lead')
 
     def test_do_manga_led_sequence_after_apogee_long_lead_sequence(self):
@@ -1111,7 +1111,7 @@ class TestApogeeMangaScience(MasterThreadTester):
 
         mangaDithers = 'NSE'
         count = 1
-        self._do_apogeemanga_sequence(20, 99, 1, 0, mangaDithers, count,
+        self._do_apogeemanga_sequence(20, 100, 1, 0, mangaDithers, count,
                                       surveyMode='MaNGA dither',
                                       checkCall=True)
 
@@ -1126,41 +1126,41 @@ class TestBossCalibs(MasterThreadTester):
     def test_do_boss_calibs_one_bias(self):
         cmdState = CmdState.DoBossCalibsCmd()
         cmdState.nBias = 1
-        self._do_boss_calibs(4,24,0,0,cmdState)
+        self._do_boss_calibs(4,25,0,0,cmdState)
     def test_do_boss_calibs_two_bias(self):
         cmdState = CmdState.DoBossCalibsCmd()
         cmdState.nBias = 2
-        self._do_boss_calibs(5,38,0,0,cmdState)
+        self._do_boss_calibs(5,40,0,0,cmdState)
     def test_do_boss_calibs_one_bias_ffs_open(self):
         """For #371, not closing FFS for bias/dark."""
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         cmdState = CmdState.DoBossCalibsCmd()
         cmdState.nBias = 1
-        self._do_boss_calibs(4,24,0,0,cmdState)
+        self._do_boss_calibs(4,25,0,0,cmdState)
 
     def test_do_boss_calibs_one_dark(self):
         cmdState = CmdState.DoBossCalibsCmd()
         cmdState.nDark = 1
-        self._do_boss_calibs(4,24,0,0,cmdState)
+        self._do_boss_calibs(4,25,0,0,cmdState)
     def test_do_boss_calibs_two_dark(self):
         cmdState = CmdState.DoBossCalibsCmd()
         cmdState.nDark = 2
-        self._do_boss_calibs(5,38,0,0,cmdState)
+        self._do_boss_calibs(5,40,0,0,cmdState)
     def test_do_boss_calibs_one_dark_ffs_open(self):
         """For #371, not closing FFS for bias/dark."""
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         cmdState = CmdState.DoBossCalibsCmd()
         cmdState.nDark = 1
-        self._do_boss_calibs(4,24,0,0,cmdState)
+        self._do_boss_calibs(4,25,0,0,cmdState)
 
     def test_do_boss_calibs_one_flat(self):
         cmdState = CmdState.DoBossCalibsCmd()
         cmdState.nFlat = 1
-        self._do_boss_calibs(7,30,0,0,cmdState)
+        self._do_boss_calibs(7,31,0,0,cmdState)
     def test_do_boss_calibs_two_flat(self):
         cmdState = CmdState.DoBossCalibsCmd()
         cmdState.nFlat = 2
-        self._do_boss_calibs(13,50,0,0,cmdState)
+        self._do_boss_calibs(13,52,0,0,cmdState)
     def test_do_boss_calibs_one_flat_coobserve(self):
         """coobserving carts should close the apogee shutter first."""
         cmdState = CmdState.DoBossCalibsCmd()
@@ -1168,7 +1168,7 @@ class TestBossCalibs(MasterThreadTester):
         sopTester.updateModel('guider',TestHelper.guiderState['apogeemangaDitherLoaded'])
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_parked'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
-        self._do_boss_calibs(8,37,0,0,cmdState)
+        self._do_boss_calibs(8,38,0,0,cmdState)
     def test_do_boss_calibs_one_flat_coobserve_gangPodium(self):
         """
         Coobserving carts should not bother with the apogee shutter when the
@@ -1179,21 +1179,21 @@ class TestBossCalibs(MasterThreadTester):
         sopTester.updateModel('guider',TestHelper.guiderState['apogeemangaDitherLoaded'])
         sopTester.updateModel('mcp',TestHelper.mcpState['all_off'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
-        self._do_boss_calibs(7,30,0,0,cmdState)
+        self._do_boss_calibs(7,31,0,0,cmdState)
     def test_do_boss_calibs_one_flat_ffs_open(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         cmdState = CmdState.DoBossCalibsCmd()
         cmdState.nFlat = 1
-        self._do_boss_calibs(9,30,0,0,cmdState)
+        self._do_boss_calibs(9,31,0,0,cmdState)
 
     def test_do_boss_calibs_one_arc(self):
         cmdState = CmdState.DoBossCalibsCmd()
         cmdState.nArc = 1
-        self._do_boss_calibs(7,31,0,0,cmdState)
+        self._do_boss_calibs(7,32,0,0,cmdState)
     def test_do_boss_calibs_two_arc(self):
         cmdState = CmdState.DoBossCalibsCmd()
         cmdState.nArc = 2
-        self._do_boss_calibs(12,49,0,0,cmdState)
+        self._do_boss_calibs(12,51,0,0,cmdState)
     def test_do_boss_calibs_one_arc_coobserve(self):
         """coobserving carts should close the apogee shutter first."""
         cmdState = CmdState.DoBossCalibsCmd()
@@ -1201,12 +1201,12 @@ class TestBossCalibs(MasterThreadTester):
         sopTester.updateModel('guider',TestHelper.guiderState['apogeemangaDitherLoaded'])
         sopTester.updateModel('mcp',TestHelper.mcpState['apogee_parked'])
         sopTester.updateModel('apogee',TestHelper.apogeeState['B_open'])
-        self._do_boss_calibs(8,38,0,0,cmdState)
+        self._do_boss_calibs(8,39,0,0,cmdState)
     def test_do_boss_calibs_one_arc_ffs_open(self):
         sopTester.updateModel('mcp',TestHelper.mcpState['boss_science'])
         cmdState = CmdState.DoBossCalibsCmd()
         cmdState.nArc = 1
-        self._do_boss_calibs(9,31,0,0,cmdState)
+        self._do_boss_calibs(9,32,0,0,cmdState)
 
     def test_do_boss_calibs_one_of_each(self):
         cmdState = CmdState.DoBossCalibsCmd()
@@ -1214,34 +1214,34 @@ class TestBossCalibs(MasterThreadTester):
         cmdState.nDark = 1
         cmdState.nFlat = 1
         cmdState.nArc = 1
-        self._do_boss_calibs(16,82,0,0,cmdState)
+        self._do_boss_calibs(16,85,0,0,cmdState)
     def test_do_boss_calibs_two_of_each(self):
         cmdState = CmdState.DoBossCalibsCmd()
         cmdState.nBias = 2
         cmdState.nDark = 2
         cmdState.nFlat = 2
         cmdState.nArc = 2
-        self._do_boss_calibs(29,148,0,0,cmdState)
+        self._do_boss_calibs(29,155,0,0,cmdState)
 
     def test_do_boss_calibs_flat_arc_fail_on_hgcd(self):
         cmdState = CmdState.DoBossCalibsCmd()
         self.cmd.failOn = "mcp hgcd.on"
         cmdState.nFlat = 1
         cmdState.nArc = 1
-        self._do_boss_calibs(7,38,0,1,cmdState,didFail=True)
+        self._do_boss_calibs(7,40,0,1,cmdState,didFail=True)
         self.assertFalse(cmdState.isSlewingDisabled())
     def test_do_boss_calibs_two_flat_fail_on_readout(self):
         cmdState = CmdState.DoBossCalibsCmd()
         self.cmd.failOn = "boss exposure   readout"
         cmdState.nFlat = 2
-        self._do_boss_calibs(7,38,0,1,cmdState,didFail=True)
+        self._do_boss_calibs(7,40,0,1,cmdState,didFail=True)
         self.assertFalse(cmdState.isSlewingDisabled())
     def test_do_boss_calibs_two_arc_fail_on_second_exposure(self):
         cmdState = CmdState.DoBossCalibsCmd()
         self.cmd.failOn = "boss exposure arc itime=4 noreadout"
         self.cmd.failOnCount = 2
         cmdState.nArc = 2
-        self._do_boss_calibs(9,48,0,1,cmdState,didFail=True)
+        self._do_boss_calibs(9,50,0,1,cmdState,didFail=True)
         self.assertFalse(cmdState.isSlewingDisabled())
 
 
