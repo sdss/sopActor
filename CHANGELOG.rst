@@ -8,7 +8,7 @@ This document records the main changes to the sopActor code.
 
 
 .. _changelog-3.10.2:
-v3.10.2 (unreleased)
+v3.10.2 (2018-03-29)
 --------------------
 
 Fixed
