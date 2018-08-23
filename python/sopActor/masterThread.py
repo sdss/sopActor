@@ -1,5 +1,12 @@
-"""sopActor masterThread"""
-import copy
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+# @Filename: masterThread.py
+# @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
+#
+# @Last modified by: José Sánchez-Gallego (gallegoj@uw.edu)
+# @Last modified time: 2018-08-22 18:09:55
+
 import Queue
 import threading
 import time
@@ -7,11 +14,7 @@ import time
 import sopActor
 import sopActor.myGlobals as myGlobals
 from sopActor import Msg
-# from opscore.utility.qstr import qstr
 from sopActor.multiCommand import MultiCommand, Precondition
-
-
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 
 class SopPrecondition(Precondition):
@@ -82,9 +85,6 @@ class SopPrecondition(Precondition):
 
         return True
 
-    #
-    # Commands to get state from e.g. the MCP
-    #
     def ffsAreOpen(self):
         """
         Return True if flat field petals are open,
@@ -94,8 +94,8 @@ class SopPrecondition(Precondition):
 
         open, closed = 0, 0
         for s in ffsStatus:
-            if s == None:
-                raise RuntimeError, 'Unable to read FFS status'
+            if s is None:
+                raise RuntimeError('Unable to read FFS status')
 
             open += int(s[0])
             closed += int(s[1])
@@ -158,15 +158,14 @@ class SopPrecondition(Precondition):
         return newDither == dither
 
 
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
 # how long it takes to do various things
-ffsDuration = 15  # move the FFS
-flushDuration = 25  # flush the chips prior to an exposure
-guiderReadoutDuration = 1  # readout the guider
-hartmannDuration = 240  # take a Hartmann sequence and move the collimators
-readoutDuration = 90  # read the BOSS chips
-guiderDecenterDuration = 30  # Applying decenters could take as long as the longest reasonable guider exposure
+ffsDuration = 15                # move the FFS
+flushDuration = 25              # flush the chips prior to an exposure
+guiderReadoutDuration = 1       # readout the guider
+hartmannDuration = 240          # take a Hartmann sequence and move the collimators
+readoutDuration = 90            # read the BOSS chips
+guiderDecenterDuration = 30     # Applying decenters could take as long as the longest
+                                # reasonable guider exposure
 
 
 class SopMultiCommand(MultiCommand):
@@ -197,9 +196,6 @@ class SopMultiCommand(MultiCommand):
                     msg.duration += readoutDuration
         elif msg.type == Msg.HARTMANN:
             msg.duration = hartmannDuration
-
-
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 
 def doLamps(cmd,
@@ -244,11 +240,8 @@ def doLamps(cmd,
     return multiCmd.run()
 
 
-#
 # Helpers for dealing with lamps and FFS
-#
-
-# TBD: It'd be nice to have a way to unify the precondition and non-precondition
+# TODO: It'd be nice to have a way to unify the precondition and non-precondition
 # calls. I previously tried to be clever with *args/**kwargs, but to no avail.
 
 
@@ -390,10 +383,7 @@ def close_apogee_shutter_if_gang_on_cart(cmd, cmdState, actorState, stageName):
     return True
 
 
-#
 # Helpers for handling messages and running commands.
-#
-
 
 def preprocess_msg(msg):
     """Tells the message sender that we've started, and return useful fields."""
@@ -486,10 +476,7 @@ def get_next_apogee_dither_pair(actorState):
         return 'AB'
 
 
-#
 # The actual SOP commands, and sub-commands.
-#
-
 
 def guider_start(cmd, cmdState, actorState, finish=True):
     """Prepare telescope to start guiding and turn the guider on."""
@@ -510,9 +497,6 @@ def guider_start(cmd, cmdState, actorState, finish=True):
     return True
 
 
-#...
-
-
 def guider_flat(cmd, cmdState, actorState, stageName, apogeeShutter=False):
     """Take a guider flat, checking and closing the apogeeShutter if necessary."""
     guiderDelay = 20
@@ -526,9 +510,6 @@ def guider_flat(cmd, cmdState, actorState, stageName, apogeeShutter=False):
         return False
     show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
     return True
-
-
-#...
 
 
 def deactivate_guider_decenter(cmd, cmdState, actorState, stageName):
@@ -576,9 +557,6 @@ def do_boss_science(cmd, cmdState, actorState):
     if failMsg:
         return fail_command(cmd, cmdState, failMsg)
     finish_command(cmd, cmdState, actorState, finishMsg)
-
-
-#...
 
 
 def do_apogee_science(cmd, cmdState, actorState, finishMsg=None):
@@ -790,9 +768,6 @@ def do_one_apogeemanga_dither(cmd, cmdState, actorState, sequenceState=None):
     return multiCmd.run()
 
 
-#...
-
-
 def do_apogeemanga_dither(cmd, cmdState, actorState):
     """Complete an APOGEE/MaNGA co-observing single dither."""
     finishMsg = 'Your Nobel Prize is a little closer!'
@@ -979,7 +954,8 @@ def do_boss_calibs(cmd, cmdState, actorState):
                 sopActor.BOSS, Msg.EXPOSE, expTime=expTime, expType=expType, readout=False)
             prep_for_arc(multiCmd, precondition=True)
         else:
-            failMsg = 'Impossible condition: unknown exposure type when setting up for next exposure!'
+            failMsg = ('Impossible condition: unknown exposure type '
+                       'when setting up for next exposure!')
             break
 
         cmd.inform('text="Taking %s %s exposure"' % (
@@ -989,7 +965,8 @@ def do_boss_calibs(cmd, cmdState, actorState):
             break
 
         if not update_exp_counts(cmdState, expType):
-            failMsg = 'Impossible condition: unknown exposure type when determining exposures remaining!'
+            failMsg = ('Impossible condition: unknown exposure type when '
+                       'determining exposures remaining!')
             break
     #endwhile
 
@@ -1026,9 +1003,6 @@ def do_boss_calibs(cmd, cmdState, actorState):
         return
 
     finish_command(cmd, cmdState, actorState, finishMsg)
-
-
-#...
 
 
 def start_slew(cmd, cmdState, actorState, slewTimeout):
@@ -1224,7 +1198,9 @@ def goto_field_boss(cmd, cmdState, actorState, slewTimeout):
                     expTime=cmdState.flatTime,
                     expType='flat',
                     readout=False)
-            # recheck these, incase the command was aborted or modified since we defined doGuiderFlat above.
+
+            # Recheck these, in case the command was aborted or modified since
+            # we defined doGuiderFlat above.
             if cmdState.doGuider and cmdState.doGuiderFlat and cmdState.guiderFlatTime > 0:
                 multiCmd.append(
                     sopActor.GUIDER, Msg.EXPOSE, expTime=cmdState.guiderFlatTime, expType='flat')
@@ -1383,7 +1359,7 @@ def hartmann(cmd, cmdState, actorState):
             return False
         show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
 
-    # cleanup
+    # Cleanup
     stageName = 'cleanup'
     cmdState.setStageState(stageName, 'running')
     multiCmd = SopMultiCommand(cmd, actorState.timeout, '.'.join((cmdState.name, 'cleanup')))
@@ -1398,9 +1374,6 @@ def hartmann(cmd, cmdState, actorState):
         return False
 
     finish_command(cmd, cmdState, actorState, finishMsg)
-
-
-#...
 
 
 def collimate_boss(cmd, cmdState, actorState):
@@ -1431,7 +1404,7 @@ def collimate_boss(cmd, cmdState, actorState):
 
     show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
 
-    # cleanup
+    # Cleanup
     stageName = 'cleanup'
     cmdState.setStageState(stageName, 'running')
     multiCmd = SopMultiCommand(cmd, actorState.timeout, '.'.join((cmdState.name, 'cleanup')))
@@ -1521,7 +1494,8 @@ def main(actor, queues):
                 collimate_boss(cmd, cmdState, actorState)
 
             elif msg.type == Msg.DITHERED_FLAT:
-                """Take a set of nStep dithered flats, moving the collimator by nTick between exposures"""
+                # Take a set of nStep dithered flats, moving the
+                # collimator by nTick between exposures
 
                 cmd = msg.cmd
                 actorState = msg.actorState
@@ -1598,9 +1572,8 @@ def main(actor, queues):
                                         timeLim=timeout)
 
                                     if cmdVar.didFail:
-                                        cmd.warn(
-                                            'text="Failed to move collimator for %s back to initial position"'
-                                            % sp)
+                                        cmd.warn('text="Failed to move collimator for %s '
+                                                 'back to initial position"' % sp)
                                         break
 
                                 success = False
@@ -1620,7 +1593,7 @@ def main(actor, queues):
                 msg.cmd.inform('text="%s thread"' % threadName)
                 msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
             else:
-                raise ValueError, ('Unknown message type %s' % (msg.type))
+                raise ValueError('Unknown message type %s' % (msg.type))
         except Queue.Empty:
             actor.bcast.diag('text="%s alive"' % threadName)
         except Exception, e:
