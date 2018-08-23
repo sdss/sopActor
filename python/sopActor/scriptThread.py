@@ -1,15 +1,21 @@
-import Queue, threading
-import math, numpy, time
+import math
+import Queue
+import threading
+import time
 
-import sopActor
-from sopActor import *
-import sopActor.myGlobals as myGlobals
+import numpy
 
 import script
-reload(script)
-
+import sopActor
+import sopActor.myGlobals as myGlobals
 from opscore.utility.qstr import qstr
 from opscore.utility.tback import tback
+from sopActor import *
+
+
+reload(script)
+
+
 
 def main(actor, queues):
     """Main loop for general scripting thread.
@@ -17,7 +23,7 @@ def main(actor, queues):
     Can only run one script at a time, but only because the issues have not
     been thought through."""
 
-    threadName = "script"
+    threadName = 'script'
     myQueueName = sopActor.SCRIPT
     runningScript = None
     stopped = False
@@ -31,7 +37,8 @@ def main(actor, queues):
 
             if msg.type == Msg.EXIT:
                 if msg.cmd:
-                    msg.cmd.inform("text=\"Exiting thread %s\"" % (threading.current_thread().name))
+                    msg.cmd.inform(
+                        "text=\"Exiting thread %s\"" % (threading.current_thread().name))
                 return
 
             elif msg.type == Msg.NEW_SCRIPT:
@@ -65,12 +72,10 @@ def main(actor, queues):
                 if maxTime == 0.0:
                     maxTime = 30.0
 
-                msg.cmd.warn('text="firing off script line: %s %s (maxTime=%0.1f)"' % (actorName,
-                                                                                       cmdStr,
-                                                                                       maxTime))
-                cmdVar = actorState.actor.cmdr.call(actor=actorName, forUserCmd=msg.cmd,
-                                                    cmdStr=cmdStr,
-                                                    timeLim=maxTime+15)
+                msg.cmd.warn('text="firing off script line: %s %s (maxTime=%0.1f)"' %
+                             (actorName, cmdStr, maxTime))
+                cmdVar = actorState.actor.cmdr.call(
+                    actor=actorName, forUserCmd=msg.cmd, cmdStr=cmdStr, timeLim=maxTime + 15)
                 if cmdVar.didFail:
                     msg.cmd.fail('text="Script %s failed to run %s %s"' % (runningScript.name,
                                                                            actorName, cmdStr))
@@ -100,7 +105,7 @@ def main(actor, queues):
                 msg.cmd.inform('text="%s thread"' % threadName)
                 msg.replyQueue.put(Msg.REPLY, cmd=msg.cmd, success=True)
             else:
-                raise ValueError, ("Unknown message type %s" % msg.type)
+                raise ValueError, ('Unknown message type %s' % msg.type)
 
         except Queue.Empty:
             actor.bcast.diag('text="%s alive"' % threadName)

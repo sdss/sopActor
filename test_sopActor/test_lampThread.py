@@ -2,23 +2,22 @@
 Test the various commands in SOP lampThread
 """
 
-import unittest
 import time
-
-import sopTester
+import unittest
 
 import sopActor
-from sopActor import Queue
 import sopActor.myGlobals as myGlobals
+import sopTester
+from sopActor import Queue, lampThreads
 
-from sopActor import lampThreads
 
-class TestLampThread(sopTester.SopThreadTester,unittest.TestCase):
+class TestLampThread(sopTester.SopThreadTester, unittest.TestCase):
     """Test calls to boss thread."""
+
     def setUp(self):
-        self.useThreads = []#("master", sopActor.MASTER,  masterThread.main)]
+        self.useThreads = []  #("master", sopActor.MASTER,  masterThread.main)]
         self.verbose = True
-        super(TestLampThread,self).setUp()
+        super(TestLampThread, self).setUp()
         # Do this after super setUp, as that's what creates actorState.
         myGlobals.actorState.queues['lamp'] = Queue('lamp')
         myGlobals.actorState.queues['reply'] = Queue('reply')
@@ -33,26 +32,37 @@ class TestLampThread(sopTester.SopThreadTester,unittest.TestCase):
         self.assert_empty(queue)
         return msg
 
-    def _do_lamp(self, nCall, nInfo, nWarn, nErr, name, action, didFail=False,
-                 reply=None,noWait=False):
+    def _do_lamp(self,
+                 nCall,
+                 nInfo,
+                 nWarn,
+                 nErr,
+                 name,
+                 action,
+                 didFail=False,
+                 reply=None,
+                 noWait=False):
         if reply is None:
             reply = sopActor.Msg.LAMP_COMPLETE
         lampHandler = lampThreads.LampHandler(myGlobals.actorState, self.lampQueue, name)
         lampHandler.do_lamp(self.cmd, action, self.replyQueue, noWait)
         msg = self.lamp_helper(nCall, nInfo, nWarn, nErr, self.replyQueue, reply, didFail)
         self.assertEqual(msg.success, not didFail)
-    
+
     def test_ff_on(self):
-        self._do_lamp(1,0,0,0,'ff','on')
+        self._do_lamp(1, 0, 0, 0, 'ff', 'on')
+
     def test_hgcd_on(self):
-        self._do_lamp(1,0,0,0,'hgcd','on')
+        self._do_lamp(1, 0, 0, 0, 'hgcd', 'on')
+
     def test_ne_on(self):
-        self._do_lamp(1,0,0,0,'ne','on')
+        self._do_lamp(1, 0, 0, 0, 'ne', 'on')
+
     def test_ff_off(self):
-        self._do_lamp(1,0,0,0,'ff','off')
+        self._do_lamp(1, 0, 0, 0, 'ff', 'off')
 
     def test_ne_on_delay(self):
-        delay=20
+        delay = 20
         name = 'ne'
         action = 'on'
         reply = sopActor.Msg.WAIT_UNTIL
@@ -60,33 +70,44 @@ class TestLampThread(sopTester.SopThreadTester,unittest.TestCase):
         lampHandler.do_lamp(self.cmd, action, self.replyQueue, delay=delay)
         endTime = time.time() + 20
         msg = self.lamp_helper(1, 1, 0, 0, self.lampQueue, reply, False)
-        self.assertAlmostEqual(msg.endTime, endTime, places=3, msg="endTime not within 1ms of expected end time.")
+        self.assertAlmostEqual(
+            msg.endTime, endTime, places=3, msg='endTime not within 1ms of expected end time.')
 
     def test_ff_on_noWait_succeeded(self):
-        self._do_lamp(1,0,1,0,'ff','on',noWait=True)
+        self._do_lamp(1, 0, 1, 0, 'ff', 'on', noWait=True)
+
     def test_ff_on_noWait_failed(self):
-        self.cmd.failOn = "mcp ff.on"
-        self._do_lamp(1,0,1,0,'ff','on',noWait=True)
+        self.cmd.failOn = 'mcp ff.on'
+        self._do_lamp(1, 0, 1, 0, 'ff', 'on', noWait=True)
 
     def test_ff_on_fail(self):
-        self.cmd.failOn = "mcp ff.on"
-        self._do_lamp(1,0,0,1,'ff','on',didFail=True)
+        self.cmd.failOn = 'mcp ff.on'
+        self._do_lamp(1, 0, 0, 1, 'ff', 'on', didFail=True)
+
     def test_ff_on_fail_bypassed(self):
-        self.cmd.failOn = "mcp ff.on"
+        self.cmd.failOn = 'mcp ff.on'
         myGlobals.bypass.set('lamp_ff')
-        self._do_lamp(1,0,1,1,'ff','on',didFail=False)
-        myGlobals.bypass.set('lamp_ff',bypassed=False)
+        self._do_lamp(1, 0, 1, 1, 'ff', 'on', didFail=False)
+        myGlobals.bypass.set('lamp_ff', bypassed=False)
 
     def test_uv_on_ignored(self):
         reply = sopActor.Msg.REPLY
-        self._do_lamp(0,0,0,0,'uv','on',reply=reply)
+        self._do_lamp(0, 0, 0, 0, 'uv', 'on', reply=reply)
+
     def test_wht_on_ignored(self):
         reply = sopActor.Msg.REPLY
-        self._do_lamp(0,0,0,0,'wht','on',reply=reply)
+        self._do_lamp(0, 0, 0, 0, 'wht', 'on', reply=reply)
 
-
-    def _wait_until(self, nCall, nInfo, nWarn, nErr, name, endTime,
-                    didFail=False, reply=None, replyQueue=None):
+    def _wait_until(self,
+                    nCall,
+                    nInfo,
+                    nWarn,
+                    nErr,
+                    name,
+                    endTime,
+                    didFail=False,
+                    reply=None,
+                    replyQueue=None):
         if reply is None:
             reply = sopActor.Msg.WAIT_UNTIL
         if replyQueue is None:
@@ -96,25 +117,27 @@ class TestLampThread(sopTester.SopThreadTester,unittest.TestCase):
         self.lamp_helper(nCall, nInfo, nWarn, nErr, replyQueue, reply, didFail)
 
     def test_wait_until_10(self):
-        endTime = time.time() + 10.5 # to account for int() rounding down.
-        self._wait_until(0,1,0,0,'ne',endTime)
+        endTime = time.time() + 10.5  # to account for int() rounding down.
+        self._wait_until(0, 1, 0, 0, 'ne', endTime)
+
     def test_wait_until_1(self):
         endTime = time.time() + 1
-        self._wait_until(0,0,0,0,'ne',endTime)
+        self._wait_until(0, 0, 0, 0, 'ne', endTime)
 
     def test_wait_until_done(self):
         endTime = time.time() - 1
         reply = sopActor.Msg.LAMP_COMPLETE
-        self._wait_until(0,0,0,0,'ne',endTime,reply=reply,replyQueue=self.lampQueue)
+        self._wait_until(0, 0, 0, 0, 'ne', endTime, reply=reply, replyQueue=self.lampQueue)
 
     def test_wait_until_aborting(self):
         endTime = time.time() + 10.5
         myGlobals.actorState.aborting = True
         reply = sopActor.Msg.LAMP_COMPLETE
-        self._wait_until(0,0,1,0,'ne',endTime,reply=reply,replyQueue=self.lampQueue,didFail=True)
+        self._wait_until(
+            0, 0, 1, 0, 'ne', endTime, reply=reply, replyQueue=self.lampQueue, didFail=True)
 
 
 if __name__ == '__main__':
     verbosity = 2
-    
+
     unittest.main(verbosity=verbosity)

@@ -2,80 +2,86 @@
 Test creating, modifying, and destroying the many different CmdStates.
 """
 
-import unittest
 import abc
 import copy
+import unittest
+
 import sopActor
-
-from actorcore import TestHelper
 import sopTester
+from actorcore import TestHelper
 
-class TestKeywords(sopTester.SopTester,unittest.TestCase):
+
+class TestKeywords(sopTester.SopTester, unittest.TestCase):
     """Test (re)setting defined keywords, initialization, in a generic cmdState."""
+
     def setUp(self):
         self.userKeys = False
         self.verbose = True
         self.ok_stage = ''
         self.ok_state = 'done'
-        self.stages = ['1','2']
-        self.keywords = {'a':1,'b':2}
-        self.cmdState = sopActor.CmdState.CmdState('tester',self.stages,keywords=self.keywords)
-        super(TestKeywords,self).setUp()
+        self.stages = ['1', '2']
+        self.keywords = {'a': 1, 'b': 2}
+        self.cmdState = sopActor.CmdState.CmdState('tester', self.stages, keywords=self.keywords)
+        super(TestKeywords, self).setUp()
 
     def test_reset_keywords(self):
         self.cmdState.a = 100
         self.cmdState.b = 200
         self.cmdState.reset_keywords()
         for n in self.keywords:
-            self.assertEquals(getattr(self.cmdState,n),self.keywords[n])
+            self.assertEquals(getattr(self.cmdState, n), self.keywords[n])
 
     def test_reinitialize(self):
-        self.cmdState.setStageState('1','running')
-        self.cmdState.setStageState('2','aborted')
+        self.cmdState.setStageState('1', 'running')
+        self.cmdState.setStageState('2', 'aborted')
         self.cmdState.aborted = True
         self.actorState.aborting = True
         self.cmdState.reinitialize()
         for n in self.stages:
-            self.assertEquals(self.cmdState.stages[n],'idle')
+            self.assertEquals(self.cmdState.stages[n], 'idle')
         self.assertFalse(self.cmdState.aborted)
         self.assertFalse(self.actorState.aborting)
 
     def test_set_item_ok(self):
         x = 1000
-        self.cmdState.set('a',x)
-        self.assertEqual(self.cmdState.a,x)
+        self.cmdState.set('a', x)
+        self.assertEqual(self.cmdState.a, x)
+
     def test_set_item_invalid(self):
         with self.assertRaises(AssertionError):
-            self.cmdState.set('not_valid',-1)
+            self.cmdState.set('not_valid', -1)
+
     def test_set_item_default(self):
-        self.cmdState.set('a',None)
-        self.assertEqual(self.cmdState.a,self.cmdState.keywords['a'])
+        self.cmdState.set('a', None)
+        self.assertEqual(self.cmdState.a, self.cmdState.keywords['a'])
 
 
 class CmdStateTester(sopTester.SopTester):
+
     def setUp(self):
         if not hasattr(self, 'userKeys'):
             self.userKeys = False
         self.verbose = True
         self.ok_stage = ''
         self.ok_state = 'done'
-        super(CmdStateTester,self).setUp()
+        super(CmdStateTester, self).setUp()
         self.inform = 3 + (1 if self.userKeys else 0)
 
     def test_setStageState_ok(self):
         """Valid stage states output one msg: State"""
         stage = self.ok_stage
         state = self.ok_state
-        self.cmdState.setStageState(stage,state)
-        self.assertEqual(self.cmdState.stages[stage],state)
-        self.assertEqual(self.cmd.levels.count('i'),1)
+        self.cmdState.setStageState(stage, state)
+        self.assertEqual(self.cmdState.stages[stage], state)
+        self.assertEqual(self.cmd.levels.count('i'), 1)
 
     def test_setStageState_badStage(self):
         with self.assertRaises(AssertionError):
-            self.cmdState.setStageState('not_a_state!',self.ok_state)
+            self.cmdState.setStageState('not_a_state!', self.ok_state)
+
     def test_setStageState_badState(self):
         with self.assertRaises(AssertionError):
-            self.cmdState.setStageState(self.ok_stage,'bad')
+            self.cmdState.setStageState(self.ok_stage, 'bad')
 
     def test_setCommandState_running(self):
         """
@@ -84,43 +90,45 @@ class CmdStateTester(sopTester.SopTester):
         """
         state = 'running'
         self.cmdState.setCommandState(state)
-        self.assertEqual(self.cmdState.cmdState,state)
-        self.assertEqual(self.cmd.levels.count('i'),self.inform)
-        self.assertEqual(self.cmd.levels.count('w'),0)
+        self.assertEqual(self.cmdState.cmdState, state)
+        self.assertEqual(self.cmd.levels.count('i'), self.inform)
+        self.assertEqual(self.cmd.levels.count('w'), 0)
+
     def test_setCommandState_failed(self):
         state = 'failed'
         stateText = 'I failed!'
-        self.cmdState.setCommandState(state,stateText=stateText)
-        self.assertEqual(self.cmdState.cmdState,state)
-        self.assertEqual(self.cmdState.stateText,stateText)
-        self.assertEqual(self.cmd.levels.count('i'),self.inform)
-        self.assertEqual(self.cmd.levels.count('w'),0)
+        self.cmdState.setCommandState(state, stateText=stateText)
+        self.assertEqual(self.cmdState.cmdState, state)
+        self.assertEqual(self.cmdState.stateText, stateText)
+        self.assertEqual(self.cmd.levels.count('i'), self.inform)
+        self.assertEqual(self.cmd.levels.count('w'), 0)
 
     def test_took_exposure(self):
         self.cmdState.index = 0
         self.cmdState.took_exposure()
         self.assertEqual(self.cmdState.index, 1)
-        self._check_cmd(0,self.inform,0,0,False)
+        self._check_cmd(0, self.inform, 0, 0, False)
 
     def test_isSlewingDisabled_BOSS_integrating(self):
-        sopTester.updateModel('boss',TestHelper.bossState['integrating'])
-        result,text = self.cmdState.isSlewingDisabled_BOSS()
+        sopTester.updateModel('boss', TestHelper.bossState['integrating'])
+        result, text = self.cmdState.isSlewingDisabled_BOSS()
         self.assertTrue(result)
-        self.assertEqual(text,'; BOSS_exposureState=INTEGRATING')
-    def test_isSlewingDisabled_BOSS_no(self):
-        sopTester.updateModel('boss',TestHelper.bossState['reading'])
-        result,text = self.cmdState.isSlewingDisabled_BOSS()
-        self.assertFalse(result)
-        self.assertEqual(text,'; BOSS_exposureState=READING')
+        self.assertEqual(text, '; BOSS_exposureState=INTEGRATING')
 
-    def _isSlewingDisabled_because_exposing(self, survey, nExp, state,
-                                            prefix=''):
+    def test_isSlewingDisabled_BOSS_no(self):
+        sopTester.updateModel('boss', TestHelper.bossState['reading'])
+        result, text = self.cmdState.isSlewingDisabled_BOSS()
+        self.assertFalse(result)
+        self.assertEqual(text, '; BOSS_exposureState=READING')
+
+    def _isSlewingDisabled_because_exposing(self, survey, nExp, state, prefix=''):
         self.cmdState.cmd = self.cmd
         result = self.cmdState.isSlewingDisabled()
-        self.assertIsInstance(result,str)
-        self.assertIn('slewing disallowed for %s'%survey,result)
-        self.assertIn('with {0} science exposures left; {1}exposureState={2}'
-                      .format(nExp, prefix, state), result)
+        self.assertIsInstance(result, str)
+        self.assertIn('slewing disallowed for %s' % survey, result)
+        self.assertIn(
+            'with {0} science exposures left; {1}exposureState={2}'.format(nExp, prefix, state),
+            result)
 
     def _isSlewingDisabled_False(self):
         self.cmdState.cmd = self.cmd
@@ -135,6 +143,7 @@ class CmdStateTester(sopTester.SopTester):
         self.cmdState.cmd = None
         result = self.cmdState.isSlewingDisabled()
         self.assertFalse(result)
+
     def _isSlewingDisabled_cmd_finished(self):
         """
         Enable this by making a test_*() function that calls this.
@@ -145,19 +154,15 @@ class CmdStateTester(sopTester.SopTester):
         result = self.cmdState.isSlewingDisabled()
         self.assertFalse(result)
 
-    def _isSlewingDisabled_BOSS_APOGEE(self, bossState, apogeeState,
-                                       expect=None, index=0):
+    def _isSlewingDisabled_BOSS_APOGEE(self, bossState, apogeeState, expect=None, index=0):
         """Tests isSlewingDisabled for BOSS and APOGEE."""
 
         self.cmdState.cmd = self.cmd
         self.cmdState.index = index
 
         if expect is None:
-            expect = (
-                'slewing disallowed for APOGEE&MaNGA, ',
-                'BOSS_exposureState={0}'.format(bossState.upper()),
-                'APOGEE_exposureState={0}'.format(apogeeState.capitalize())
-            )
+            expect = ('slewing disallowed for APOGEE&MaNGA, ', 'BOSS_exposureState={0}'.format(
+                bossState.upper()), 'APOGEE_exposureState={0}'.format(apogeeState.capitalize()))
 
         sopTester.updateModel('boss', TestHelper.bossState[bossState])
         sopTester.updateModel('apogee', TestHelper.apogeeState[apogeeState])
@@ -189,46 +194,57 @@ class CmdStateTester(sopTester.SopTester):
     def test_stop_boss_exposure_integrating(self):
         self._fake_boss_exposing()
         self.cmdState.stop_boss_exposure()
-        self.assertEqual(self.cmd.calls, ['boss exposure stop',])
+        self.assertEqual(self.cmd.calls, [
+            'boss exposure stop',
+        ])
 
     def test_stop_boss_exposure_reading(self):
         self._fake_boss_reading()
         self.cmdState.stop_boss_exposure()
-        self._check_cmd(0,0,1,0,False) # nothing should happen except a warning.
+        self._check_cmd(0, 0, 1, 0, False)  # nothing should happen except a warning.
 
     def test_stop_boss_exposure_legible(self):
 
         self._fake_boss_legible()
         self.cmdState.stop_boss_exposure()
         # self._check_cmd(0, 0, 2, 0, False)
-        self.assertEqual(self.cmd.calls, ['boss exposure stop',])
+        self.assertEqual(self.cmd.calls, [
+            'boss exposure stop',
+        ])
 
     def test_stop_apogee_exposure(self):
         self.cmdState.stop_apogee_exposure()
-        self.assertEqual(self.cmd.calls, ['apogee expose stop',])
+        self.assertEqual(self.cmd.calls, [
+            'apogee expose stop',
+        ])
 
 
-class TestGotoGangChange(CmdStateTester,unittest.TestCase):
+class TestGotoGangChange(CmdStateTester, unittest.TestCase):
+
     def setUp(self):
-        super(TestGotoGangChange,self).setUp()
+        super(TestGotoGangChange, self).setUp()
         self.cmdState = sopActor.CmdState.GotoGangChangeCmd()
         self.ok_stage = 'slew'
 
     def test_abort(self):
-        super(TestGotoGangChange,self).test_abort()
-        self.assertEqual(self.cmd.calls, ['apogee expose stop', 'tcc track /stop',])
+        super(TestGotoGangChange, self).test_abort()
+        self.assertEqual(self.cmd.calls, [
+            'apogee expose stop',
+            'tcc track /stop',
+        ])
         self.assertFalse(self.cmdState.doDomeFlat)
         self.assertFalse(self.cmdState.doSlew)
 
 
-class TestGotoField(CmdStateTester,unittest.TestCase):
+class TestGotoField(CmdStateTester, unittest.TestCase):
+
     def setUp(self):
-        super(TestGotoField,self).setUp()
+        super(TestGotoField, self).setUp()
         self.cmdState = sopActor.CmdState.GotoFieldCmd()
         self.ok_stage = 'slew'
 
     def test_abort(self):
-        super(TestGotoField,self).test_abort()
+        super(TestGotoField, self).test_abort()
         self.assertFalse(self.cmdState.doSlew)
         self.assertFalse(self.cmdState.doHartmann)
         self.assertFalse(self.cmdState.doCalibs)
@@ -236,10 +252,10 @@ class TestGotoField(CmdStateTester,unittest.TestCase):
         self.assertFalse(self.cmdState.doGuider)
 
     def test_abort_boss_calibs(self):
-        self.cmdState.setStages(['slew','calibs'])
+        self.cmdState.setStages(['slew', 'calibs'])
         self._fake_boss_exposing()
-        super(TestGotoField,self).test_abort()
-        self.assertEqual(self.cmd.calls, ['boss exposure stop','tcc track /stop'])
+        super(TestGotoField, self).test_abort()
+        self.assertEqual(self.cmd.calls, ['boss exposure stop', 'tcc track /stop'])
 
 
 class TestGotoPosition(CmdStateTester, unittest.TestCase):
@@ -255,10 +271,11 @@ class TestGotoPosition(CmdStateTester, unittest.TestCase):
         self.assertFalse(self.cmdState.doSlew)
 
 
-class TestDoBossCalibs(CmdStateTester,unittest.TestCase):
+class TestDoBossCalibs(CmdStateTester, unittest.TestCase):
+
     def setUp(self):
         self.userKeys = True
-        super(TestDoBossCalibs,self).setUp()
+        super(TestDoBossCalibs, self).setUp()
         self.cmdState = sopActor.CmdState.DoBossCalibsCmd()
         self.ok_stage = 'flat'
 
@@ -268,8 +285,10 @@ class TestDoBossCalibs(CmdStateTester,unittest.TestCase):
         self.cmdState.nDark = 1
         self.cmdState.nFlat = 1
         self.cmdState.nArc = 1
-        super(TestDoBossCalibs,self).test_abort()
-        self.assertEqual(self.cmd.calls, ['boss exposure stop',])
+        super(TestDoBossCalibs, self).test_abort()
+        self.assertEqual(self.cmd.calls, [
+            'boss exposure stop',
+        ])
         self.assertEqual(self.cmdState.nBias, self.cmdState.nBiasDone)
         self.assertEqual(self.cmdState.nDark, self.cmdState.nDarkDone)
         self.assertEqual(self.cmdState.nFlat, self.cmdState.nFlatDone)
@@ -278,26 +297,32 @@ class TestDoBossCalibs(CmdStateTester,unittest.TestCase):
     def test_exposures_remain_bias(self):
         self.cmdState.nBias = 1
         self.assertTrue(self.cmdState.exposures_remain())
+
     def test_exposures_remain_dark(self):
         self.cmdState.nDark = 1
         self.assertTrue(self.cmdState.exposures_remain())
+
     def test_exposures_remain_flat(self):
         self.cmdState.nFlat = 1
         self.assertTrue(self.cmdState.exposures_remain())
+
     def test_exposures_remain_arc(self):
         self.cmdState.nArc = 1
         self.assertTrue(self.cmdState.exposures_remain())
+
     def test_no_exposures_remain(self):
         self.assertFalse(self.cmdState.exposures_remain())
+
     def test_exposures_remain_abort(self):
         self.cmdState.aborted = True
         self.assertFalse(self.cmdState.exposures_remain())
 
 
-class TestDoApogeeScience(CmdStateTester,unittest.TestCase):
+class TestDoApogeeScience(CmdStateTester, unittest.TestCase):
+
     def setUp(self):
         self.userKeys = True
-        super(TestDoApogeeScience,self).setUp()
+        super(TestDoApogeeScience, self).setUp()
         self.cmdState = sopActor.CmdState.DoApogeeScienceCmd()
         self.ok_stage = 'expose'
 
@@ -308,19 +333,23 @@ class TestDoApogeeScience(CmdStateTester,unittest.TestCase):
 
     def test_isSlewingDisabled_no_cmd(self):
         self._isSlewingDisabled_no_cmd()
+
     def test_isSlewingDisabled_cmd_finished(self):
         self._isSlewingDisabled_cmd_finished()
+
     def test_isSlewingDisabled_because_alive(self):
         self.cmdState.cmd = self.cmd
         result = self.cmdState.isSlewingDisabled()
-        self.assertIsInstance(result,str)
+        self.assertIsInstance(result, str)
         expect = 'slewing disallowed for APOGEE, blocked by active doApogeeScience sequence'
-        self.assertEqual(result,expect)
+        self.assertEqual(result, expect)
 
     def test_abort(self):
-        super(TestDoApogeeScience,self).test_abort()
-        self.assertEqual(self.cmd.calls, ['apogee expose stop',])
-        self.assertEqual(self.cmdState.index,self.cmdState.ditherPairs)
+        super(TestDoApogeeScience, self).test_abort()
+        self.assertEqual(self.cmd.calls, [
+            'apogee expose stop',
+        ])
+        self.assertEqual(self.cmdState.index, self.cmdState.ditherPairs)
 
     def test_exposures_remain(self):
         self.assertTrue(self.cmdState.exposures_remain())
@@ -336,21 +365,21 @@ class TestDoApogeeScience(CmdStateTester,unittest.TestCase):
     def test_set_apogee_expTime_None(self):
         self.cmdState.expTime = -9999
         self.cmdState.set_apogee_expTime(None)
-        self.assertEqual(self.cmdState.expTime,500)
-        self.assertEqual(self.cmdState.keywords['expTime'],500)
+        self.assertEqual(self.cmdState.expTime, 500)
+        self.assertEqual(self.cmdState.keywords['expTime'], 500)
 
     def test_set_apogee_expTime_1000(self):
         self.cmdState.expTime = -9999
         self.cmdState.set_apogee_expTime(1000)
-        self.assertEqual(self.cmdState.expTime,1000)
-        self.assertEqual(self.cmdState.keywords['expTime'],1000)
+        self.assertEqual(self.cmdState.expTime, 1000)
+        self.assertEqual(self.cmdState.keywords['expTime'], 1000)
 
     def test_set_apogee_expTime_None_after_other_value(self):
         self.cmdState.expTime = -9999
         self.cmdState.set_apogee_expTime(1000)
         self.cmdState.set_apogee_expTime(None)
-        self.assertEqual(self.cmdState.expTime,500)
-        self.assertEqual(self.cmdState.keywords['expTime'],500)
+        self.assertEqual(self.cmdState.expTime, 500)
+        self.assertEqual(self.cmdState.keywords['expTime'], 500)
 
     def _assert_etr_defaults(self, exptime=None):
         defval = 68.0 if not exptime else 134.67
@@ -406,14 +435,15 @@ class TestDoApogeeScience(CmdStateTester,unittest.TestCase):
 
     def test_getUserKeys(self):
         keys = self.cmdState.getUserKeys()
-        self.assertTrue(any("doApogeeScience_index" in k for k in keys))
-        self.assertTrue(any("doApogeeScience_etr" in k for k in keys))
+        self.assertTrue(any('doApogeeScience_index' in k for k in keys))
+        self.assertTrue(any('doApogeeScience_etr' in k for k in keys))
 
 
-class TestDoApogeeSkyFlats(CmdStateTester,unittest.TestCase):
+class TestDoApogeeSkyFlats(CmdStateTester, unittest.TestCase):
+
     def setUp(self):
         self.userKeys = True
-        super(TestDoApogeeSkyFlats,self).setUp()
+        super(TestDoApogeeSkyFlats, self).setUp()
         self.cmdState = sopActor.CmdState.DoApogeeSkyFlatsCmd()
         self.ok_stage = 'expose'
 
@@ -428,19 +458,23 @@ class TestDoApogeeSkyFlats(CmdStateTester,unittest.TestCase):
 
     def test_isSlewingDisabled_no_cmd(self):
         self._isSlewingDisabled_no_cmd()
+
     def test_isSlewingDisabled_cmd_finished(self):
         self._isSlewingDisabled_cmd_finished()
+
     def test_isSlewingDisabled_because_alive(self):
         self.cmdState.cmd = self.cmd
         result = self.cmdState.isSlewingDisabled()
-        self.assertIsInstance(result,str)
+        self.assertIsInstance(result, str)
         expect = 'slewing disallowed for APOGEE, blocked by active doApogeeSkyFlat sequence'
-        self.assertEqual(result,expect)
+        self.assertEqual(result, expect)
 
     def test_abort(self):
-        super(TestDoApogeeSkyFlats,self).test_abort()
-        self.assertEqual(self.cmd.calls, ['apogee expose stop',])
-        self.assertEqual(self.cmdState.ditherPairs,0)
+        super(TestDoApogeeSkyFlats, self).test_abort()
+        self.assertEqual(self.cmd.calls, [
+            'apogee expose stop',
+        ])
+        self.assertEqual(self.cmdState.ditherPairs, 0)
 
     def test_exposures_remain(self):
         self.assertTrue(self.cmdState.exposures_remain())
@@ -454,52 +488,59 @@ class TestDoApogeeSkyFlats(CmdStateTester,unittest.TestCase):
         self.assertFalse(self.cmdState.exposures_remain())
 
 
-class TestDoApogeeDomeFlat(CmdStateTester,unittest.TestCase):
+class TestDoApogeeDomeFlat(CmdStateTester, unittest.TestCase):
+
     def setUp(self):
-        super(TestDoApogeeDomeFlat,self).setUp()
+        super(TestDoApogeeDomeFlat, self).setUp()
         self.cmdState = sopActor.CmdState.DoApogeeDomeFlatCmd()
         self.ok_stage = 'domeFlat'
 
     def test_abort(self):
-        super(TestDoApogeeDomeFlat,self).test_abort()
-        self.assertEqual(self.cmd.calls, ['apogee expose stop',])
+        super(TestDoApogeeDomeFlat, self).test_abort()
+        self.assertEqual(self.cmd.calls, [
+            'apogee expose stop',
+        ])
 
 
-class TestDoBossScience(CmdStateTester,unittest.TestCase):
+class TestDoBossScience(CmdStateTester, unittest.TestCase):
+
     def setUp(self):
         self.userKeys = True
-        super(TestDoBossScience,self).setUp()
+        super(TestDoBossScience, self).setUp()
         self.cmdState = sopActor.CmdState.DoBossScienceCmd()
         self.ok_stage = 'expose'
 
     def test_isSlewingDisabled_no_cmd(self):
         self._isSlewingDisabled_no_cmd()
+
     def test_isSlewingDisabled_cmd_finished(self):
         self._isSlewingDisabled_cmd_finished()
 
     def test_isSlewingDisabled_because_expLeft(self):
         self.cmdState.nExp = 3
         self.cmdState.index = 1
-        self._isSlewingDisabled_because_exposing('BOSS', 2, 'IDLE',
-                                                 prefix='BOSS_')
+        self._isSlewingDisabled_because_exposing('BOSS', 2, 'IDLE', prefix='BOSS_')
+
     def test_isSlewingDisabled_because_exposing(self):
-        sopTester.updateModel('boss',TestHelper.bossState['integrating'])
+        sopTester.updateModel('boss', TestHelper.bossState['integrating'])
         self.cmdState.nExp = 3
         self.cmdState.index = 2
-        self._isSlewingDisabled_because_exposing('BOSS', 1, 'INTEGRATING',
-                                                 prefix='BOSS_')
+        self._isSlewingDisabled_because_exposing('BOSS', 1, 'INTEGRATING', prefix='BOSS_')
+
     def test_isSlewingDisabled_False_reading_last_exposure(self):
         self.cmdState.nExp = 3
         self.cmdState.index = 2
-        sopTester.updateModel('boss',TestHelper.bossState['reading'])
+        sopTester.updateModel('boss', TestHelper.bossState['reading'])
         self._isSlewingDisabled_False()
 
     def test_abort(self):
         self._fake_boss_exposing()
         self.cmdState.nExp = 1
         self.cmdState.index = 0
-        super(TestDoBossScience,self).test_abort()
-        self.assertEqual(self.cmd.calls, ['boss exposure stop',])
+        super(TestDoBossScience, self).test_abort()
+        self.assertEqual(self.cmd.calls, [
+            'boss exposure stop',
+        ])
         self.assertEqual(self.cmdState.nExp, self.cmdState.index)
 
     def test_exposures_remain(self):
@@ -520,6 +561,7 @@ class TestDoBossScience(CmdStateTester,unittest.TestCase):
 
 
 class TestDoMangaSequence(CmdStateTester, unittest.TestCase):
+
     def setUp(self):
         self.userKeys = True
         super(TestDoMangaSequence, self).setUp()
@@ -540,7 +582,9 @@ class TestDoMangaSequence(CmdStateTester, unittest.TestCase):
     def test_abort(self):
         self._fake_boss_exposing()
         super(TestDoMangaSequence, self).test_abort()
-        self.assertEqual(self.cmd.calls, ['boss exposure stop', ])
+        self.assertEqual(self.cmd.calls, [
+            'boss exposure stop',
+        ])
 
     def test_exposures_remain(self):
         self.assertTrue(self.cmdState.exposures_remain())
@@ -616,8 +660,8 @@ class TestDoMangaSequence(CmdStateTester, unittest.TestCase):
 
     def test_getUserKeys(self):
         keys = self.cmdState.getUserKeys()
-        self.assertTrue(any("doMangaSequence_ditherSeq" in k for k in keys))
-        self.assertTrue(any("doMangaSequence_etr" in k for k in keys))
+        self.assertTrue(any('doMangaSequence_ditherSeq' in k for k in keys))
+        self.assertTrue(any('doMangaSequence_etr' in k for k in keys))
 
     def _has_state_changed_true(self, oldstate, as_dict=None):
         self.cmdState.count = 1
@@ -630,12 +674,20 @@ class TestDoMangaSequence(CmdStateTester, unittest.TestCase):
         self._has_state_changed_true(oldstate)
 
     def test_state_as_dict_true(self):
-        oldstate = {'count': self.cmdState.count, 'dithers': self.cmdState.dithers, 'ditherSeq': self.cmdState.ditherSeq}
+        oldstate = {
+            'count': self.cmdState.count,
+            'dithers': self.cmdState.dithers,
+            'ditherSeq': self.cmdState.ditherSeq
+        }
         self._has_state_changed_true(oldstate)
 
     def _has_state_changed_false(self, as_dict=False):
         if as_dict:
-            oldstate = {'count': self.cmdState.count, 'dithers': self.cmdState.dithers, 'ditherSeq': self.cmdState.ditherSeq}
+            oldstate = {
+                'count': self.cmdState.count,
+                'dithers': self.cmdState.dithers,
+                'ditherSeq': self.cmdState.ditherSeq
+            }
         else:
             oldstate = copy.copy(self.cmdState)
         haschanged = self.cmdState.hasStateChanged(oldstate)
@@ -649,6 +701,7 @@ class TestDoMangaSequence(CmdStateTester, unittest.TestCase):
 
 
 class TestDoMangaDither(CmdStateTester, unittest.TestCase):
+
     def setUp(self):
         super(TestDoMangaDither, self).setUp()
         self.cmdState = sopActor.CmdState.DoMangaDitherCmd()
@@ -661,8 +714,7 @@ class TestDoMangaDither(CmdStateTester, unittest.TestCase):
 
     def test_isSlewingDisabled_because_exposing(self):
         sopTester.updateModel('boss', TestHelper.bossState['integrating'])
-        self._isSlewingDisabled_because_exposing('MaNGA', 1, 'INTEGRATING',
-                                                 prefix='BOSS_')
+        self._isSlewingDisabled_because_exposing('MaNGA', 1, 'INTEGRATING', prefix='BOSS_')
 
     def test_isSlewingDisabled_False(self):
         sopTester.updateModel('boss', TestHelper.bossState['reading'])
@@ -682,13 +734,16 @@ class TestDoMangaDither(CmdStateTester, unittest.TestCase):
     def test_abort(self):
         self._fake_boss_exposing()
         super(TestDoMangaDither, self).test_abort()
-        self.assertEqual(self.cmd.calls, ['boss exposure stop', ])
+        self.assertEqual(self.cmd.calls, [
+            'boss exposure stop',
+        ])
 
 
-class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
+class TestDoApogeeMangaSequence(CmdStateTester, unittest.TestCase):
+
     def setUp(self):
         self.userKeys = True
-        super(TestDoApogeeMangaSequence,self).setUp()
+        super(TestDoApogeeMangaSequence, self).setUp()
         self.cmdState = sopActor.CmdState.DoApogeeMangaSequenceCmd()
         self.ok_stage = 'dither'
 
@@ -701,6 +756,7 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
 
     def test_isSlewingDisabled_no_cmd(self):
         self._isSlewingDisabled_no_cmd()
+
     def test_isSlewingDisabled_cmd_finished(self):
         self._isSlewingDisabled_cmd_finished()
 
@@ -709,8 +765,7 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
         sopTester.updateModel('boss', TestHelper.bossState['integrating'])
         result = self.cmdState.isSlewingDisabled()
         self.assertIsInstance(result, str)
-        expect = ('slewing disallowed for APOGEE&MaNGA, '
-                  'with a sequence in progress')
+        expect = ('slewing disallowed for APOGEE&MaNGA, ' 'with a sequence in progress')
         self.assertIn(expect, result)
 
     # NOTE: not testing the keywords dict, since it doesn't get applied to the
@@ -888,14 +943,14 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
 
     def test_getUserKeys(self):
         keys = self.cmdState.getUserKeys()
-        self.assertTrue(any("doApogeeMangaSequence_expTime" in k for k in keys))
-        self.assertTrue(any("doApogeeMangaSequence_ditherSeq" in k for k in keys))
-        self.assertTrue(any("doApogeeMangaSequence_etr" in k for k in keys))
+        self.assertTrue(any('doApogeeMangaSequence_expTime' in k for k in keys))
+        self.assertTrue(any('doApogeeMangaSequence_ditherSeq' in k for k in keys))
+        self.assertTrue(any('doApogeeMangaSequence_etr' in k for k in keys))
 
     def test_abort(self):
         self._fake_boss_exposing()
-        super(TestDoApogeeMangaSequence,self).test_abort()
-        self.assertEqual(self.cmd.calls, ['boss exposure stop','apogee expose stop'])
+        super(TestDoApogeeMangaSequence, self).test_abort()
+        self.assertEqual(self.cmd.calls, ['boss exposure stop', 'apogee expose stop'])
 
     def test_exposures_remain(self):
         self.assertTrue(self.cmdState.exposures_remain())
@@ -975,8 +1030,7 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
     def test_isSlewingDisabled_APOGEE_safe_BOSS_safe_end_sequence(self):
         bossState = 'idle'
         apogeeState = 'done'
-        self._isSlewingDisabled_BOSS_APOGEE(bossState, apogeeState,
-                                            expect=False, index=6)
+        self._isSlewingDisabled_BOSS_APOGEE(bossState, apogeeState, expect=False, index=6)
 
     def test_isSlewingDisabled_APOGEE_safe_BOSS_unsafe_end_sequence(self):
         bossState = 'integrating'
@@ -986,8 +1040,7 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
                   'BOSS_exposureState=INTEGRATING; '
                   'APOGEE_exposureState=Done; '
                   '1 exposure(s) remaining')
-        self._isSlewingDisabled_BOSS_APOGEE(bossState, apogeeState,
-                                            expect=expect, index=5)
+        self._isSlewingDisabled_BOSS_APOGEE(bossState, apogeeState, expect=expect, index=5)
 
     def test_isSlewingDisabled_APOGEE_unsafe_BOSS_safe_end_sequence(self):
         bossState = 'idle'
@@ -997,8 +1050,7 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
                   'BOSS_exposureState=IDLE; '
                   'APOGEE_exposureState=Exposing; '
                   '1 exposure(s) remaining')
-        self._isSlewingDisabled_BOSS_APOGEE(bossState, apogeeState,
-                                            expect=expect, index=5)
+        self._isSlewingDisabled_BOSS_APOGEE(bossState, apogeeState, expect=expect, index=5)
 
     def test_isSlewingDisabled_APOGEE_unsafe_BOSS_unsafe_end_sequence(self):
         bossState = 'integrating'
@@ -1008,14 +1060,14 @@ class TestDoApogeeMangaSequence(CmdStateTester,unittest.TestCase):
                   'BOSS_exposureState=INTEGRATING; '
                   'APOGEE_exposureState=Exposing; '
                   '1 exposure(s) remaining')
-        self._isSlewingDisabled_BOSS_APOGEE(bossState, apogeeState,
-                                            expect=expect, index=5)
+        self._isSlewingDisabled_BOSS_APOGEE(bossState, apogeeState, expect=expect, index=5)
 
 
-class TestDoApogeeMangaDither(CmdStateTester,unittest.TestCase):
+class TestDoApogeeMangaDither(CmdStateTester, unittest.TestCase):
+
     def setUp(self):
         self.userKeys = True
-        super(TestDoApogeeMangaDither,self).setUp()
+        super(TestDoApogeeMangaDither, self).setUp()
         self.cmdState = sopActor.CmdState.DoApogeeMangaDitherCmd()
         self.ok_stage = 'dither'
 
@@ -1025,9 +1077,8 @@ class TestDoApogeeMangaDither(CmdStateTester,unittest.TestCase):
         self.assertEqual(self.cmdState.readout, True)
 
     def test_isSlewingDisabled_because_exposing(self):
-        sopTester.updateModel('boss',TestHelper.bossState['integrating'])
-        self._isSlewingDisabled_because_exposing(
-            'APOGEE&MaNGA', 1, 'INTEGRATING', prefix='BOSS_')
+        sopTester.updateModel('boss', TestHelper.bossState['integrating'])
+        self._isSlewingDisabled_because_exposing('APOGEE&MaNGA', 1, 'INTEGRATING', prefix='BOSS_')
 
     def test_apogeeLead(self):
         self.cmdState.set_apogeeLead()
@@ -1078,6 +1129,7 @@ class TestDoApogeeMangaDither(CmdStateTester,unittest.TestCase):
 
     def test_isSlewingDisabled_no_cmd(self):
         self._isSlewingDisabled_no_cmd()
+
     def test_isSlewingDisabled_cmd_finished(self):
         self._isSlewingDisabled_cmd_finished()
 
@@ -1108,8 +1160,8 @@ class TestDoApogeeMangaDither(CmdStateTester,unittest.TestCase):
 
     def test_abort(self):
         self._fake_boss_exposing()
-        super(TestDoApogeeMangaDither,self).test_abort()
-        self.assertEqual(self.cmd.calls, ['boss exposure stop','apogee expose stop'])
+        super(TestDoApogeeMangaDither, self).test_abort()
+        self.assertEqual(self.cmd.calls, ['boss exposure stop', 'apogee expose stop'])
 
 
 if __name__ == '__main__':

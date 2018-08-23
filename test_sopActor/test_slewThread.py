@@ -15,21 +15,17 @@ Tests the commands included in the slew thread.
 
 """
 
-from __future__ import division
-from __future__ import print_function
-import unittest
+from __future__ import division, print_function
 
-from actorcore import TestHelper
-import sopTester
+import unittest
 
 import sopActor
 import sopActor.myGlobals as myGlobals
+import sopTester
+from actorcore import TestHelper
+from sopActor import apogeeThread, ffsThread, slewThread, tccThread
 from sopActor.multiCommand import MultiCommand
 
-from sopActor import slewThread
-from sopActor import tccThread
-from sopActor import ffsThread
-from sopActor import apogeeThread
 
 # False for less printing, True for more printing
 verbose = True
@@ -40,11 +36,10 @@ class SlewThreadTester(sopTester.SopThreadTester, unittest.TestCase):
 
     def setUp(self):
         self.verbose = verbose
-        self.useThreads = [
-            ('tcc', sopActor.TCC, tccThread.main),
-            ('ffs', sopActor.FFS, ffsThread.main),
-            ('apogeeScript', sopActor.APOGEE_SCRIPT, apogeeThread.script_main),
-            ('apogee', sopActor.APOGEE, apogeeThread.main)]
+        self.useThreads = [('tcc', sopActor.TCC, tccThread.main), ('ffs', sopActor.FFS,
+                                                                   ffsThread.main),
+                           ('apogeeScript', sopActor.APOGEE_SCRIPT, apogeeThread.script_main),
+                           ('apogee', sopActor.APOGEE, apogeeThread.main)]
         super(SlewThreadTester, self).setUp()
         self.fail_on_no_cmd_calls = True  # we need cmd_calls for all of these.
 
@@ -59,14 +54,12 @@ class TestApogeeDomeFlat(SlewThreadTester):
           one for ff.on and one for ff.off
     """
 
-    def _apogee_dome_flat(self, nCall, nInfo, nWarn, nErr, multiCmd,
-                          finish=False, didFail=False):
+    def _apogee_dome_flat(self, nCall, nInfo, nWarn, nErr, multiCmd, finish=False, didFail=False):
         """Helper function for testing apogee_dome_flat."""
 
         cmdState = self.actorState.doApogeeDomeFlat
         cmdState.reinitialize(self.cmd)
-        result = slewThread.apogee_dome_flat(
-            self.cmd, cmdState, myGlobals.actorState, multiCmd)
+        result = slewThread.apogee_dome_flat(self.cmd, cmdState, myGlobals.actorState, multiCmd)
         self._check_cmd(nCall, nInfo, nWarn, nErr, finish, didFail)
         self.assertEqual(result, not didFail)
 
@@ -74,16 +67,14 @@ class TestApogeeDomeFlat(SlewThreadTester):
         """Tests shutter open, FFS close, exposure +(ff on, ff off)."""
         name = 'apogeeDomeFlat'
         sopTester.updateModel('mcp', TestHelper.mcpState['apogee_science'])
-        multiCmd = MultiCommand(
-            self.cmd, myGlobals.actorState.timeout + 50, name)
+        multiCmd = MultiCommand(self.cmd, myGlobals.actorState.timeout + 50, name)
         self._apogee_dome_flat(4, 11, 0, 0, multiCmd)
 
     def test_apogee_dome_flat_enclosure(self):
         """Tests shutter open, exposure +(ff on, ff off)."""
         name = 'apogeeDomeFlat'
         sopTester.updateModel('mcp', TestHelper.mcpState['apogee_parked'])
-        multiCmd = MultiCommand(
-            self.cmd, myGlobals.actorState.timeout + 50, name)
+        multiCmd = MultiCommand(self.cmd, myGlobals.actorState.timeout + 50, name)
         self._apogee_dome_flat(3, 11, 0, 0, multiCmd)
 
     def test_apogee_dome_flat_enclosure_shutterOpen(self):
@@ -91,37 +82,31 @@ class TestApogeeDomeFlat(SlewThreadTester):
         name = 'apogeeDomeFlat'
         sopTester.updateModel('mcp', TestHelper.mcpState['apogee_parked'])
         sopTester.updateModel('apogee', TestHelper.apogeeState['B_open'])
-        multiCmd = MultiCommand(
-            self.cmd, myGlobals.actorState.timeout + 50, name)
+        multiCmd = MultiCommand(self.cmd, myGlobals.actorState.timeout + 50, name)
         self._apogee_dome_flat(2, 8, 0, 0, multiCmd)
 
     def test_apogee_dome_flat_ffs_fails(self):
         """Tests shutter open, ffs close -> fail."""
         name = 'apogeeDomeFlat'
-        self.cmd.failOn = "mcp ffs.close"
+        self.cmd.failOn = 'mcp ffs.close'
         sopTester.updateModel('mcp', TestHelper.mcpState['apogee_science'])
-        multiCmd = MultiCommand(
-            self.cmd, myGlobals.actorState.timeout + 50, name)
-        self._apogee_dome_flat(2, 12, 1, 0, multiCmd,
-                               finish=True, didFail=True)
+        multiCmd = MultiCommand(self.cmd, myGlobals.actorState.timeout + 50, name)
+        self._apogee_dome_flat(2, 12, 1, 0, multiCmd, finish=True, didFail=True)
 
     def test_apogee_dome_flat_gang_on_podium_fails(self):
         """Tests fail immediately."""
         name = 'apogeeDomeFlat'
         sopTester.updateModel('mcp', TestHelper.mcpState['all_off'])
-        multiCmd = MultiCommand(
-            self.cmd, myGlobals.actorState.timeout + 50, name)
+        multiCmd = MultiCommand(self.cmd, myGlobals.actorState.timeout + 50, name)
         self._apogee_dome_flat(0, 5, 0, 0, multiCmd, finish=True, didFail=True)
 
     def test_apogee_dome_flat_shuter_close_fails(self):
         """Tests shutter open, ffs close -> fail."""
         name = 'apogeeDomeFlat'
-        self.cmd.failOn = "apogee shutter close"
+        self.cmd.failOn = 'apogee shutter close'
         sopTester.updateModel('mcp', TestHelper.mcpState['apogee_science'])
-        multiCmd = MultiCommand(
-            self.cmd, myGlobals.actorState.timeout + 50, name)
-        self._apogee_dome_flat(4, 15, 0, 1, multiCmd,
-                               finish=True, didFail=True)
+        multiCmd = MultiCommand(self.cmd, myGlobals.actorState.timeout + 50, name)
+        self._apogee_dome_flat(4, 15, 0, 1, multiCmd, finish=True, didFail=True)
 
 
 class TestGotoGangChange(SlewThreadTester):
@@ -135,8 +120,7 @@ class TestGotoGangChange(SlewThreadTester):
          One for ff.on and one for ff.off
     """
 
-    def _goto_gang_change(self, nCall, nInfo, nWarn, nErr, finish=True,
-                          didFail=False):
+    def _goto_gang_change(self, nCall, nInfo, nWarn, nErr, finish=True, didFail=False):
         """Helper functions for the gotoGangChange tests."""
 
         sopTester.updateModel('tcc', TestHelper.tccState['tracking'])
@@ -221,14 +205,14 @@ class TestGotoGangChange(SlewThreadTester):
     def test_goto_gang_change_apogee_fails_domeflat(self):
         """Tests shutter open, FFS close, expose -> fail."""
         myGlobals.actorState.survey = sopActor.APOGEE
-        self.cmd.failOn = "apogee expose time=50.0 object=DomeFlat"
+        self.cmd.failOn = 'apogee expose time=50.0 object=DomeFlat'
         sopTester.updateModel('apogee', TestHelper.apogeeState['B_open'])
         sopTester.updateModel('mcp', TestHelper.mcpState['apogee_science'])
         self._goto_gang_change(2, 14, 0, 1, didFail=True)
 
     def test_goto_gang_change_apogee_fails_slew(self):
         """Tests failed slew."""
-        self.cmd.failOn = "tcc axis init"
+        self.cmd.failOn = 'tcc axis init'
         myGlobals.actorState.survey = sopActor.APOGEE
         sopTester.updateModel('apogee', TestHelper.apogeeState['B_open'])
         sopTester.updateModel('mcp', TestHelper.mcpState['apogee_science'])
@@ -238,8 +222,16 @@ class TestGotoGangChange(SlewThreadTester):
 class TestGotoPosition(SlewThreadTester):
     """Tests for GotoPosition."""
 
-    def _goto_position(self, nCall, nInfo, nWarn, nErr, finish=True,
-                       didFail=False, alt=30., az=121., rot=0.):
+    def _goto_position(self,
+                       nCall,
+                       nInfo,
+                       nWarn,
+                       nErr,
+                       finish=True,
+                       didFail=False,
+                       alt=30.,
+                       az=121.,
+                       rot=0.):
         """Helper method to launch GotoPosition tests."""
 
         cmdState = self.actorState.gotoPosition

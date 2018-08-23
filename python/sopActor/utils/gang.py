@@ -1,19 +1,20 @@
 import sopActor.myGlobals as myGlobals
 
+
 class ApogeeGang(object):
     """ Encapsulate the APOGEE gang connector. """
-    
-    GANG_UNKNOWN      = "unknown gang position"
-    GANG_DISCONNECTED = "gang disconnected"
-    GANG_ON_CARTRIDGE = "gang on cartridge"
-    GANG_ON_PODIUM    = "gang on podium (any)"
-    GANG_AT_DENSE     = "gang on podium: dense port"
-    GANG_AT_SPARSE    = "gang on podium: sparse port"
-    GANG_AT_1M        = "gang on podium: 1m port"
-    
+
+    GANG_UNKNOWN = 'unknown gang position'
+    GANG_DISCONNECTED = 'gang disconnected'
+    GANG_ON_CARTRIDGE = 'gang on cartridge'
+    GANG_ON_PODIUM = 'gang on podium (any)'
+    GANG_AT_DENSE = 'gang on podium: dense port'
+    GANG_AT_SPARSE = 'gang on podium: sparse port'
+    GANG_AT_1M = 'gang on podium: 1m port'
+
     def __init__(self):
         pass
-    
+
     def getPhysicalPos(self):
         """
         Return the gang position as indicated by the MCP apogeeGang keyword
@@ -24,22 +25,23 @@ class ApogeeGang(object):
         Also, this whole logic would probably be well encapsulated by some @property
         decorators...
         """
-        gangMap = {0:self.GANG_UNKNOWN,
-                   1:self.GANG_DISCONNECTED,
-                   2:self.GANG_ON_CARTRIDGE,
-                   4:self.GANG_ON_PODIUM,
-                   12:self.GANG_AT_DENSE,
-                   20:self.GANG_AT_SPARSE,
-                   36:self.GANG_AT_1M
-                  }
-        
-        mcpModel = myGlobals.actorState.models["mcp"]
-        gangPos = mcpModel.keyVarDict["apogeeGang"]
+        gangMap = {
+            0: self.GANG_UNKNOWN,
+            1: self.GANG_DISCONNECTED,
+            2: self.GANG_ON_CARTRIDGE,
+            4: self.GANG_ON_PODIUM,
+            12: self.GANG_AT_DENSE,
+            20: self.GANG_AT_SPARSE,
+            36: self.GANG_AT_1M
+        }
+
+        mcpModel = myGlobals.actorState.models['mcp']
+        gangPos = mcpModel.keyVarDict['apogeeGang']
         if not gangPos.isCurrent:
             return self.GANG_UNKNOWN
-        
+
         return gangMap[int(gangPos[0])]
-        
+
     def getPos(self):
         """
         Return the position of the gang connector.
@@ -55,7 +57,7 @@ class ApogeeGang(object):
             return self.GANG_ON_CARTRIDGE
         else:
             return self.getPhysicalPos()
-            
+
     def atPodium(self, sparseOK=False, one_mOK=False):
         """
         Return True if the gang connector is on the podium.
@@ -68,8 +70,8 @@ class ApogeeGang(object):
             ok = ok or (pos == self.GANG_AT_SPARSE)
         if one_mOK:
             ok = ok or (pos == self.GANG_AT_1M)
-        
+
         return ok
-        
+
     def atCartridge(self):
         return self.getPos() == self.GANG_ON_CARTRIDGE

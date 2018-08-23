@@ -2,12 +2,11 @@
 Hold state about running commands, e.g. 'running', 'done', 'failed', ...
 Also hold keywords for those commands as we pass them around.
 """
-from opscore.utility.qstr import qstr
-
 from time import sleep
 
-import sopActor.myGlobals as myGlobals
 import sopActor
+import sopActor.myGlobals as myGlobals
+from opscore.utility.qstr import qstr
 
 
 def getDefaultArcTime(survey):
@@ -17,12 +16,14 @@ def getDefaultArcTime(survey):
     else:
         return 0
 
+
 def getDefaultFlatTime(survey):
     """Get the default flat time for this survey"""
     if survey == sopActor.BOSS or survey == sopActor.MANGA or sopActor.APOGEEMANGA:
         return 25
     else:
         return 0
+
 
 class CmdState(object):
     """
@@ -45,7 +46,8 @@ class CmdState(object):
     #   failed  : mark with error color.
     #   aborted : mark with warning color
     #   starting, prepping, running : mark with running color.
-    validStageStates = ('prepping', 'running', 'done', 'failed', 'aborted', 'pending', 'off', 'idle')
+    validStageStates = ('prepping', 'running', 'done', 'failed', 'aborted', 'pending', 'off',
+                        'idle')
 
     def __init__(self, name, allStages, keywords={}, hiddenKeywords=()):
         """
@@ -54,8 +56,8 @@ class CmdState(object):
         """
         self.name = name
         self.cmd = None
-        self.cmdState = "idle"
-        self.stateText = "OK"
+        self.cmdState = 'idle'
+        self.stateText = 'OK'
         self.aborted = False
         self.keywords = dict(keywords)
         self.hiddenKeywords = hiddenKeywords
@@ -75,11 +77,12 @@ class CmdState(object):
 
     def set(self, name, value):
         """Sets self.name == value. if Value is None, use the default value."""
-        assert name in self.keywords, qstr("%s is not in keyword list: %s"%(name,str(self.keywords)))
+        assert name in self.keywords, qstr(
+            '%s is not in keyword list: %s' % (name, str(self.keywords)))
         if value is not None:
-            setattr(self,name,value)
+            setattr(self, name, value)
         else:
-            setattr(self,name,self.keywords[name])
+            setattr(self, name, self.keywords[name])
 
     def _getCmd(self, cmd=None):
         """Return the best cmd handler available."""
@@ -92,12 +95,12 @@ class CmdState(object):
     def setStages(self, allStages):
         """Set the list of stages that are applicable, and make them idle."""
         self.allStages = allStages
-        self.stages = dict(zip(allStages, ["idle"] * len(allStages)))
+        self.stages = dict(zip(allStages, ['idle'] * len(allStages)))
         self.activeStages = allStages
 
-    def reinitialize(self,cmd=None,stages=None,output=True):
+    def reinitialize(self, cmd=None, stages=None, output=True):
         """Re-initialize this cmdState, keeping the stages list as is."""
-        self.stateText="OK"
+        self.stateText = 'OK'
         self.aborted = False
         myGlobals.actorState.aborting = False
         self.reset_keywords()
@@ -119,24 +122,25 @@ class CmdState(object):
         if name:
             self.name = name
         self.cmd = cmd
-        self.stateText="OK"
+        self.stateText = 'OK'
         self.activeStages = activeStages
         for name in self.allStages:
-            self.setStageState(name, "pending" if name in activeStages else "off", genKeys=False)
+            self.setStageState(name, 'pending' if name in activeStages else 'off', genKeys=False)
         self.genCommandKeys()
 
     def setCommandState(self, state, genKeys=True, stateText=None):
         self.cmdState = state
         if stateText:
-            self.stateText=stateText
+            self.stateText = stateText
 
         if genKeys:
             self.genKeys()
 
     def setStageState(self, name, stageState, genKeys=True):
         """Set a stage to a new state, and output the stage state keys."""
-        assert name in self.stages, "stage %s is unknown, out of %s"%(name,repr(self.stages))
-        assert stageState in self.validStageStates, "state %s is unknown, out of %s" % (stageState,repr(self.validStageStates))
+        assert name in self.stages, 'stage %s is unknown, out of %s' % (name, repr(self.stages))
+        assert stageState in self.validStageStates, 'state %s is unknown, out of %s' % (
+            stageState, repr(self.validStageStates))
         self.stages[name] = stageState
 
         if genKeys:
@@ -144,17 +148,17 @@ class CmdState(object):
 
     def genCmdStateKeys(self, cmd=None):
         cmd = self._getCmd(cmd)
-        cmd.inform("%sState=%s,%s,%s" % (self.name, qstr(self.cmdState),
+        cmd.inform('%sState=%s,%s,%s' % (self.name, qstr(self.cmdState),
                                          qstr(self.stateText),
-                                         ",".join([qstr(self.stages[sname]) \
+                                         ','.join([qstr(self.stages[sname]) \
                                                        for sname in self.allStages])))
 
     def genCommandKeys(self, cmd=None):
         """ Return a list of the keywords describing our command. """
 
         cmd = self._getCmd(cmd)
-        cmd.inform("%sStages=%s" % (self.name,
-                                    ",".join([qstr(sname) \
+        cmd.inform('%sStages=%s' % (self.name,
+                                    ','.join([qstr(sname) \
                                                   for sname in self.allStages])))
         self.genCmdStateKeys(cmd=cmd)
 
@@ -177,10 +181,9 @@ class CmdState(object):
             if type(default) == str:
                 val = qstr(val)
                 default = qstr(default)
-            msg.append("%s_%s=%s,%s" % (self.name, keyName,
-                                        val, default))
+            msg.append('%s_%s=%s,%s' % (self.name, keyName, val, default))
         if msg:
-            cmd.inform("; ".join(msg))
+            cmd.inform('; '.join(msg))
 
         try:
             userKeys = self.getUserKeys()
@@ -189,7 +192,7 @@ class CmdState(object):
             cmd.warn('text="failed to fetch all keywords for %s"' % (self.name))
 
         if userKeys:
-            cmd.inform(";".join(userKeys))
+            cmd.inform(';'.join(userKeys))
 
     def genKeys(self, cmd=None, trimKeys=False):
         """Output all our keywords."""
@@ -211,8 +214,8 @@ class CmdState(object):
     def isSlewingDisabled_BOSS(self):
         """Return False if the BOSS state is safe to start a slew."""
         safe_state = ('READING', 'IDLE', 'DONE', 'ABORTED')
-        boss_state = myGlobals.actorState.models["boss"].keyVarDict["exposureState"][0]
-        text = "; BOSS_exposureState=%s"%boss_state
+        boss_state = myGlobals.actorState.models['boss'].keyVarDict['exposureState'][0]
+        text = '; BOSS_exposureState=%s' % boss_state
         if boss_state not in safe_state:
             return True, text
         else:
@@ -223,8 +226,7 @@ class CmdState(object):
 
         safe_state = ('DONE', 'STOPPED', 'FAILED')
 
-        apogee_state = (myGlobals.actorState.models['apogee']
-                        .keyVarDict['exposureState'][0])
+        apogee_state = (myGlobals.actorState.models['apogee'].keyVarDict['exposureState'][0])
 
         apogee_status_text = '; APOGEE_exposureState={0}'.format(apogee_state)
 
@@ -242,8 +244,8 @@ class CmdState(object):
     def abortStages(self):
         """ Mark all unstarted stages as aborted. """
         for s in self.activeStages:
-            if not self.stages[s] in ("done", "failed", "off"):
-                self.stages[s] = "aborted"
+            if not self.stages[s] in ('done', 'failed', 'off'):
+                self.stages[s] = 'aborted'
         self.genCmdStateKeys()
 
     def stop_boss_exposure(self, wait=False):
@@ -257,7 +259,7 @@ class CmdState(object):
         if self.isSlewingDisabled_BOSS()[0]:
             cmd.warn('text="Will cancel pending BOSS exposures and stop any running one."')
             call = myGlobals.actorState.actor.cmdr.call
-            cmdVar = call(actor="boss", forUserCmd=cmd, cmdStr="exposure stop")
+            cmdVar = call(actor='boss', forUserCmd=cmd, cmdStr='exposure stop')
             if cmdVar.didFail:
                 cmd.warn('text="Failed to stop running BOSS exposure"')
 
@@ -274,16 +276,15 @@ class CmdState(object):
         cmd = self._getCmd()
         cmd.warn('text="Will cancel pending APOGEE exposures and stop any running one."')
         call = myGlobals.actorState.actor.cmdr.call
-        cmdVar = call(actor="apogee", forUserCmd=cmd, cmdStr="expose stop")
+        cmdVar = call(actor='apogee', forUserCmd=cmd, cmdStr='expose stop')
         if cmdVar.didFail:
             cmd.warn('text="Failed to stop running APOGEE exposure"')
 
     def stop_tcc(self):
         """Stop current TCC motion."""
         cmd = self._getCmd()
-        cmdVar = myGlobals.actorState.actor.cmdr.call(actor='tcc',
-                                                      forUserCmd=cmd,
-                                                      cmdStr='track /stop')
+        cmdVar = myGlobals.actorState.actor.cmdr.call(
+            actor='tcc', forUserCmd=cmd, cmdStr='track /stop')
         if cmdVar.didFail:
             cmd.warn('text="Failed to abort slew"')
 
@@ -292,12 +293,12 @@ class CmdState(object):
 
 # Now define the actual command states we'll be using:
 
+
 class GotoGangChangeCmd(CmdState):
+
     def __init__(self):
-        CmdState.__init__(self, 'gotoGangChange',
-                          ['domeFlat', 'slew'],
-                          keywords=dict(alt=45.0))
-        self.expType = "object"
+        CmdState.__init__(self, 'gotoGangChange', ['domeFlat', 'slew'], keywords=dict(alt=45.0))
+        self.expType = 'object'
 
     def reset_nonkeywords(self):
         self.doDomeFlat = True
@@ -308,13 +309,13 @@ class GotoGangChangeCmd(CmdState):
         self.stop_tcc()
         self.doDomeFlat = False
         self.doSlew = False
-        super(GotoGangChangeCmd,self).abort()
+        super(GotoGangChangeCmd, self).abort()
 
 
 class GotoPositionCmd(CmdState):
+
     def __init__(self):
-        CmdState.__init__(self, 'gotoPosition', ['slew'],
-                          keywords=dict(alt=30, az=121, rot=0))
+        CmdState.__init__(self, 'gotoPosition', ['slew'], keywords=dict(alt=30, az=121, rot=0))
 
     def reset_nonkeywords(self):
         self.doSlew = True
@@ -328,8 +329,8 @@ class GotoPositionCmd(CmdState):
 class GotoInstrumentChangeCmd(GotoPositionCmd):
 
     def __init__(self):
-        CmdState.__init__(self, 'gotoInstrumentChange', ['slew'],
-                          keywords=dict(alt=90, az=121, rot=0))
+        CmdState.__init__(
+            self, 'gotoInstrumentChange', ['slew'], keywords=dict(alt=90, az=121, rot=0))
 
     def abort(self):
         super(GotoInstrumentChangeCmd, self).abort()
@@ -338,46 +339,42 @@ class GotoInstrumentChangeCmd(GotoPositionCmd):
 class GotoStowCmd(GotoPositionCmd):
 
     def __init__(self):
-        CmdState.__init__(self, 'gotoStow', ['slew'],
-                          keywords=dict(alt=30, az=121, rot=0))
+        CmdState.__init__(self, 'gotoStow', ['slew'], keywords=dict(alt=30, az=121, rot=0))
 
     def abort(self):
         super(GotoStowCmd, self).abort()
 
 
 class DoApogeeDomeFlatCmd(CmdState):
+
     def __init__(self):
-        CmdState.__init__(self, 'doApogeeDomeFlat',
-                          ['domeFlat'],
-                          keywords=dict(expTime=50.0))
-        self.expType = "object"
+        CmdState.__init__(self, 'doApogeeDomeFlat', ['domeFlat'], keywords=dict(expTime=50.0))
+        self.expType = 'object'
 
     def abort(self):
         self.stop_apogee_exposure()
-        super(DoApogeeDomeFlatCmd,self).abort()
+        super(DoApogeeDomeFlatCmd, self).abort()
 
 
 class HartmannCmd(CmdState):
+
     def __init__(self):
-        CmdState.__init__(self, 'hartmann',
-                          ['left','right','cleanup'],
-                          keywords=dict(expTime=4))
+        CmdState.__init__(self, 'hartmann', ['left', 'right', 'cleanup'], keywords=dict(expTime=4))
 
 
 class CollimateBossCmd(CmdState):
+
     def __init__(self):
-        CmdState.__init__(self, 'collimateBoss',
-                          ['collimate', 'cleanup'])
+        CmdState.__init__(self, 'collimateBoss', ['collimate', 'cleanup'])
 
 
 class GotoFieldCmd(CmdState):
+
     def __init__(self):
-        CmdState.__init__(self, 'gotoField',
-                          ['slew', 'hartmann', 'calibs', 'guider', 'cleanup'],
-                          keywords=dict(arcTime=4,
-                                        flatTime=25,
-                                        guiderTime=5.0,
-                                        guiderFlatTime=0.5))
+        CmdState.__init__(
+            self,
+            'gotoField', ['slew', 'hartmann', 'calibs', 'guider', 'cleanup'],
+            keywords=dict(arcTime=4, flatTime=25, guiderTime=5.0, guiderFlatTime=0.5))
 
     def reset_nonkeywords(self):
         self.fakeAz = None
@@ -403,17 +400,16 @@ class GotoFieldCmd(CmdState):
         self.doCalibs = False
         self.doGuiderFlat = False
         self.doGuider = False
-        super(GotoFieldCmd,self).abort()
+        super(GotoFieldCmd, self).abort()
 
 
 class DoBossCalibsCmd(CmdState):
+
     def __init__(self):
-        CmdState.__init__(self, 'doBossCalibs',
-                          ['bias', 'dark', 'flat', 'arc', 'cleanup'],
-                          keywords=dict(darkTime=900.0,
-                                        flatTime=25.0,
-                                        arcTime=4.0,
-                                        guiderFlatTime=0.5))
+        CmdState.__init__(
+            self,
+            'doBossCalibs', ['bias', 'dark', 'flat', 'arc', 'cleanup'],
+            keywords=dict(darkTime=900.0, flatTime=25.0, arcTime=4.0, guiderFlatTime=0.5))
 
     def isSlewingDisabled(self):
         """If slewing is disabled, return a string describing why, else False."""
@@ -424,10 +420,14 @@ class DoBossCalibsCmd(CmdState):
             return False
 
     def reset_nonkeywords(self):
-        self.nBias = 0; self.nBiasDone = 0;
-        self.nDark = 0; self.nDarkDone = 0;
-        self.nFlat = 0; self.nFlatDone = 0;
-        self.nArc = 0; self.nArcDone = 0;
+        self.nBias = 0
+        self.nBiasDone = 0
+        self.nDark = 0
+        self.nDarkDone = 0
+        self.nFlat = 0
+        self.nFlatDone = 0
+        self.nArc = 0
+        self.nArcDone = 0
         self.disable_slews = False
 
     def exposures_remain(self):
@@ -440,11 +440,11 @@ class DoBossCalibsCmd(CmdState):
 
     def getUserKeys(self):
         msg = []
-        msg.append("nBias=%d,%d" % (self.nBiasDone, self.nBias))
-        msg.append("nDark=%d,%d" % (self.nDarkDone, self.nDark))
-        msg.append("nFlat=%d,%d" % (self.nFlatDone, self.nFlat))
-        msg.append("nArc=%d,%d" % (self.nArcDone, self.nArc))
-        return ["%s_%s" % (self.name, m) for m in msg]
+        msg.append('nBias=%d,%d' % (self.nBiasDone, self.nBias))
+        msg.append('nDark=%d,%d' % (self.nDarkDone, self.nDark))
+        msg.append('nFlat=%d,%d' % (self.nFlatDone, self.nFlat))
+        msg.append('nArc=%d,%d' % (self.nArcDone, self.nArc))
+        return ['%s_%s' % (self.name, m) for m in msg]
 
     def abort(self):
         self.stop_boss_exposure()
@@ -453,24 +453,22 @@ class DoBossCalibsCmd(CmdState):
         self.nDark = self.nDarkDone
         self.nFlat = self.nFlatDone
         self.disable_slews = False
-        super(DoBossCalibsCmd,self).abort()
+        super(DoBossCalibsCmd, self).abort()
 
 
 class DoApogeeScienceCmd(CmdState):
 
     def __init__(self):
-        CmdState.__init__(self, 'doApogeeScience',
-                          ['expose'],
-                          keywords=dict(ditherPairs=4,
-                                        expTime=500,
-                                        etr=68.0,
-                                        comment=""))
+        CmdState.__init__(
+            self,
+            'doApogeeScience', ['expose'],
+            keywords=dict(ditherPairs=4, expTime=500, etr=68.0, comment=''))
         self.etr = self.keywords['etr']
         self.num_dithers = 2
         self.readout_time = 10.
 
     def reset_nonkeywords(self):
-        self.expType = "object"
+        self.expType = 'object'
         super(DoApogeeScienceCmd, self).reset_nonkeywords()
 
     def set_apogee_expTime(self, value):
@@ -529,21 +527,22 @@ class DoApogeeScienceCmd(CmdState):
 
 
 class DoApogeeSkyFlatsCmd(CmdState):
+
     def __init__(self):
-        CmdState.__init__(self, 'doApogeeSkyFlats',
-                          ['offset','expose'],
-                          keywords=dict(ditherPairs=2,
-                                        expTime=150.0))
-        self.exposureSeq = "ABBA"
+        CmdState.__init__(
+            self,
+            'doApogeeSkyFlats', ['offset', 'expose'],
+            keywords=dict(ditherPairs=2, expTime=150.0))
+        self.exposureSeq = 'ABBA'
 
     def reset_nonkeywords(self):
-        self.expType = "object"
-        self.comment = "sky flat, offset 0.01 degree in RA"
-        super(DoApogeeSkyFlatsCmd,self).reset_nonkeywords()
+        self.expType = 'object'
+        self.comment = 'sky flat, offset 0.01 degree in RA'
+        super(DoApogeeSkyFlatsCmd, self).reset_nonkeywords()
 
     def getUserKeys(self):
         msg = []
-        msg.append('%s_index=%d,%d' % (self.name,self.index,self.ditherPairs))
+        msg.append('%s_index=%d,%d' % (self.name, self.index, self.ditherPairs))
         return msg
 
     def exposures_remain(self):
@@ -563,20 +562,19 @@ class DoApogeeSkyFlatsCmd(CmdState):
     def abort(self):
         self.ditherPairs = self.index
         self.stop_apogee_exposure()
-        super(DoApogeeSkyFlatsCmd,self).abort()
+        super(DoApogeeSkyFlatsCmd, self).abort()
 
 
 class DoBossScienceCmd(CmdState):
+
     def __init__(self):
-        CmdState.__init__(self, 'doBossScience',
-                          ['expose'],
-                          keywords=dict(expTime=900.0))
+        CmdState.__init__(self, 'doBossScience', ['expose'], keywords=dict(expTime=900.0))
         self.nExp = 0
         self.index = 0
 
     def getUserKeys(self):
         msg = []
-        msg.append("%s_nExp=%d,%d" % (self.name, self.index, self.nExp))
+        msg.append('%s_nExp=%d,%d' % (self.name, self.index, self.nExp))
         return msg
 
     def exposures_remain(self):
@@ -588,9 +586,10 @@ class DoBossScienceCmd(CmdState):
 
     def isSlewingDisabled(self):
         """If slewing is disabled, return a string describing why, else False."""
-        exp_state,exp_text = self.isSlewingDisabled_BOSS()
-        remaining = self.nExp-self.index
-        text = "slewing disallowed for BOSS, with %d science exposures left%s" % (remaining,exp_text)
+        exp_state, exp_text = self.isSlewingDisabled_BOSS()
+        remaining = self.nExp - self.index
+        text = 'slewing disallowed for BOSS, with %d science exposures left%s' % (remaining,
+                                                                                  exp_text)
         if self.cmd and self.cmd.isAlive() and (exp_state or remaining > 1):
             return text
         else:
@@ -603,13 +602,12 @@ class DoBossScienceCmd(CmdState):
 
 
 class DoMangaSequenceCmd(CmdState):
+
     def __init__(self):
-        CmdState.__init__(self, 'doMangaSequence',
-                          ['expose', 'calibs', 'dither'],
-                          keywords=dict(expTime=900.0,
-                                        dithers='NSE',
-                                        count=3,
-                                        etr=144.0))
+        CmdState.__init__(
+            self,
+            'doMangaSequence', ['expose', 'calibs', 'dither'],
+            keywords=dict(expTime=900.0, dithers='NSE', count=3, etr=144.0))
         self.reset_ditherSeq()
         self.readout_time = 60.0
 
@@ -618,10 +616,7 @@ class DoMangaSequenceCmd(CmdState):
 
     def set_mangaDither(self):
         """Setup to use this for MaNGA dither observations."""
-        self.keywords = dict(expTime=900.0,
-                             dithers='NSE',
-                             count=3,
-                             etr=144.0)
+        self.keywords = dict(expTime=900.0, dithers='NSE', count=3, etr=144.0)
         self.count = 3
         self.dithers = 'NSE'
         if not (self.cmd and self.cmd.isAlive()):
@@ -629,10 +624,7 @@ class DoMangaSequenceCmd(CmdState):
 
     def set_manga10(self):
         """Setup to use this for MaNGA dithered 10 min exposures."""
-        self.keywords = dict(expTime=600.0,
-                             dithers='NSE',
-                             count=1,
-                             etr=33.0)
+        self.keywords = dict(expTime=600.0, dithers='NSE', count=1, etr=33.0)
 
         self.count = 1
         self.dithers = 'NSE'
@@ -644,10 +636,7 @@ class DoMangaSequenceCmd(CmdState):
 
     def set_mangaStare(self):
         """Setup to use this for MaNGA Stare observations."""
-        self.keywords = dict(expTime=900.0,
-                             dithers='CCC',
-                             count=1,
-                             etr=48.0)
+        self.keywords = dict(expTime=900.0, dithers='CCC', count=1, etr=48.0)
         self.count = 1
         self.dithers = 'CCC'
         if not (self.cmd and self.cmd.isAlive()):
@@ -672,7 +661,7 @@ class DoMangaSequenceCmd(CmdState):
 
     def getUserKeys(self):
         msg = []
-        msg.append("%s_ditherSeq=%s,%s" % (self.name, self.ditherSeq, self.index))
+        msg.append('%s_ditherSeq=%s,%s' % (self.name, self.ditherSeq, self.index))
         msg.append('{0}_etr={1},{2}'.format(self.name, self.etr, self.keywords['etr']))
         return msg
 
@@ -703,13 +692,17 @@ class DoMangaSequenceCmd(CmdState):
     def hasStateChanged(self, oldstate):
         ''' Check if the new state is different than old state '''
         if type(oldstate) == dict:
-            return {'count': self.count, 'dithers': self.dithers, 'ditherSeq': self.ditherSeq} != oldstate
+            return {
+                'count': self.count,
+                'dithers': self.dithers,
+                'ditherSeq': self.ditherSeq
+            } != oldstate
         else:
             return self.__dict__ != oldstate.__dict__
 
     def isSlewingDisabled(self):
         if (self.cmd and self.cmd.isAlive()):
-            return "slewing disallowed for MaNGA, with a sequence in progress."
+            return 'slewing disallowed for MaNGA, with a sequence in progress.'
         else:
             return False
 
@@ -719,20 +712,19 @@ class DoMangaSequenceCmd(CmdState):
 
 
 class DoMangaDitherCmd(CmdState):
+
     def __init__(self):
-        CmdState.__init__(self, 'doMangaDither',
-                          ['expose','dither'],
-                          keywords=dict(expTime=900.0,
-                                        dither='C'))
+        CmdState.__init__(
+            self, 'doMangaDither', ['expose', 'dither'], keywords=dict(expTime=900.0, dither='C'))
 
     def reset_nonkeywords(self):
         self.readout = True
 
     def isSlewingDisabled(self):
         """If slewing is disabled, return a string describing why, else False."""
-        exp_state,exp_text = self.isSlewingDisabled_BOSS()
+        exp_state, exp_text = self.isSlewingDisabled_BOSS()
         if (self.cmd and self.cmd.isAlive() and exp_state):
-            return "slewing disallowed for MaNGA, with 1 science exposures left%s"%exp_text
+            return 'slewing disallowed for MaNGA, with 1 science exposures left%s' % exp_text
         else:
             return False
 
@@ -746,17 +738,16 @@ class DoMangaDitherCmd(CmdState):
 
     def abort(self):
         self.stop_boss_exposure(wait=True)
-        super(DoMangaDitherCmd,self).abort()
+        super(DoMangaDitherCmd, self).abort()
 
 
 class DoApogeeMangaDitherCmd(CmdState):
+
     def __init__(self):
-        CmdState.__init__(self, 'doApogeeMangaDither',
-                          ['expose','dither'],
-                          keywords=dict(mangaExpTime=900.0,
-                                        apogeeExpTime=450.0,
-                                        mangaDither='C',
-                                        comment=''))
+        CmdState.__init__(
+            self,
+            'doApogeeMangaDither', ['expose', 'dither'],
+            keywords=dict(mangaExpTime=900.0, apogeeExpTime=450.0, mangaDither='C', comment=''))
 
         self.apogee_long = False
 
@@ -765,11 +756,10 @@ class DoApogeeMangaDitherCmd(CmdState):
 
     def set_apogeeLead(self, apogeeExpTime=None):
         """Setup to use this for APOGEE lead observations."""
-        self.keywords=dict(mangaDither='C',
-                           comment='')
+        self.keywords = dict(mangaDither='C', comment='')
 
         self.mangaDither = 'C'
-        self.mangaExpTime=900.0
+        self.mangaExpTime = 900.0
 
         if apogeeExpTime is None or apogeeExpTime <= 500:
             self.apogee_long = False
@@ -782,11 +772,10 @@ class DoApogeeMangaDitherCmd(CmdState):
 
     def set_manga(self):
         """Setup to use this for MaNGA (stare or dither) observations."""
-        self.keywords=dict(mangaDither='C',
-                           comment='')
+        self.keywords = dict(mangaDither='C', comment='')
         self.mangaDither = 'C'
-        self.mangaExpTime=900.0
-        self.apogeeExpTime=450.0
+        self.mangaExpTime = 900.0
+        self.apogeeExpTime = 450.0
         self.apogee_long = False
 
     def set_manga10(self):
@@ -800,35 +789,32 @@ class DoApogeeMangaDitherCmd(CmdState):
 
     def getUserKeys(self):
         msg = []
-        msg.append("%s_expTime=%s,%s" % (self.name, self.mangaExpTime, self.apogeeExpTime))
+        msg.append('%s_expTime=%s,%s' % (self.name, self.mangaExpTime, self.apogeeExpTime))
         return msg
 
     def isSlewingDisabled(self):
         """If slewing is disabled, return a string describing why, else False."""
         boss_disabled, boss_text = self.isSlewingDisabled_BOSS()
         apogee_disabled, apogee_text = self.isSlewingDisabled_APOGEE()
-        if ((self.cmd and self.cmd.isAlive()) and
-                (boss_disabled or apogee_disabled)):
+        if ((self.cmd and self.cmd.isAlive()) and (boss_disabled or apogee_disabled)):
             return ('slewing disallowed for APOGEE&MaNGA, '
-                    'with 1 science exposures left{0}{1}'.format(boss_text,
-                                                                 apogee_text))
+                    'with 1 science exposures left{0}{1}'.format(boss_text, apogee_text))
         else:
             return False
 
     def abort(self):
         self.stop_boss_exposure(wait=True)
         self.stop_apogee_exposure()
-        super(DoApogeeMangaDitherCmd,self).abort()
+        super(DoApogeeMangaDitherCmd, self).abort()
 
 
 class DoApogeeMangaSequenceCmd(CmdState):
+
     def __init__(self):
-        CmdState.__init__(self, 'doApogeeMangaSequence',
-                          ['expose', 'calibs', 'dither'],
-                          keywords=dict(mangaDithers='NSE',
-                                        count=2,
-                                        etr=0,
-                                        comment=''))
+        CmdState.__init__(
+            self,
+            'doApogeeMangaSequence', ['expose', 'calibs', 'dither'],
+            keywords=dict(mangaDithers='NSE', count=2, etr=0, comment=''))
         self.mangaExpTime = 0
         self.apogeeExpTime = 0
         self.etr = 0
@@ -844,9 +830,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
 
     def set_apogeeLead(self, apogeeExpTime=None):
         """Setup to use this for APOGEE lead observations."""
-        self.keywords = dict(mangaDithers='CC',
-                             count=2,
-                             comment='')
+        self.keywords = dict(mangaDithers='CC', count=2, comment='')
 
         self.mangaDithers = 'CC'
         self.count = 2
@@ -868,10 +852,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
 
     def set_mangaDither(self):
         """Setup to use this for MaNGA dither observations."""
-        self.keywords = dict(mangaDithers='NSE',
-                             count=2,
-                             etr=0,
-                             comment='')
+        self.keywords = dict(mangaDithers='NSE', count=2, etr=0, comment='')
         self.count = 2
         self.mangaDithers = 'NSE'
         self.mangaExpTime = 900.0
@@ -885,10 +866,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
     def set_manga10(self):
         """Setup to use this for MaNGA dithered 10 min exposures."""
 
-        self.keywords = dict(mangaDithers='NSE',
-                             count=1,
-                             etr=0,
-                             comment='')
+        self.keywords = dict(mangaDithers='NSE', count=1, etr=0, comment='')
         self.count = 1
         self.mangaDithers = 'NSE'
         self.mangaExpTime = 600.0
@@ -901,10 +879,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
 
     def set_mangaStare(self):
         """Setup to use this for MaNGA stare observations."""
-        self.keywords = dict(mangaDithers='CCC',
-                             count=2,
-                             etr=0,
-                             comment='')
+        self.keywords = dict(mangaDithers='CCC', count=2, etr=0, comment='')
         self.count = 2
         self.mangaDithers = 'CCC'
         self.mangaExpTime = 900.0
@@ -939,9 +914,9 @@ class DoApogeeMangaSequenceCmd(CmdState):
 
     def getUserKeys(self):
         msg = []
-        msg.append("%s_ditherSeq=%s,%s" % (self.name, self.mangaDitherSeq, self.index))
-        msg.append("%s_expTime=%s,%s" % (self.name, self.mangaExpTime, self.apogeeExpTime))
-        msg.append("{0}_etr={1},{2}".format(self.name, self.etr, self.keywords['etr']))
+        msg.append('%s_ditherSeq=%s,%s' % (self.name, self.mangaDitherSeq, self.index))
+        msg.append('%s_expTime=%s,%s' % (self.name, self.mangaExpTime, self.apogeeExpTime))
+        msg.append('{0}_etr={1},{2}'.format(self.name, self.etr, self.keywords['etr']))
         return msg
 
     def exposures_remain(self):
@@ -978,11 +953,10 @@ class DoApogeeMangaSequenceCmd(CmdState):
 
         midSequence = self.exposures_remain()
 
-        if (self.cmd and self.cmd.isAlive() and
-                (apogee_disabled or boss_disabled or midSequence)):
+        if (self.cmd and self.cmd.isAlive() and (apogee_disabled or boss_disabled or midSequence)):
             return ('slewing disallowed for APOGEE&MaNGA, with a sequence in '
-                    'progress{0}{1}; {2} exposure(s) remaining'
-                    .format(boss_text, apogee_text, self.nExposureRemain))
+                    'progress{0}{1}; {2} exposure(s) remaining'.format(
+                        boss_text, apogee_text, self.nExposureRemain))
         else:
             return False
 

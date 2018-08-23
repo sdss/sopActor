@@ -8,12 +8,11 @@
 # @Last modified by:   Brian
 # @Last Modified time: 2016-06-10 13:05:43
 
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function
 
 import opscore.protocols.keys as keys
 import opscore.protocols.types as types
 from opscore.utility.qstr import qstr
-
 from sopActor.Commands import SopCmd
 
 
@@ -27,6 +26,3 @@ class SopCmd_LCO(SopCmd.SopCmd):
 
         # Define new commands for LCO
         pass
-
-
-

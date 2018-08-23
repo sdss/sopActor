@@ -10,37 +10,30 @@
 #    1 Jun 2016 J. Sánchez-Gallego
 #       Initial version of SopActor.py using the SDSSActor class
 
-
-from __future__ import division
-from __future__ import print_function
-
+from __future__ import division, print_function
 
 import abc
 import os
 
-import opscore.actor.model
-import opscore.actor.keyvar
-
 import actorcore.Actor
-
+import apogeeThread
+import bossThread
+import ffsThread
+import gcameraThread
+import guiderThread
+import lampThreads
 # modules that have threads to run
 import masterThread
-import bossThread
-import apogeeThread
-import guiderThread
-import gcameraThread
-import ffsThread
-import lampThreads
-import tccThread
+import opscore.actor.keyvar
+import opscore.actor.model
 import scriptThread
 import slewThread
-
 import sopActor
-from sopActor import myGlobals
-from sopActor.utils.guider import GuiderState
-from sopActor.utils.gang import ApogeeGang
-
+import tccThread
 from bypass import Bypass
+from sopActor import myGlobals
+from sopActor.utils.gang import ApogeeGang
+from sopActor.utils.guider import GuiderState
 
 
 class SopActor(actorcore.Actor.SDSSActor):
@@ -63,15 +56,21 @@ class SopActor(actorcore.Actor.SDSSActor):
         elif location == 'LOCAL':
             return SopActorLocal('sop', productName='sopActor', **kwargs)
         else:
-            raise KeyError('Don\'t know my location: cannot '
-                           'return a working Actor!')
+            raise KeyError('Don\'t know my location: cannot ' 'return a working Actor!')
 
-    def __init__(self, name, productName=None, configFile=None, debugLevel=30,
+    def __init__(self,
+                 name,
+                 productName=None,
+                 configFile=None,
+                 debugLevel=30,
                  makeCmdrConnection=True):
 
-        actorcore.Actor.Actor.__init__(self, name, productName=productName,
-                                       configFile=configFile,
-                                       makeCmdrConnection=makeCmdrConnection)
+        actorcore.Actor.Actor.__init__(
+            self,
+            name,
+            productName=productName,
+            configFile=configFile,
+            makeCmdrConnection=makeCmdrConnection)
 
         self.version = sopActor.__version__
 
@@ -81,27 +80,28 @@ class SopActor(actorcore.Actor.SDSSActor):
         sopActor.myGlobals.bypass = Bypass()
 
         # Define the Thread list
-        self.threadList = [
-            ('master', sopActor.MASTER, masterThread),
-            ('boss', sopActor.BOSS, bossThread),
-            ('apogee', sopActor.APOGEE, apogeeThread),
-            ('apogeeScript', sopActor.APOGEE_SCRIPT, apogeeThread.script_main),
-            ('script', sopActor.SCRIPT, scriptThread),
-            ('guider', sopActor.GUIDER, guiderThread),
-            ('gcamera', sopActor.GCAMERA, gcameraThread),
-            ('ff', sopActor.FF_LAMP, lampThreads.ff_main),
-            ('hgcd', sopActor.HGCD_LAMP, lampThreads.hgcd_main),
-            ('ne', sopActor.NE_LAMP, lampThreads.ne_main),
-            ('uv', sopActor.UV_LAMP, lampThreads.uv_main),
-            ('wht', sopActor.WHT_LAMP, lampThreads.wht_main),
-            ('ffs', sopActor.FFS, ffsThread),
-            ('tcc', sopActor.TCC, tccThread),
-            ('slew', sopActor.SLEW, slewThread)]
+        self.threadList = [('master', sopActor.MASTER,
+                            masterThread), ('boss', sopActor.BOSS,
+                                            bossThread), ('apogee', sopActor.APOGEE, apogeeThread),
+                           ('apogeeScript', sopActor.APOGEE_SCRIPT,
+                            apogeeThread.script_main), ('script', sopActor.SCRIPT,
+                                                        scriptThread), ('guider', sopActor.GUIDER,
+                                                                        guiderThread),
+                           ('gcamera', sopActor.GCAMERA,
+                            gcameraThread), ('ff', sopActor.FF_LAMP,
+                                             lampThreads.ff_main), ('hgcd', sopActor.HGCD_LAMP,
+                                                                    lampThreads.hgcd_main),
+                           ('ne', sopActor.NE_LAMP,
+                            lampThreads.ne_main), ('uv', sopActor.UV_LAMP,
+                                                   lampThreads.uv_main), ('wht', sopActor.WHT_LAMP,
+                                                                          lampThreads.wht_main),
+                           ('ffs', sopActor.FFS, ffsThread), ('tcc', sopActor.TCC,
+                                                              tccThread), ('slew', sopActor.SLEW,
+                                                                           slewThread)]
 
         # Explicitly load other actor models.
         self.models = {}
-        for actor in ['boss', 'guider', 'platedb', 'mcp',
-                      'sop', 'tcc', 'apogee', 'hartmann']:
+        for actor in ['boss', 'guider', 'platedb', 'mcp', 'sop', 'tcc', 'apogee', 'hartmann']:
             self.models[actor] = opscore.actor.model.Model(actor)
 
         self.actorState = actorcore.Actor.ActorState(self, self.models)
@@ -136,12 +136,13 @@ class SopActorAPO(SopActor):
         sopActor.myGlobals.warmupTime = {}
         for i in range(0, len(warmupList), 2):
             k, v = warmupList[i:i + 2]
-            sopActor.myGlobals.warmupTime[{'ff': sopActor.FF_LAMP,
-                                           'hgcd': sopActor.HGCD_LAMP,
-                                           'ne': sopActor.NE_LAMP,
-                                           'wht': sopActor.WHT_LAMP,
-                                           'uv': sopActor.UV_LAMP
-                                           }[k.lower()]] = float(v)
+            sopActor.myGlobals.warmupTime[{
+                'ff': sopActor.FF_LAMP,
+                'hgcd': sopActor.HGCD_LAMP,
+                'ne': sopActor.NE_LAMP,
+                'wht': sopActor.WHT_LAMP,
+                'uv': sopActor.UV_LAMP
+            }[k.lower()]] = float(v)
 
 
 class SopActorLCO(SopActor):
@@ -164,9 +165,10 @@ class SopActorLocal(SopActor):
         sopActor.myGlobals.warmupTime = {}
         for i in range(0, len(warmupList), 2):
             k, v = warmupList[i:i + 2]
-            sopActor.myGlobals.warmupTime[{'ff': sopActor.FF_LAMP,
-                                           'hgcd': sopActor.HGCD_LAMP,
-                                           'ne': sopActor.NE_LAMP,
-                                           'wht': sopActor.WHT_LAMP,
-                                           'uv': sopActor.UV_LAMP
-                                           }[k.lower()]] = float(v)
+            sopActor.myGlobals.warmupTime[{
+                'ff': sopActor.FF_LAMP,
+                'hgcd': sopActor.HGCD_LAMP,
+                'ne': sopActor.NE_LAMP,
+                'wht': sopActor.WHT_LAMP,
+                'uv': sopActor.UV_LAMP
+            }[k.lower()]] = float(v)

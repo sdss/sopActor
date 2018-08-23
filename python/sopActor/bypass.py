@@ -2,29 +2,27 @@
 Allow SOP to ignore errors and fake state by setting a bypass.
 """
 
+
 class Bypass(object):
     """
     Provide bypasses for subsystems
 
     A failure code from a bypassed subsystem will not cause a MultiCommand to fail
     """
+
     def __init__(self):
         """Define what can be bypassed on init, and clear them all."""
         self._bypassed = {}
-        for ss in ("ffs", "lamp_ff", "lamp_hgcd", "lamp_ne",
-                   "axes", "slewToField", "guiderDark",
-                   "isBoss", "isApogee",
-                   "isMangaDither", 'isManga10', "isMangaStare", 'isMaStar',
-                   "isApogeeLead", "isApogeeMangaDither", "isApogeeMangaStare",
-                   'isApogeeMangaMaStar', 'isApogeeManga10',
-                   "gangToCart", "gangToPodium"):
+        for ss in ('ffs', 'lamp_ff', 'lamp_hgcd', 'lamp_ne', 'axes', 'slewToField', 'guiderDark',
+                   'isBoss', 'isApogee', 'isMangaDither', 'isManga10', 'isMangaStare', 'isMaStar',
+                   'isApogeeLead', 'isApogeeMangaDither', 'isApogeeMangaStare',
+                   'isApogeeMangaMaStar', 'isApogeeManga10', 'gangToCart', 'gangToPodium'):
             self._bypassed[ss] = False
 
         # The bypasses in these groups are mutually-contradictory.
-        self.cartBypasses = ("isBoss", "isApogee",
-                             "isMangaDither", 'isManga10', "isMangaStare", 'isMaStar',
-                             "isApogeeLead", "isApogeeMangaDither", "isApogeeMangaStare",
-                             'isApogeeMangaMaStar', 'isApogeeManga10')
+        self.cartBypasses = ('isBoss', 'isApogee', 'isMangaDither', 'isManga10', 'isMangaStare',
+                             'isMaStar', 'isApogeeLead', 'isApogeeMangaDither',
+                             'isApogeeMangaStare', 'isApogeeMangaMaStar', 'isApogeeManga10')
         self.gangBypasses = ('gangToPodium', 'gangToCart')
 
     def set(self, name, bypassed=True):
@@ -60,6 +58,7 @@ class Bypass(object):
     def is_cart_bypass(self, name):
         """Return true if this is a cartridge bypass."""
         return name in self.cartBypasses
+
     def is_gang_bypass(self, name):
         """Return true if this is a cartridge bypass."""
         return name in self.gangBypasses
@@ -76,11 +75,11 @@ class Bypass(object):
 
     def get_bypassedNames(self):
         """Return an alphabetized list of currently-bypassed systems, for keyword output."""
-        values = [k for k,v in sorted(self._bypassed.items()) if v]
+        values = [k for k, v in sorted(self._bypassed.items()) if v]
         return values
 
     def get_bypass_list(self):
         """Return a tuple of two lists (bypassNames, bypassedState) for keyword output."""
         keys = sorted(self._bypassed)
-        values = [int(v) for k,v in sorted(self._bypassed.items())]
+        values = [int(v) for k, v in sorted(self._bypassed.items())]
         return keys, values

@@ -4,16 +4,18 @@ Test the multiCommand system.
 import threading
 import unittest
 
-from sopActor import Queue, Msg, myGlobals
-from sopActor.multiCommand import Precondition, MultiCommand
-
 import sopTester
+from sopActor import Msg, Queue, myGlobals
+from sopActor.multiCommand import MultiCommand, Precondition
+
 
 class PreconditionUnneeded(Precondition):
+
     def required(self):
         return False
 
-class TestMultiCommand(sopTester.SopTester,unittest.TestCase):
+
+class TestMultiCommand(sopTester.SopTester, unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         """Load up the cmd calls for this test class."""
@@ -28,15 +30,18 @@ class TestMultiCommand(sopTester.SopTester,unittest.TestCase):
         self.tid = sopTester.TEST_QUEUE
         self.queueName = 'testMultiCmd'
         self.msgs = [Msg.LAMP_ON, Msg.FFS_MOVE, Msg.STATUS, Msg.SLEW]
-        super(TestMultiCommand,self).setUp()
+        super(TestMultiCommand, self).setUp()
         self.timeout = 2
         self.multiCmd = MultiCommand(self.cmd, self.timeout, 'testMultiCmd.stage')
 
-        self.queue = Queue(self.queueName,0)
-        self.queues = {self.tid:self.queue}
+        self.queue = Queue(self.queueName, 0)
+        self.queues = {self.tid: self.queue}
         actorState = myGlobals.actorState
         actorState.queues = self.queues
-        actorState.threads[self.tid] = threading.Thread(target=sopTester.FakeThread, name=self.queueName, args=[actorState.actor,actorState.queues])
+        actorState.threads[self.tid] = threading.Thread(
+            target=sopTester.FakeThread,
+            name=self.queueName,
+            args=[actorState.actor, actorState.queues])
         actorState.threads[self.tid].daemon = True
         actorState.threads[self.tid].start()
 
@@ -44,6 +49,7 @@ class TestMultiCommand(sopTester.SopTester,unittest.TestCase):
         """Prep self.multiCmd with pre-arranged messages"""
         self.multiCmd.append(self.tid, self.msgs[0])
         self.multiCmd.append(self.tid, self.msgs[1])
+
     def _prep_multiCmd_pre(self):
         """Prep self.multiCmd with pre-arranged messages"""
         self.multiCmd.append(Precondition(self.tid, self.msgs[0]))
@@ -79,37 +85,36 @@ class TestMultiCommand(sopTester.SopTester,unittest.TestCase):
     def test_append_precondition_with_msgId(self):
         with self.assertRaises(AssertionError):
             self.multiCmd.append(Precondition(self.tid), Msg.DONE)
+
     def test_append_no_msgId(self):
         with self.assertRaises(AssertionError):
             self.multiCmd.append(self.tid)
-
 
     def test_run_nopre(self):
         self._prep_multiCmd_nopre()
         result = self.multiCmd.run()
         self.assertTrue(result)
-        self._check_cmd(2,3,0,0,False, didFail=not result)
+        self._check_cmd(2, 3, 0, 0, False, didFail=not result)
 
     def test_run_pre(self):
         self._prep_multiCmd_pre()
         result = self.multiCmd.run()
         self.assertTrue(result)
-        self._check_cmd(4,6,0,0,False, didFail=not result)
+        self._check_cmd(4, 6, 0, 0, False, didFail=not result)
 
     def test_run_nopre_fails(self):
         self.cmd.failOn = 'testMultiCmd sopActor.LAMP_ON'
         self._prep_multiCmd_nopre()
         result = self.multiCmd.run()
         self.assertFalse(result)
-        self._check_cmd(2,3,0,0,False, didFail=not result)
+        self._check_cmd(2, 3, 0, 0, False, didFail=not result)
 
     def test_run_timesout(self):
         self.multiCmd.append(self.tid, Msg.EXIT)
         self._prep_multiCmd_nopre()
         result = self.multiCmd.run()
         self.assertFalse(result)
-        self._check_cmd(0,3,1,0,False, didFail=not result)
-
+        self._check_cmd(0, 3, 1, 0, False, didFail=not result)
 
 
 if __name__ == '__main__':

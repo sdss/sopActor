@@ -21,28 +21,26 @@ being read. The slew can only happen when the isSlewDisable is False.
 
 """
 
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
 
 import Queue
 import threading
 
-from sopActor import Msg
 import sopActor
 import sopActor.myGlobals as myGlobals
-from sopActor.multiCommand import MultiCommand
+from sopActor import Msg
 from sopActor import masterThread as master
+from sopActor.multiCommand import MultiCommand
 
 
 def goto_position(cmd, cmdState, actorState):
     """Goes to a certain (az, alt, rot) position."""
 
-    finishMsg = "On position."
+    finishMsg = 'On position.'
 
     # TODO: I think this line does not do anything. It should be removed and
     # then tested.
-    multiCmd = master.SopMultiCommand(cmd, actorState.timeout + 100,
-                                      cmdState.name + ".slew")
+    multiCmd = master.SopMultiCommand(cmd, actorState.timeout + 100, cmdState.name + '.slew')
     cmdState.setStageState('slew', 'running')
 
     # Heading towards the instrument change pos.
@@ -56,21 +54,19 @@ def goto_position(cmd, cmdState, actorState):
     # Start with an axis init, in case the axes are not clear.
     multiCmd.append(master.SopPrecondition(sopActor.TCC, Msg.AXIS_INIT))
 
-    multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState,
-                    az=az, alt=alt, rot=rot)
+    multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState, az=az, alt=alt, rot=rot)
 
     multiCmd.append(sopActor.TCC, Msg.AXIS_STOP, actorState=actorState)
 
-    if not master.handle_multiCmd(multiCmd, cmd, cmdState, 'slew',
-                                  'Failed to slew to position az={0}, alt={1},'
-                                  ' rot={2}'.format(az, alt, rot)):
+    if not master.handle_multiCmd(
+            multiCmd, cmd, cmdState, 'slew', 'Failed to slew to position az={0}, alt={1},'
+            ' rot={2}'.format(az, alt, rot)):
         return
 
     master.finish_command(cmd, cmdState, actorState, finishMsg)
 
 
-def apogee_dome_flat(cmd, cmdState, actorState, multiCmd,
-                     failMsg='failed to take APOGEE flat'):
+def apogee_dome_flat(cmd, cmdState, actorState, multiCmd, failMsg='failed to take APOGEE flat'):
     """Takes an APOGEE dome flat.
 
     Take an APOGEE dome flat: shutter open, FFS closed, FFlamp on very briefly.
@@ -83,14 +79,11 @@ def apogee_dome_flat(cmd, cmdState, actorState, multiCmd,
 
     master.prep_apogee_shutter(multiCmd, open=True)
 
-    multiCmd.append(master.SopPrecondition(sopActor.FFS,
-                                           Msg.FFS_MOVE, open=False))
+    multiCmd.append(master.SopPrecondition(sopActor.FFS, Msg.FFS_MOVE, open=False))
 
     multiCmd.append(sopActor.APOGEE_SCRIPT, Msg.POST_FLAT, cmdState=cmdState)
 
-    doMultiCmd = master.handle_multiCmd(multiCmd, cmd,
-                                        cmdState, 'domeFlat', failMsg,
-                                        finish=True)
+    doMultiCmd = master.handle_multiCmd(multiCmd, cmd, cmdState, 'domeFlat', failMsg, finish=True)
 
     if not doMultiCmd:
         return False
@@ -128,27 +121,22 @@ def goto_gang_change(cmd, cmdState, actorState, failMsg=None):
 
         # If the gang connector is at the cartridge, we should do cals.
         if gangCart and actorState.survey != sopActor.BOSS:
-            cmd.inform('text="scheduling dome flat: {0}"'
-                       .format(actorState.survey))
-            doCals = apogee_dome_flat(cmd, cmdState, actorState,
-                                      multiCmd, failMsg)
+            cmd.inform('text="scheduling dome flat: {0}"'.format(actorState.survey))
+            doCals = apogee_dome_flat(cmd, cmdState, actorState, multiCmd, failMsg)
             if not doCals:
                 return
         else:
             gangAt = actorState.apogeeGang.getPos()
-            cmd.inform('text="Skipping flat with {0} and {1}"'
-                       .format(gangAt, actorState.survey))
+            cmd.inform('text="Skipping flat with {0} and {1}"'.format(gangAt, actorState.survey))
             cmdState.setStageState('domeFlat', 'idle')
 
     if cmdState.doSlew:
-        multiCmd = master.SopMultiCommand(cmd, actorState.timeout + 100,
-                                          cmdState.name + '.slew')
+        multiCmd = master.SopMultiCommand(cmd, actorState.timeout + 100, cmdState.name + '.slew')
         cmdState.setStageState('slew', 'running')
 
         # Close the FFS, to prevent excess light
         # incase of slews past the moon, etc.
-        multiCmd.append(
-            master.SopPrecondition(sopActor.FFS, Msg.FFS_MOVE, open=False))
+        multiCmd.append(master.SopPrecondition(sopActor.FFS, Msg.FFS_MOVE, open=False))
 
         tccDict = actorState.models['tcc'].keyVarDict
         if gangCart:
@@ -188,13 +176,11 @@ def goto_gang_change(cmd, cmdState, actorState, failMsg=None):
             # used to do darks on the way to the field.
             # multiCmd.append(sopActor.APOGEE_SCRIPT, Msg.APOGEE_PARK_DARKS)
 
-        multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState,
-                        az=az, alt=alt, rot=rot)
+        multiCmd.append(sopActor.TCC, Msg.SLEW, actorState=actorState, az=az, alt=alt, rot=rot)
 
         multiCmd.append(sopActor.TCC, Msg.AXIS_STOP, actorState=actorState)
 
-        doMultiCmd = master.handle_multiCmd(multiCmd, cmd, cmdState,
-                                            'slew',
+        doMultiCmd = master.handle_multiCmd(multiCmd, cmd, cmdState, 'slew',
                                             'Failed to slew to gang change')
         if not doMultiCmd:
             return
@@ -226,7 +212,7 @@ def main(actor, queues):
             elif msg.type == Msg.DO_APOGEE_DOME_FLAT:
                 cmd, cmdState, actorState = master.preprocess_msg(msg)
                 name = 'apogeeDomeFlat'
-                finishMsg = "Dome flat done."
+                finishMsg = 'Dome flat done.'
                 # 50 seconds is the read time for this exposure.
                 multiCmd = MultiCommand(cmd, actorState.timeout + 50, name)
                 # the dome flat command sends a fail msg if it fails.

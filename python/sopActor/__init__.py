@@ -16,17 +16,40 @@ import bypass
 try:
     APOGEE
 except NameError:
-    class APOGEE(): pass
-    class BOSS(): pass
-    class MANGA(): pass
-    class MANGASTARE(): pass
-    class MASTAR(): pass
-    class MANGADITHER(): pass
-    class MANGA10(): pass
-    class APOGEELEAD(): pass
-    class APOGEEMANGA(): pass
-    class ECAMERA(): pass
-    class UNKNOWN(): pass
+
+    class APOGEE():
+        pass
+
+    class BOSS():
+        pass
+
+    class MANGA():
+        pass
+
+    class MANGASTARE():
+        pass
+
+    class MASTAR():
+        pass
+
+    class MANGADITHER():
+        pass
+
+    class MANGA10():
+        pass
+
+    class APOGEELEAD():
+        pass
+
+    class APOGEEMANGA():
+        pass
+
+    class ECAMERA():
+        pass
+
+    class UNKNOWN():
+        pass
+
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
@@ -35,27 +58,59 @@ except NameError:
 try:
     MASTER
 except NameError:
-    class MASTER(): pass
-    class FFS(): pass                       # Flat Field Screen
-    class FF_LAMP(): pass                   # FF lamps
-    class HGCD_LAMP(): pass                 # HgCd lamps
-    class HARTMANN(): pass                  # Do a Hartmann sequence
-    class NE_LAMP(): pass                   # Ne lamps
-    class UV_LAMP(): pass                   # uv lamps
-    class WHT_LAMP(): pass                  # WHT lamps
-    class BOSS(): pass                      # command the Boss ICC
-    class GCAMERA(): pass                   # command the gcamera ICC
-    class GUIDER(): pass                    # command the guider
-    class TCC(): pass                       # command the TCC
-    class APOGEE_SCRIPT(): pass
-    class SCRIPT(): pass
-    class SLEW(): pass                      # Slew the telescope.
+
+    class MASTER():
+        pass
+
+    class FFS():
+        pass  # Flat Field Screen
+
+    class FF_LAMP():
+        pass  # FF lamps
+
+    class HGCD_LAMP():
+        pass  # HgCd lamps
+
+    class HARTMANN():
+        pass  # Do a Hartmann sequence
+
+    class NE_LAMP():
+        pass  # Ne lamps
+
+    class UV_LAMP():
+        pass  # uv lamps
+
+    class WHT_LAMP():
+        pass  # WHT lamps
+
+    class BOSS():
+        pass  # command the Boss ICC
+
+    class GCAMERA():
+        pass  # command the gcamera ICC
+
+    class GUIDER():
+        pass  # command the guider
+
+    class TCC():
+        pass  # command the TCC
+
+    class APOGEE_SCRIPT():
+        pass
+
+    class SCRIPT():
+        pass
+
+    class SLEW():
+        pass  # Slew the telescope.
+
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 try:
     Msg
 except NameError:
+
     class Msg(object):
         # Priorities
         CRITICAL = 0
@@ -64,55 +119,138 @@ except NameError:
         NORMAL = 6
 
         # Command types; use classes so that the unique IDs are automatically generated
-        class DO_BOSS_CALIBS(): pass
-        class DITHERED_FLAT(): pass
-        class SINGLE_HARTMANN(): pass
-        class HARTMANN(): pass
-        class COLLIMATE_BOSS(): pass
-        class DO_BOSS_SCIENCE(): pass
-        class DO_APOGEE_EXPOSURES(): pass
-        class DO_MANGA_DITHER(): pass
-        class DO_MANGA_SEQUENCE(): pass
-        class DO_APOGEEMANGA_DITHER(): pass
-        class DO_APOGEEMANGA_SEQUENCE(): pass
-        class DO_APOGEE_SKY_FLATS(): pass
-        class DO_APOGEE_DOME_FLAT(): pass
-        class MANGA_DITHER(): pass
-        class GOTO_GANG_CHANGE(): pass
-        class GOTO_POSITION(): pass
-        class DONE(): pass
-        class EXIT(): pass
-        class ENABLE(): pass
-        class FFS_MOVE(): pass
-        class FFS_COMPLETE(): pass
-        class GOTO_FIELD(): pass
-        class START(): pass
-        class LAMP_ON(): pass
-        class LAMP_COMPLETE(): pass
-        class STATUS(): pass
-        class EXPOSE(): pass
-        class EXPOSURE_FINISHED(): pass
-        class REPLY(): pass
-        class SLEW(): pass
-        class AXIS_INIT(): pass
-        class AXIS_STOP(): pass
-        class WAIT_UNTIL(): pass
-        class DITHER(): pass
-        class APOGEE_DITHER_SET(): pass
-        class DECENTER(): pass
-        class POST_FLAT(): pass
-        class APOGEE_SHUTTER(): pass            # control the internal APOGEE shutter
-        class APOGEE_PARK_DARKS(): pass
-        class NEW_SCRIPT(): pass
-        class STOP_SCRIPT(): pass
-        class SCRIPT_STEP(): pass
+        class DO_BOSS_CALIBS():
+            pass
+
+        class DITHERED_FLAT():
+            pass
+
+        class SINGLE_HARTMANN():
+            pass
+
+        class HARTMANN():
+            pass
+
+        class COLLIMATE_BOSS():
+            pass
+
+        class DO_BOSS_SCIENCE():
+            pass
+
+        class DO_APOGEE_EXPOSURES():
+            pass
+
+        class DO_MANGA_DITHER():
+            pass
+
+        class DO_MANGA_SEQUENCE():
+            pass
+
+        class DO_APOGEEMANGA_DITHER():
+            pass
+
+        class DO_APOGEEMANGA_SEQUENCE():
+            pass
+
+        class DO_APOGEE_SKY_FLATS():
+            pass
+
+        class DO_APOGEE_DOME_FLAT():
+            pass
+
+        class MANGA_DITHER():
+            pass
+
+        class GOTO_GANG_CHANGE():
+            pass
+
+        class GOTO_POSITION():
+            pass
+
+        class DONE():
+            pass
+
+        class EXIT():
+            pass
+
+        class ENABLE():
+            pass
+
+        class FFS_MOVE():
+            pass
+
+        class FFS_COMPLETE():
+            pass
+
+        class GOTO_FIELD():
+            pass
+
+        class START():
+            pass
+
+        class LAMP_ON():
+            pass
+
+        class LAMP_COMPLETE():
+            pass
+
+        class STATUS():
+            pass
+
+        class EXPOSE():
+            pass
+
+        class EXPOSURE_FINISHED():
+            pass
+
+        class REPLY():
+            pass
+
+        class SLEW():
+            pass
+
+        class AXIS_INIT():
+            pass
+
+        class AXIS_STOP():
+            pass
+
+        class WAIT_UNTIL():
+            pass
+
+        class DITHER():
+            pass
+
+        class APOGEE_DITHER_SET():
+            pass
+
+        class DECENTER():
+            pass
+
+        class POST_FLAT():
+            pass
+
+        class APOGEE_SHUTTER():
+            pass  # control the internal APOGEE shutter
+
+        class APOGEE_PARK_DARKS():
+            pass
+
+        class NEW_SCRIPT():
+            pass
+
+        class STOP_SCRIPT():
+            pass
+
+        class SCRIPT_STEP():
+            pass
 
         def __init__(self, type, cmd, **data):
             self.type = type
             self.cmd = cmd
             self.priority = Msg.NORMAL
 
-            self.duration = 0           # how long this command is expected to take (may be overridden by data)
+            self.duration = 0  # how long this command is expected to take (may be overridden by data)
             #
             # convert data[] into attributes
             #
@@ -123,13 +261,14 @@ except NameError:
         def __repr__(self):
             values = []
             for k in self.__data:
-                values.append("%s : %s" % (k, self.__getattribute__(k)))
+                values.append('%s : %s' % (k, self.__getattribute__(k)))
 
-            return "%s, %s: {%s}" % (self.type.__name__, self.cmd, ", ".join(values))
+            return '%s, %s: {%s}' % (self.type.__name__, self.cmd, ', '.join(values))
 
         def __cmp__(self, rhs):
             """Used when sorting the messages in a priority queue"""
             return self.priority - rhs.priority
+
 
 class Queue(_Queue.PriorityQueue):
     """A queue type that checks that the message is of the desired type"""
@@ -157,7 +296,7 @@ class Queue(_Queue.PriorityQueue):
             msg = Msg(arg0, *args, **kwds)
 
         msg.senderName = threading.current_thread().name
-        msg.senderName0 =  re.sub(r"(-\d+)?$", "", msg.senderName)
+        msg.senderName0 = re.sub(r"(-\d+)?$", '', msg.senderName)
         msg.senderQueue = self
 
         _Queue.Queue.put(self, msg)
@@ -171,14 +310,17 @@ class Queue(_Queue.PriorityQueue):
             except Queue.Empty:
                 return
 
+
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 
 def handle_bad_exception(actor, e, threadName, msg):
     """
     For each thread's "global" unexpected exception handler.
     Send error, dump stacktrace, try to reply with a failure.
     """
-    errMsg = qstr("Unexpected exception %s: %s, in sop %s thread" % (type(e).__name__, e, threadName))
+    errMsg = qstr(
+        'Unexpected exception %s: %s, in sop %s thread' % (type(e).__name__, e, threadName))
     actor.bcast.error('text=%s' % errMsg)
     tback(errMsg, e)
     try:
@@ -187,6 +329,6 @@ def handle_bad_exception(actor, e, threadName, msg):
         pass
 
 
-__all__ = ["MASTER", "Msg", "bypass", "CmdState"]
+__all__ = ['MASTER', 'Msg', 'bypass', 'CmdState']
 
 __version__ = '3.10.2'

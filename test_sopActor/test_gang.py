@@ -3,18 +3,22 @@ Test the gang connector logic in gang.py
 """
 import unittest
 
-import sopTester
-
-from sopActor.utils import gang
 import sopActor.myGlobals as myGlobals
+import sopTester
+from sopActor.utils import gang
+
 
 def setGang(state):
-    myGlobals.actorState.models['mcp'].keyVarDict['apogeeGang'].set([str(state),])
+    myGlobals.actorState.models['mcp'].keyVarDict['apogeeGang'].set([
+        str(state),
+    ])
 
-class Test_gang(sopTester.SopTester,unittest.TestCase):
+
+class Test_gang(sopTester.SopTester, unittest.TestCase):
+
     def setUp(self):
         self.verbose = False
-        super(Test_gang,self).setUp()
+        super(Test_gang, self).setUp()
         self.apogeeGang = gang.ApogeeGang()
 
     def test_at_podium(self):
@@ -24,7 +28,7 @@ class Test_gang(sopTester.SopTester,unittest.TestCase):
         self.assertTrue(self.apogeeGang.atPodium(sparseOK=True))
         self.assertTrue(self.apogeeGang.atPodium(one_mOK=True))
         self.assertFalse(self.apogeeGang.atCartridge())
-    
+
     def test_at_sparse(self):
         """Test that we are at the podium sparse port, not the cartridge."""
         setGang(20)
@@ -32,7 +36,7 @@ class Test_gang(sopTester.SopTester,unittest.TestCase):
         self.assertTrue(self.apogeeGang.atPodium(sparseOK=True))
         self.assertFalse(self.apogeeGang.atPodium(one_mOK=True))
         self.assertFalse(self.apogeeGang.atCartridge())
-    
+
     def test_at_dense(self):
         """Test that we are at the podium dense port, not the cartridge."""
         setGang(12)
@@ -56,7 +60,7 @@ class Test_gang(sopTester.SopTester,unittest.TestCase):
         self.assertFalse(self.apogeeGang.atPodium(sparseOK=True))
         self.assertFalse(self.apogeeGang.atPodium(one_mOK=True))
         self.assertTrue(self.apogeeGang.atCartridge())
-    
+
     def test_disconnected(self):
         """Test that the gang is disconnected."""
         setGang(1)
@@ -68,7 +72,7 @@ class Test_gang(sopTester.SopTester,unittest.TestCase):
     def test_at_podium_bypassed(self):
         """gang at podium, but that location is bypassed."""
         setGang(4)
-        myGlobals.bypass.set('gangToCart',True)
+        myGlobals.bypass.set('gangToCart', True)
         self.assertFalse(self.apogeeGang.atPodium())
         self.assertFalse(self.apogeeGang.atPodium(sparseOK=True))
         self.assertFalse(self.apogeeGang.atPodium(one_mOK=True))
@@ -77,11 +81,12 @@ class Test_gang(sopTester.SopTester,unittest.TestCase):
     def test_at_cart_bypassed(self):
         """gang at cart, but that location is bypassed."""
         setGang(2)
-        myGlobals.bypass.set('gangToPodium',True)
+        myGlobals.bypass.set('gangToPodium', True)
         self.assertTrue(self.apogeeGang.atPodium())
         self.assertTrue(self.apogeeGang.atPodium(sparseOK=True))
         self.assertTrue(self.apogeeGang.atPodium(one_mOK=True))
         self.assertFalse(self.apogeeGang.atCartridge())
+
 
 if __name__ == '__main__':
     unittest.main()

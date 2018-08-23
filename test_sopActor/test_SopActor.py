@@ -8,25 +8,23 @@
 #     Initial Version: 2016-06-09 16:21:28 by Brian Cherinka
 #     Last Modified On: 2016-06-09 16:21:28 by Brian
 
+from __future__ import absolute_import, division, print_function
 
-from __future__ import print_function, division, absolute_import
 import unittest
 
-from actorcore import Actor
-from opscore.actor import Model, KeyVarDispatcher
-from actorcore import TestHelper
-
 import sopTester
-
+from actorcore import Actor, TestHelper
+from opscore.actor import KeyVarDispatcher, Model
 from sopActor import SopActor
 
-logDirBase = 'temp/'
 
+logDirBase = 'temp/'
 ''' unit tests for SopActor '''
 
 
 class SopActorTester(unittest.TestCase):
     """Parent class for tests that actually need a proper sopActor instance."""
+
     @classmethod
     def setUpClass(cls):
         # can only configure the dispatcher once.
@@ -54,6 +52,7 @@ class SopActorTester(unittest.TestCase):
 
 
 class TestSopActor(SopActorTester):
+
     def test_init_fails(self):
         with self.assertRaises(KeyError):
             self.sop = SopActor.SopActor.newActor(location='nonsense', makeCmdrConnection=False)

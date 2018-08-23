@@ -4,58 +4,71 @@
 # @Filename: SopCmd.py
 # @License: BSD 3-Clause
 
+from __future__ import absolute_import, division, print_function
 
-from __future__ import division
-from __future__ import print_function
-from __future__ import absolute_import
-
-""" Wrap top-level ICC functions. """
-
+import glob
+import os
 import threading
 
 import opscore.protocols.keys as keys
 import opscore.protocols.types as types
-
-from opscore.utility.qstr import qstr
-
-import glob
-import os
-
-from sopActor import CmdState, Msg
 import sopActor
 import sopActor.myGlobals as myGlobals
+from opscore.utility.qstr import qstr
+from sopActor import CmdState, Msg
 from sopActor.multiCommand import MultiCommand
+
+
+""" Wrap top-level ICC functions. """
+
+
+
+
+
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-
 # SDSS-IV plates should all be "APOGEE-2;MaNGA", but we need both,
 # for test plates drilled as part of SDSS-III.
-survey_dict = {'UNKNOWN': sopActor.UNKNOWN, 'ecamera': sopActor.ECAMERA,
-               'BOSS': sopActor.BOSS, 'eBOSS': sopActor.BOSS,
-               'APOGEE': sopActor.APOGEE, 'APOGEE-2': sopActor.APOGEE,
-               'MaNGA': sopActor.MANGA,
-               'APOGEE-2&MaNGA': sopActor.APOGEEMANGA,
-               'APOGEE&MaNGA': sopActor.APOGEEMANGA}
-surveyMode_dict = {'None': None, None: None,
-                   'APOGEE lead': sopActor.APOGEELEAD,
-                   'MaNGA dither': sopActor.MANGADITHER,
-                   'MaNGA 10min': sopActor.MANGA10,
-                   'MaNGA stare': sopActor.MANGASTARE,
-                   'MaStar': sopActor.MASTAR}
+survey_dict = {
+    'UNKNOWN': sopActor.UNKNOWN,
+    'ecamera': sopActor.ECAMERA,
+    'BOSS': sopActor.BOSS,
+    'eBOSS': sopActor.BOSS,
+    'APOGEE': sopActor.APOGEE,
+    'APOGEE-2': sopActor.APOGEE,
+    'MaNGA': sopActor.MANGA,
+    'APOGEE-2&MaNGA': sopActor.APOGEEMANGA,
+    'APOGEE&MaNGA': sopActor.APOGEEMANGA
+}
+surveyMode_dict = {
+    'None': None,
+    None: None,
+    'APOGEE lead': sopActor.APOGEELEAD,
+    'MaNGA dither': sopActor.MANGADITHER,
+    'MaNGA 10min': sopActor.MANGA10,
+    'MaNGA stare': sopActor.MANGASTARE,
+    'MaStar': sopActor.MASTAR
+}
 
 # And the inverses of the above.
 # Can't directly make an inverse, since it's not one-to-one.
-survey_inv_dict = {sopActor.UNKNOWN: 'UNKNOWN', sopActor.ECAMERA: 'ecamera',
-                   sopActor.BOSS: 'eBOSS', sopActor.APOGEE: 'APOGEE-2',
-                   sopActor.MANGA: 'MaNGA',
-                   sopActor.APOGEEMANGA: 'APOGEE-2&MaNGA'}
-surveyMode_inv_dict = {None: 'None',
-                       sopActor.MANGADITHER: 'MaNGA dither',
-                       sopActor.MANGA10: 'MaNGA 10min',
-                       sopActor.MANGASTARE: 'MaNGA stare',
-                       sopActor.APOGEELEAD: 'APOGEE lead',
-                       sopActor.MASTAR: 'MaStar'}
+survey_inv_dict = {
+    sopActor.UNKNOWN: 'UNKNOWN',
+    sopActor.ECAMERA: 'ecamera',
+    sopActor.BOSS: 'eBOSS',
+    sopActor.APOGEE: 'APOGEE-2',
+    sopActor.MANGA: 'MaNGA',
+    sopActor.APOGEEMANGA: 'APOGEE-2&MaNGA'
+}
+surveyMode_inv_dict = {
+    None: 'None',
+    sopActor.MANGADITHER: 'MaNGA dither',
+    sopActor.MANGA10: 'MaNGA 10min',
+    sopActor.MANGASTARE: 'MaNGA stare',
+    sopActor.APOGEELEAD: 'APOGEE lead',
+    sopActor.MASTAR: 'MaStar'
+}
 
 
 class SopCmd(object):
@@ -67,138 +80,117 @@ class SopCmd(object):
         #
         # Declare keys that we're going to use
         #
-        self.keys = keys.KeysDictionary("sop_sop", (1, 2),
-                                        keys.Key("abort", help="Abort a command"),
-                                        keys.Key("clear", help="Clear a flag"),
-                                        keys.Key("narc", types.Int(),
-                                                 help="Number of arcs to take"),
-                                        keys.Key("nbias", types.Int(),
-                                                 help="Number of biases to take"),
-                                        keys.Key("ndark", types.Int(),
-                                                 help="Number of darks to take"),
-                                        keys.Key("nexp", types.Int(),
-                                                 help="Number of exposures to take"),
-                                        keys.Key("nflat", types.Int(),
-                                                 help="Number of flats to take"),
-                                        keys.Key("nStep", types.Int(),
-                                                 help="Number of dithered exposures to take"),
-                                        keys.Key("nTick", types.Int(),
-                                                 help="Number of ticks to move collimator"),
-                                        keys.Key("arcTime", types.Float(),
-                                                 help="Exposure time for arcs"),
-                                        keys.Key("darkTime", types.Float(),
-                                                 help="Exposure time for flats"),
-                                        keys.Key("expTime", types.Float(), help="Exposure time"),
-                                        keys.Key("guiderTime", types.Float(),
-                                                 help="Exposure time for guider"),
-                                        keys.Key("fiberId", types.Int(), help="A fiber ID"),
-                                        keys.Key("flatTime", types.Float(),
-                                                 help="Exposure time for flats"),
-                                        keys.Key("guiderFlatTime", types.Float(),
-                                                 help="Exposure time for guider flats"),
-                                        keys.Key("keepQueues", help="Restart thread queues"),
-                                        keys.Key("noSlew", help="Don't slew to field"),
-                                        keys.Key("noHartmann",
-                                                 help="Don't make Hartmann corrections"),
-                                        keys.Key("noGuider", help="Don't start the guider"),
-                                        keys.Key("noCalibs",
-                                                 help="Don't run the calibration step"),
-                                        keys.Key("noDomeFlat",
-                                                 help="Don't run the dome flat step"),
-                                        keys.Key("sp1", help="Select SP1"),
-                                        keys.Key("sp2", help="Select SP2"),
-                                        keys.Key("geek",
-                                                 help="Show things that only some of us love"),
-                                        keys.Key("subSystem", types.String() * (1,),
-                                                 help="The sub-systems to bypass"),
-                                        keys.Key("threads", types.String() * (1,),
-                                                 help="Threads to restart; default: all"),
-                                        keys.Key("scale", types.Float(),
-                                                 help="Current scale from \"tcc show scale\""),
-                                        keys.Key("delta", types.Float(),
-                                                 help="Delta scale (percent)"),
-                                        keys.Key("absolute", help="Set scale to provided value"),
-                                        keys.Key("test",
-                                                 help="Assert that the exposures are not expected "
-                                                      "to be meaningful"),
-                                        keys.Key("keepOffsets",
-                                                 help="When slewing, do not clear "
-                                                      "accumulated offsets"),
-                                        keys.Key("ditherPairs", types.Int(),
-                                                 help="Number of dither pairs (AB or BA) "
-                                                      "to observe"),
-                                        keys.Key("ditherSeq", types.String(),
-                                                 help="dither positions for each sequence. "
-                                                      "e.g. AB"),
-                                        keys.Key("comment", types.String(),
-                                                 help="comment for headers"),
-                                        keys.Key("dither", types.String(),
-                                                 help="MaNGA dither position for a "
-                                                      "single dither."),
-                                        keys.Key("dithers", types.String(),
-                                                 help="MaNGA dither positions for a dither "
-                                                      "sequence."),
-                                        keys.Key("mangaDithers", types.String(),
-                                                 help="MaNGA dither positions for a "
-                                                      "dither sequence."),
-                                        keys.Key("mangaDither", types.String(),
-                                                 help="MaNGA dither position for a "
-                                                      "single dither."),
-                                        keys.Key("count", types.Int(),
-                                                 help="Number of MaNGA dither sets to perform."),
-                                        keys.Key("scriptName", types.String(),
-                                                 help="name of script to run"),
-                                        keys.Key("az", types.Float(),
-                                                 help="what azimuth to slew to"),
-                                        keys.Key("rotOffset", types.Float(),
-                                                 help="what rotator offset to add"),
-                                        keys.Key("alt", types.Float(),
-                                                 help="what altitude to slew to"),
-                                        )
+        self.keys = keys.KeysDictionary(
+            'sop_sop',
+            (1, 2),
+            keys.Key('abort', help='Abort a command'),
+            keys.Key('clear', help='Clear a flag'),
+            keys.Key('narc', types.Int(), help='Number of arcs to take'),
+            keys.Key('nbias', types.Int(), help='Number of biases to take'),
+            keys.Key('ndark', types.Int(), help='Number of darks to take'),
+            keys.Key('nexp', types.Int(), help='Number of exposures to take'),
+            keys.Key('nflat', types.Int(), help='Number of flats to take'),
+            keys.Key('nStep', types.Int(), help='Number of dithered exposures to take'),
+            keys.Key('nTick', types.Int(), help='Number of ticks to move collimator'),
+            keys.Key('arcTime', types.Float(), help='Exposure time for arcs'),
+            keys.Key('darkTime', types.Float(), help='Exposure time for flats'),
+            keys.Key('expTime', types.Float(), help='Exposure time'),
+            keys.Key('guiderTime', types.Float(), help='Exposure time for guider'),
+            keys.Key('fiberId', types.Int(), help='A fiber ID'),
+            keys.Key('flatTime', types.Float(), help='Exposure time for flats'),
+            keys.Key('guiderFlatTime', types.Float(), help='Exposure time for guider flats'),
+            keys.Key('keepQueues', help='Restart thread queues'),
+            keys.Key('noSlew', help="Don't slew to field"),
+            keys.Key('noHartmann', help="Don't make Hartmann corrections"),
+            keys.Key('noGuider', help="Don't start the guider"),
+            keys.Key('noCalibs', help="Don't run the calibration step"),
+            keys.Key('noDomeFlat', help="Don't run the dome flat step"),
+            keys.Key('sp1', help='Select SP1'),
+            keys.Key('sp2', help='Select SP2'),
+            keys.Key('geek', help='Show things that only some of us love'),
+            keys.Key('subSystem', types.String() * (1, ), help='The sub-systems to bypass'),
+            keys.Key('threads', types.String() * (1, ), help='Threads to restart; default: all'),
+            keys.Key('scale', types.Float(), help="Current scale from \"tcc show scale\""),
+            keys.Key('delta', types.Float(), help='Delta scale (percent)'),
+            keys.Key('absolute', help='Set scale to provided value'),
+            keys.Key(
+                'test', help='Assert that the exposures are not expected '
+                'to be meaningful'),
+            keys.Key('keepOffsets', help='When slewing, do not clear '
+                     'accumulated offsets'),
+            keys.Key(
+                'ditherPairs', types.Int(), help='Number of dither pairs (AB or BA) '
+                'to observe'),
+            keys.Key(
+                'ditherSeq', types.String(), help='dither positions for each sequence. '
+                'e.g. AB'),
+            keys.Key('comment', types.String(), help='comment for headers'),
+            keys.Key(
+                'dither', types.String(), help='MaNGA dither position for a '
+                'single dither.'),
+            keys.Key(
+                'dithers', types.String(), help='MaNGA dither positions for a dither '
+                'sequence.'),
+            keys.Key(
+                'mangaDithers',
+                types.String(),
+                help='MaNGA dither positions for a '
+                'dither sequence.'),
+            keys.Key(
+                'mangaDither',
+                types.String(),
+                help='MaNGA dither position for a '
+                'single dither.'),
+            keys.Key('count', types.Int(), help='Number of MaNGA dither sets to perform.'),
+            keys.Key('scriptName', types.String(), help='name of script to run'),
+            keys.Key('az', types.Float(), help='what azimuth to slew to'),
+            keys.Key('rotOffset', types.Float(), help='what rotator offset to add'),
+            keys.Key('alt', types.Float(), help='what altitude to slew to'),
+        )
         #
         # Declare commands
         #
         self.vocab = [
-            ("bypass", "<subSystem> [clear]", self.bypass),
-            ("doBossCalibs", "[<narc>] [<nbias>] [<ndark>] [<nflat>] [<arcTime>] "
-                             "[<darkTime>] [<flatTime>] [<guiderFlatTime>] [abort]",
-                             self.doBossCalibs),
-            ("doBossScience", "[<expTime>] [<nexp>] [abort] [stop] [test]",
-                              self.doBossScience),
-            ("doApogeeScience", "[<expTime>] [<ditherPairs>] [stop] [<abort>] [<comment>]",
-                                self.doApogeeScience),
-            ("doApogeeSkyFlats", "[<expTime>] [<ditherPairs>] [stop] [abort]",
-                                 self.doApogeeSkyFlats),
-            ("doMangaDither", "[<expTime>] [<dither>] [stop] [abort]", self.doMangaDither),
-            ("doMangaSequence", "[<expTime>] [<dithers>] [<count>] [stop] [abort]",
-                                self.doMangaSequence),
-            ("doApogeeMangaDither", "[<mangaDither>] [<comment>] [stop] [abort]",
-                                    self.doApogeeMangaDither),
-            ("doApogeeMangaSequence", "[<mangaDithers>] [<count>] [<comment>] [stop] [abort]",
-                                      self.doApogeeMangaSequence),
-            ("ditheredFlat", "[sp1] [sp2] [<expTime>] [<nStep>] [<nTick>]",  self.ditheredFlat),
-            ("hartmann", "[<expTime>]", self.hartmann),
-            ("collimateBoss", "", self.collimateBoss),
-            ("lampsOff", "", self.lampsOff),
-            ("ping", "", self.ping),
-            ("restart", "[keepQueues]", self.restart),
-            ("gotoField", "[<arcTime>] [<flatTime>] [<guiderFlatTime>] [<guiderTime>] [noSlew] "
-                          "[noHartmann] [noCalibs] [noGuider] [abort] [keepOffsets]",
-                          self.gotoField),
-            ("gotoInstrumentChange", "[abort] [stop]", self.gotoInstrumentChange),
-            ("gotoStow", "[abort] [stop]", self.gotoStow),
-            ("gotoAll60", "[abort] [stop]", self.gotoAll60),
-            ("gotoStow60", "[abort] [stop]", self.gotoStow60),
-            ("gotoGangChange", "[<alt>] [abort] [stop] [noDomeFlat] [noSlew]",
-                               self.gotoGangChange),
-            ("doApogeeDomeFlat", "[stop] [abort]", self.doApogeeDomeFlat),
-            ("setFakeField", "[<az>] [<alt>] [<rotOffset>]", self.setFakeField),
-            ("status", "[geek]", self.status),
-            ("reinit", "", self.reinit),
-            ("runScript", "<scriptName>", self.runScript),
-            ("listScripts", "", self.listScripts),
-            ('stopScript', '', self.stopScript)
-            ]
+            ('bypass', '<subSystem> [clear]',
+             self.bypass), ('doBossCalibs', '[<narc>] [<nbias>] [<ndark>] [<nflat>] [<arcTime>] '
+                            '[<darkTime>] [<flatTime>] [<guiderFlatTime>] [abort]',
+                            self.doBossCalibs), ('doBossScience',
+                                                 '[<expTime>] [<nexp>] [abort] [stop] [test]',
+                                                 self.doBossScience),
+            ('doApogeeScience', '[<expTime>] [<ditherPairs>] [stop] [<abort>] [<comment>]',
+             self.doApogeeScience), ('doApogeeSkyFlats',
+                                     '[<expTime>] [<ditherPairs>] [stop] [abort]',
+                                     self.doApogeeSkyFlats),
+            ('doMangaDither', '[<expTime>] [<dither>] [stop] [abort]',
+             self.doMangaDither), ('doMangaSequence',
+                                   '[<expTime>] [<dithers>] [<count>] [stop] [abort]',
+                                   self.doMangaSequence),
+            ('doApogeeMangaDither', '[<mangaDither>] [<comment>] [stop] [abort]',
+             self.doApogeeMangaDither), ('doApogeeMangaSequence',
+                                         '[<mangaDithers>] [<count>] [<comment>] [stop] [abort]',
+                                         self.doApogeeMangaSequence),
+            ('ditheredFlat', '[sp1] [sp2] [<expTime>] [<nStep>] [<nTick>]',
+             self.ditheredFlat), ('hartmann', '[<expTime>]', self.hartmann), ('collimateBoss', '',
+                                                                              self.collimateBoss),
+            ('lampsOff', '', self.lampsOff), ('ping', '', self.ping), ('restart', '[keepQueues]',
+                                                                       self.restart),
+            ('gotoField', '[<arcTime>] [<flatTime>] [<guiderFlatTime>] [<guiderTime>] [noSlew] '
+             '[noHartmann] [noCalibs] [noGuider] [abort] [keepOffsets]',
+             self.gotoField), ('gotoInstrumentChange', '[abort] [stop]',
+                               self.gotoInstrumentChange), ('gotoStow', '[abort] [stop]',
+                                                            self.gotoStow), ('gotoAll60',
+                                                                             '[abort] [stop]',
+                                                                             self.gotoAll60),
+            ('gotoStow60', '[abort] [stop]',
+             self.gotoStow60), ('gotoGangChange', '[<alt>] [abort] [stop] [noDomeFlat] [noSlew]',
+                                self.gotoGangChange), ('doApogeeDomeFlat', '[stop] [abort]',
+                                                       self.doApogeeDomeFlat),
+            ('setFakeField', '[<az>] [<alt>] [<rotOffset>]',
+             self.setFakeField), ('status', '[geek]', self.status), ('reinit', '', self.reinit),
+            ('runScript', '<scriptName>', self.runScript), ('listScripts', '',
+                                                            self.listScripts), ('stopScript', '',
+                                                                                self.stopScript)
+        ]
 
     def stop_cmd(self, cmd, cmdState, sopState, name):
         """Stop an active cmdState, failing if there's nothing to stop."""
@@ -231,71 +223,64 @@ class SopCmd(object):
         keywords = cmd.cmd.keywords
         if self.doing_science(sopState):
             cmd.fail("text='A science exposure sequence is running "
-                     "-- will not take calibration frames!")
+                     '-- will not take calibration frames!')
             return
 
-        if "abort" in keywords:
+        if 'abort' in keywords:
             self.stop_cmd(cmd, cmdState, sopState, 'doBossCalibs')
             return
 
         # Modify running doBossCalibs command
         if self.modifiable(cmd, cmdState):
-            if "nbias" in keywords:
-                cmdState.nBias = int(keywords["nbias"].values[0])
-            if "ndark" in keywords:
-                cmdState.nDark = int(keywords["ndark"].values[0])
-            if "nflat" in keywords:
-                cmdState.nFlat = int(keywords["nflat"].values[0])
-            if "narc" in keywords:
-                cmdState.nArc = int(keywords["narc"].values[0])
+            if 'nbias' in keywords:
+                cmdState.nBias = int(keywords['nbias'].values[0])
+            if 'ndark' in keywords:
+                cmdState.nDark = int(keywords['ndark'].values[0])
+            if 'nflat' in keywords:
+                cmdState.nFlat = int(keywords['nflat'].values[0])
+            if 'narc' in keywords:
+                cmdState.nArc = int(keywords['narc'].values[0])
 
-            if "darkTime" in keywords:
-                cmdState.darkTime = float(keywords["darkTime"].values[0])
-            if "flatTime" in keywords:
-                cmdState.flatTime = float(keywords["flatTime"].values[0])
-            if "guiderFlatTime" in keywords:
-                cmdState.guiderFlatTime = float(
-                    keywords["guiderFlatTime"].values[0])
-            if "arcTime" in keywords:
-                cmdState.arcTime = float(keywords["arcTime"].values[0])
+            if 'darkTime' in keywords:
+                cmdState.darkTime = float(keywords['darkTime'].values[0])
+            if 'flatTime' in keywords:
+                cmdState.flatTime = float(keywords['flatTime'].values[0])
+            if 'guiderFlatTime' in keywords:
+                cmdState.guiderFlatTime = float(keywords['guiderFlatTime'].values[0])
+            if 'arcTime' in keywords:
+                cmdState.arcTime = float(keywords['arcTime'].values[0])
 
-            self.status(
-                cmd,
-                threads=False,
-                finish=True,
-                oneCommand='doBossCalibs')
+            self.status(cmd, threads=False, finish=True, oneCommand='doBossCalibs')
             return
 
         # Lookup the current cartridge
         survey = sopState.survey
         if survey == sopActor.APOGEE:
-            cmd.fail(
-                'text="current cartridge is not for BOSS or MaNGA; use bypass '
-                'if you want to force calibrations"')
+            cmd.fail('text="current cartridge is not for BOSS or MaNGA; use bypass '
+                     'if you want to force calibrations"')
             return
 
         cmdState.reinitialize(cmd)
         if 'nbias' in keywords:
-            cmdState.nBias = keywords["nbias"].values[0]
+            cmdState.nBias = keywords['nbias'].values[0]
         if 'ndark' in keywords:
-            cmdState.nDark = keywords["ndark"].values[0]
+            cmdState.nDark = keywords['ndark'].values[0]
         if 'nflat' in keywords:
-            cmdState.nFlat = keywords["nflat"].values[0]
+            cmdState.nFlat = keywords['nflat'].values[0]
         if 'narc' in keywords:
-            cmdState.nArc = keywords["narc"].values[0]
+            cmdState.nArc = keywords['narc'].values[0]
 
-        cmdState.arcTime = keywords["arcTime"].values[0] \
-            if "arcTime" in keywords else CmdState.getDefaultArcTime(survey)
+        cmdState.arcTime = keywords['arcTime'].values[0] \
+            if 'arcTime' in keywords else CmdState.getDefaultArcTime(survey)
         if 'darkTime' in keywords:
-            cmdState.darkTime = keywords["darkTime"].values[0]
-        cmdState.flatTime = keywords["flatTime"].values[0] \
-            if "flatTime" in keywords else CmdState.getDefaultFlatTime(survey)
+            cmdState.darkTime = keywords['darkTime'].values[0]
+        cmdState.flatTime = keywords['flatTime'].values[0] \
+            if 'flatTime' in keywords else CmdState.getDefaultFlatTime(survey)
         if 'guiderFlatTime' in keywords:
-            cmdState.guiderFlatTime = keywords["guiderFlatTime"].values[0]
+            cmdState.guiderFlatTime = keywords['guiderFlatTime'].values[0]
 
         if cmdState.nArc + cmdState.nBias + cmdState.nDark + cmdState.nFlat == 0:
-            cmd.fail(
-                'text="You must take at least one arc, bias, dark, or flat exposure"')
+            cmd.fail('text="You must take at least one arc, bias, dark, or flat exposure"')
             return
 
         if cmdState.nDark and cmdState.darkTime <= 0:
@@ -304,8 +289,7 @@ class SopCmd(object):
 
         if cmdState.nFlat > 0 and cmdState.guiderFlatTime > 0:
             if sopState.cartridge < 0:
-                cmd.warn(
-                    'text="No cartridge is known to be loaded; not taking guider flats"')
+                cmd.warn('text="No cartridge is known to be loaded; not taking guider flats"')
                 cmdState.guiderFlatTime = 0
 
         activeStages = []
@@ -320,8 +304,12 @@ class SopCmd(object):
         activeStages.append('cleanup')  # we always may have to cleanup...
         cmdState.setupCommand(cmd, activeStages)
 
-        sopState.queues[sopActor.MASTER].put(Msg.DO_BOSS_CALIBS, cmd, replyQueue=self.replyQueue,
-                                             actorState=sopState, cmdState=cmdState)
+        sopState.queues[sopActor.MASTER].put(
+            Msg.DO_BOSS_CALIBS,
+            cmd,
+            replyQueue=self.replyQueue,
+            actorState=sopState,
+            cmdState=cmdState)
 
     def doBossScience(self, cmd):
         """Take a set of BOSS science frames"""
@@ -330,23 +318,19 @@ class SopCmd(object):
         cmdState = sopState.doBossScience
         keywords = cmd.cmd.keywords
 
-        if "abort" in keywords or "stop" in keywords:
+        if 'abort' in keywords or 'stop' in keywords:
             self.stop_cmd(cmd, cmdState, sopState, 'doBossScience')
             return
 
         if self.modifiable(cmd, cmdState):
             # Modify running doBossScience command
-            if "nexp" in keywords:
-                cmdState.nExp = int(keywords["nexp"].values[0])
+            if 'nexp' in keywords:
+                cmdState.nExp = int(keywords['nexp'].values[0])
 
-            if "expTime" in keywords:
-                cmdState.expTime = float(keywords["expTime"].values[0])
+            if 'expTime' in keywords:
+                cmdState.expTime = float(keywords['expTime'].values[0])
 
-            self.status(
-                cmd,
-                threads=False,
-                finish=True,
-                oneCommand='doBossScience')
+            self.status(cmd, threads=False, finish=True, oneCommand='doBossScience')
             return
 
         cmdState.cmd = None
@@ -355,10 +339,8 @@ class SopCmd(object):
         # NOTE: TBD: would have to sync with STUI to make nExp have defaults
         # and behave like one would expect it to (see doBossScience_nExp
         # actorkeys value)
-        cmdState.nExp = int(
-            keywords["nexp"].values[0]) if "nexp" in keywords else 1
-        expTime = float(keywords["expTime"].values[0]
-                        ) if "expTime" in keywords else None
+        cmdState.nExp = int(keywords['nexp'].values[0]) if 'nexp' in keywords else 1
+        expTime = float(keywords['expTime'].values[0]) if 'expTime' in keywords else None
         cmdState.set('expTime', expTime)
 
         if cmdState.nExp == 0:
@@ -368,8 +350,12 @@ class SopCmd(object):
             cmd.fail('text="Exposure time must be greater than 0 seconds."')
             return
 
-        sopState.queues[sopActor.MASTER].put(Msg.DO_BOSS_SCIENCE, cmd, replyQueue=self.replyQueue,
-                                             actorState=sopState, cmdState=cmdState)
+        sopState.queues[sopActor.MASTER].put(
+            Msg.DO_BOSS_SCIENCE,
+            cmd,
+            replyQueue=self.replyQueue,
+            actorState=sopState,
+            cmdState=cmdState)
 
     def doApogeeScience(self, cmd):
         """Take a sequence of dithered APOGEE science frames, or stop or modify
@@ -380,19 +366,17 @@ class SopCmd(object):
         keywords = cmd.cmd.keywords
         name = 'doApogeeScience'
 
-        if "stop" in keywords or 'abort' in keywords:
+        if 'stop' in keywords or 'abort' in keywords:
             self.stop_cmd(cmd, cmdState, sopState, name)
             return
 
         # Modify running doApogeeScience command
         if self.modifiable(cmd, cmdState):
-            if "ditherPairs" in keywords:
-                cmdState.set(
-                    'ditherPairs', int(
-                        keywords["ditherPairs"].values[0]))
+            if 'ditherPairs' in keywords:
+                cmdState.set('ditherPairs', int(keywords['ditherPairs'].values[0]))
 
-            if "expTime" in keywords:
-                cmdState.set('expTime', int(keywords["expTime"].values[0]))
+            if 'expTime' in keywords:
+                cmdState.set('expTime', int(keywords['expTime'].values[0]))
 
             # update the etr
             cmdState.update_etr()
@@ -401,22 +385,23 @@ class SopCmd(object):
             return
 
         cmdState.reinitialize(cmd)
-        ditherPairs = int(
-            keywords["ditherPairs"].values[0]) if "ditherPairs" in keywords else None
+        ditherPairs = int(keywords['ditherPairs'].values[0]) if 'ditherPairs' in keywords else None
         cmdState.set('ditherPairs', ditherPairs)
-        comment = keywords["comment"].values[0] if "comment" in keywords else None
+        comment = keywords['comment'].values[0] if 'comment' in keywords else None
         cmdState.comment = comment
-        expTime = float(keywords["expTime"].values[0]
-                        ) if "expTime" in keywords else None
+        expTime = float(keywords['expTime'].values[0]) if 'expTime' in keywords else None
         cmdState.set('expTime', expTime)
 
         if cmdState.ditherPairs == 0:
             cmd.fail('text="You must take at least one exposure"')
             return
 
-        sopState.queues[sopActor.MASTER].put(Msg.DO_APOGEE_EXPOSURES, cmd,
-                                             replyQueue=self.replyQueue,
-                                             actorState=sopState, cmdState=cmdState)
+        sopState.queues[sopActor.MASTER].put(
+            Msg.DO_APOGEE_EXPOSURES,
+            cmd,
+            replyQueue=self.replyQueue,
+            actorState=sopState,
+            cmdState=cmdState)
 
     def doApogeeSkyFlats(self, cmd):
         """Take a set of APOGEE sky flats, offsetting by 0.01 degree in RA."""
@@ -428,35 +413,27 @@ class SopCmd(object):
 
         blocked = self.isSlewingDisabled(cmd)
         if blocked:
-            cmd.fail(
-                'text=%s' %
-                (qstr(
-                    'will not take APOGEE sky flats: %s' %
-                    (blocked))))
+            cmd.fail('text=%s' % (qstr('will not take APOGEE sky flats: %s' % (blocked))))
             return
 
-        if "stop" in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
+        if 'stop' in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
             self.stop_cmd(cmd, cmdState, sopState, name)
             return
 
         if self.modifiable(cmd, cmdState):
-            if "ditherPairs" in keywords:
-                cmdState.set(
-                    'ditherPairs', int(
-                        keywords["ditherPairs"].values[0]))
+            if 'ditherPairs' in keywords:
+                cmdState.set('ditherPairs', int(keywords['ditherPairs'].values[0]))
 
-            if "expTime" in keywords:
-                cmdState.set('expTime', int(keywords["expTime"].values[0]))
+            if 'expTime' in keywords:
+                cmdState.set('expTime', int(keywords['expTime'].values[0]))
 
             self.status(cmd, threads=False, finish=True, oneCommand=name)
             return
         cmdState.reinitialize(cmd)
 
-        expTime = float(keywords["expTime"].values[0]
-                        ) if "expTime" in keywords else None
+        expTime = float(keywords['expTime'].values[0]) if 'expTime' in keywords else None
         cmdState.set('expTime', expTime)
-        ditherPairs = int(
-            keywords["ditherPairs"].values[0]) if "ditherPairs" in keywords else None
+        ditherPairs = int(keywords['ditherPairs'].values[0]) if 'ditherPairs' in keywords else None
         cmdState.set('ditherPairs', ditherPairs)
 
         if cmdState.ditherPairs == 0:
@@ -465,16 +442,19 @@ class SopCmd(object):
 
         cmdState.setCommandState('running')
 
-        sopState.queues[sopActor.MASTER].put(Msg.DO_APOGEE_SKY_FLATS, cmd,
-                                             replyQueue=self.replyQueue,
-                                             actorState=sopState, cmdState=cmdState)
+        sopState.queues[sopActor.MASTER].put(
+            Msg.DO_APOGEE_SKY_FLATS,
+            cmd,
+            replyQueue=self.replyQueue,
+            actorState=sopState,
+            cmdState=cmdState)
 
     def doMangaDither(self, cmd):
         """Take an exposure at a single manga dither position."""
         sopState = myGlobals.actorState
         cmdState = sopState.doMangaDither
 
-        if "stop" in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
+        if 'stop' in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
             self.stop_cmd(cmd, cmdState, sopState, 'doMangaDither')
             return
 
@@ -487,14 +467,18 @@ class SopCmd(object):
 
         cmdState.reinitialize(cmd)
         dither = cmd.cmd.keywords['dither'].values[0] \
-            if "dither" in cmd.cmd.keywords else None
+            if 'dither' in cmd.cmd.keywords else None
         cmdState.set('dither', dither)
-        expTime = cmd.cmd.keywords["expTime"].values[0] \
-            if "expTime" in cmd.cmd.keywords else None
+        expTime = cmd.cmd.keywords['expTime'].values[0] \
+            if 'expTime' in cmd.cmd.keywords else None
         cmdState.set('expTime', expTime)
 
-        sopState.queues[sopActor.MASTER].put(Msg.DO_MANGA_DITHER, cmd, replyQueue=self.replyQueue,
-                                             actorState=sopState, cmdState=cmdState)
+        sopState.queues[sopActor.MASTER].put(
+            Msg.DO_MANGA_DITHER,
+            cmd,
+            replyQueue=self.replyQueue,
+            actorState=sopState,
+            cmdState=cmdState)
 
     def doMangaSequence(self, cmd):
         """Take an exposure at a sequence of dither positions, including calibrations."""
@@ -504,21 +488,21 @@ class SopCmd(object):
         cmdState = sopState.doMangaSequence
         keywords = cmd.cmd.keywords
 
-        if "stop" in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
+        if 'stop' in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
             self.stop_cmd(cmd, cmdState, sopState, name)
             return
 
         if self.modifiable(cmd, cmdState):
             # Modify running doMangaDither command
-            if "dithers" in keywords:
+            if 'dithers' in keywords:
                 newDithers = keywords['dithers'].values[0]
                 # if (newDithers != cmdState.dithers):
                 #     cmd.fail('text="Cannot modify MaNGA dither pattern, only counts."')
                 #     return
                 dithers = newDithers
 
-            if "count" in keywords:
-                count = int(keywords["count"].values[0])
+            if 'count' in keywords:
+                count = int(keywords['count'].values[0])
 
             # Updating the dithers, count, and/or ditherSeq with new values
             cmdState.dithers = dithers
@@ -527,55 +511,58 @@ class SopCmd(object):
             cmdState.update_etr()
 
             if cmdState.index >= len(cmdState.ditherSeq):
-                cmd.warn(
-                    'text="Modified exposure sequence is shorter than position in '
-                    'current sequence."')
-                cmd.warn(
-                    'text="Truncating previous exposure sequence, but NOT trying to '
-                    'stop current exposure."')
+                cmd.warn('text="Modified exposure sequence is shorter than position in '
+                         'current sequence."')
+                cmd.warn('text="Truncating previous exposure sequence, but NOT trying to '
+                         'stop current exposure."')
                 cmdState.index = len(cmdState.ditherSeq)
 
             self.status(cmd, threads=False, finish=True, oneCommand=name)
             return
 
         cmdState.reinitialize(cmd)
-        expTime = keywords["expTime"].values[0] if "expTime" in keywords else None
+        expTime = keywords['expTime'].values[0] if 'expTime' in keywords else None
         cmdState.set('expTime', expTime)
-        dither = keywords['dithers'].values[0] if "dithers" in keywords else None
+        dither = keywords['dithers'].values[0] if 'dithers' in keywords else None
         cmdState.set('dithers', dither)
-        count = keywords['count'].values[0] if "count" in keywords else None
+        count = keywords['count'].values[0] if 'count' in keywords else None
         cmdState.set('count', count)
         cmdState.reset_ditherSeq()
 
-        sopState.queues[sopActor.MASTER].put(Msg.DO_MANGA_SEQUENCE, cmd,
-                                             replyQueue=self.replyQueue,
-                                             actorState=sopState, cmdState=cmdState)
+        sopState.queues[sopActor.MASTER].put(
+            Msg.DO_MANGA_SEQUENCE,
+            cmd,
+            replyQueue=self.replyQueue,
+            actorState=sopState,
+            cmdState=cmdState)
 
     def doApogeeMangaDither(self, cmd):
         """Take an exposure at a single manga dither position."""
         sopState = myGlobals.actorState
         cmdState = sopState.doApogeeMangaDither
 
-        if "stop" in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
+        if 'stop' in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
             self.stop_cmd(cmd, cmdState, sopState, 'doApogeeMangaDither')
             return
 
         if self.modifiable(cmd, cmdState):
             # Modify running doApogeeMangaDither command
-            cmd.fail(
-                'text="Cannot modify ApogeeManga dither. '
-                'If you need to change the dither position, abort and resubmit."')
+            cmd.fail('text="Cannot modify ApogeeManga dither. '
+                     'If you need to change the dither position, abort and resubmit."')
             return
 
         cmdState.reinitialize(cmd)
 
         mangaDither = cmd.cmd.keywords['mangaDither'].values[0] \
-            if "mangaDither" in cmd.cmd.keywords else None
+            if 'mangaDither' in cmd.cmd.keywords else None
         cmdState.set('mangaDither', mangaDither)
 
-        sopState.queues[sopActor.MASTER].put(Msg.DO_APOGEEMANGA_DITHER, cmd,
-                                             replyQueue=self.replyQueue,
-                                             actorState=sopState, cmdState=cmdState)
+        sopState.queues[sopActor.MASTER].put(
+            Msg.DO_APOGEEMANGA_DITHER,
+            cmd,
+            replyQueue=self.replyQueue,
+            actorState=sopState,
+            cmdState=cmdState)
 
     def doApogeeMangaSequence(self, cmd):
         """Take an exposure at a sequence of dither positions, including calibrations."""
@@ -585,21 +572,21 @@ class SopCmd(object):
         keywords = cmd.cmd.keywords
         name = 'doApogeeMangaSequence'
 
-        if "stop" in keywords or 'abort' in keywords:
+        if 'stop' in keywords or 'abort' in keywords:
             self.stop_cmd(cmd, cmdState, sopState, name)
             return
 
         if self.modifiable(cmd, cmdState):
             # Modify running doMangaDither command
-            if "mangaDithers" in keywords:
+            if 'mangaDithers' in keywords:
                 newMangaDithers = keywords['mangaDithers'].values[0]
                 # if (newMangaDithers != cmdState.mangaDithers):
                 #     cmd.fail('text="Cannot modify APOGEE/MaNGA dither pattern, only counts."')
                 #     return
                 mangaDithers = newMangaDithers
 
-            if "count" in keywords:
-                count = int(keywords["count"].values[0])
+            if 'count' in keywords:
+                count = int(keywords['count'].values[0])
 
             cmdState.mangaDithers = mangaDithers
             cmdState.count = count
@@ -607,12 +594,10 @@ class SopCmd(object):
             cmdState.update_etr()
 
             if cmdState.index >= len(cmdState.mangaDitherSeq):
-                cmd.warn(
-                    'text="Modified exposure sequence is shorter than position '
-                    'in current sequence."')
-                cmd.warn(
-                    'text="Truncating previous exposure sequence, '
-                    'but NOT trying to stop current exposure."')
+                cmd.warn('text="Modified exposure sequence is shorter than position '
+                         'in current sequence."')
+                cmd.warn('text="Truncating previous exposure sequence, '
+                         'but NOT trying to stop current exposure."')
                 cmdState.index = len(cmdState.mangaDitherSeq)
 
             self.status(cmd, threads=False, finish=True, oneCommand=name)
@@ -620,17 +605,20 @@ class SopCmd(object):
 
         cmdState.reinitialize(cmd)
 
-        mangaDithers = keywords['mangaDithers'].values[0] if "mangaDithers" in keywords else None
+        mangaDithers = keywords['mangaDithers'].values[0] if 'mangaDithers' in keywords else None
         cmdState.set('mangaDithers', mangaDithers)
 
-        count = keywords["count"].values[0] if "count" in keywords else None
+        count = keywords['count'].values[0] if 'count' in keywords else None
         cmdState.set('count', count)
 
         cmdState.reset_ditherSeq()
 
-        sopState.queues[sopActor.MASTER].put(Msg.DO_APOGEEMANGA_SEQUENCE, cmd,
-                                             replyQueue=self.replyQueue,
-                                             actorState=sopState, cmdState=cmdState)
+        sopState.queues[sopActor.MASTER].put(
+            Msg.DO_APOGEEMANGA_SEQUENCE,
+            cmd,
+            replyQueue=self.replyQueue,
+            actorState=sopState,
+            cmdState=cmdState)
 
     def lampsOff(self, cmd, finish=True):
         """Turn all the lamps off"""
@@ -655,8 +643,8 @@ class SopCmd(object):
 
     def bypass(self, cmd):
         """Ignore errors in a subsystem, or force a system to be in a given state."""
-        subSystems = cmd.cmd.keywords["subSystem"].values
-        doBypass = False if "clear" in cmd.cmd.keywords else True
+        subSystems = cmd.cmd.keywords['subSystem'].values
+        doBypass = False if 'clear' in cmd.cmd.keywords else True
 
         sopState = myGlobals.actorState
         bypass = myGlobals.bypass
@@ -675,17 +663,14 @@ class SopCmd(object):
                     bypassed=True)
                 cmdStr = 'setRefractionBalance plateType="{0}" surveyMode="{1}"'.format(
                     *sopState.surveyText)
-                cmdVar = sopState.actor.cmdr.call(
-                    actor="guider", forUserCmd=cmd, cmdStr=cmdStr)
+                cmdVar = sopState.actor.cmdr.call(actor='guider', forUserCmd=cmd, cmdStr=cmdStr)
                 if cmdVar.didFail:
                     cmd.fail(
                         'text="Failed to set guider refraction balance for bypass {0} {1}'.format(
                             subSystem, doBypass))
                     return
             if bypass.is_gang_bypass(subSystem):
-                cmd.warn(
-                    'text="gang bypassed: {}"'.format(
-                        sopState.apogeeGang.getPos()))
+                cmd.warn('text="gang bypassed: {}"'.format(sopState.apogeeGang.getPos()))
 
         self.status(cmd, threads=False)
 
@@ -704,16 +689,15 @@ class SopCmd(object):
         cmd.warn('text="cmd=%s"' % (cmd.cmd.keywords))
 
         sopState.gotoField.fakeAz = float(
-            cmd.cmd.keywords["az"].values[0]) if "az" in cmd.cmd.keywords else None
+            cmd.cmd.keywords['az'].values[0]) if 'az' in cmd.cmd.keywords else None
         sopState.gotoField.fakeAlt = float(
-            cmd.cmd.keywords["alt"].values[0]) if "alt" in cmd.cmd.keywords else None
+            cmd.cmd.keywords['alt'].values[0]) if 'alt' in cmd.cmd.keywords else None
         sopState.gotoField.fakeRotOffset = float(
-            cmd.cmd.keywords["rotOffset"].values[0]) if "rotOffset" in cmd.cmd.keywords else 0.0
+            cmd.cmd.keywords['rotOffset'].values[0]) if 'rotOffset' in cmd.cmd.keywords else 0.0
 
-        cmd.finish('text="set fake slew position to az=%s alt=%s rotOffset=%s"'
-                   % (sopState.gotoField.fakeAz,
-                      sopState.gotoField.fakeAlt,
-                      sopState.gotoField.fakeRotOffset))
+        cmd.finish('text="set fake slew position to az=%s alt=%s rotOffset=%s"' %
+                   (sopState.gotoField.fakeAz, sopState.gotoField.fakeAlt,
+                    sopState.gotoField.fakeRotOffset))
 
     def ditheredFlat(self, cmd, finish=True):
         """Take a set of nStep dithered flats, moving the collimator by nTick between exposures"""
@@ -728,7 +712,10 @@ class SopCmd(object):
         sopState.aborting = False
 
         spN = []
-        all = ["sp1", "sp2", ]
+        all = [
+            'sp1',
+            'sp2',
+        ]
         for s in all:
             if s in cmd.cmd.keywords:
                 spN += [s]
@@ -736,21 +723,20 @@ class SopCmd(object):
         if not spN:
             spN = all
 
-        nStep = int(cmd.cmd.keywords["nStep"].values[0]
-                    ) if "nStep" in cmd.cmd.keywords else 22
-        nTick = int(cmd.cmd.keywords["nTick"].values[0]
-                    ) if "nTick" in cmd.cmd.keywords else 62
-        expTime = float(cmd.cmd.keywords["expTime"].values[0]
-                        ) if "expTime" in cmd.cmd.keywords else 30
+        nStep = int(cmd.cmd.keywords['nStep'].values[0]) if 'nStep' in cmd.cmd.keywords else 22
+        nTick = int(cmd.cmd.keywords['nTick'].values[0]) if 'nTick' in cmd.cmd.keywords else 62
+        expTime = float(
+            cmd.cmd.keywords['expTime'].values[0]) if 'expTime' in cmd.cmd.keywords else 30
 
-        sopState.queues[sopActor.MASTER].put(Msg.DITHERED_FLAT,
-                                             cmd,
-                                             replyQueue=self.replyQueue,
-                                             actorState=sopState,
-                                             expTime=expTime,
-                                             spN=spN,
-                                             nStep=nStep,
-                                             nTick=nTick)
+        sopState.queues[sopActor.MASTER].put(
+            Msg.DITHERED_FLAT,
+            cmd,
+            replyQueue=self.replyQueue,
+            actorState=sopState,
+            expTime=expTime,
+            spN=spN,
+            nStep=nStep,
+            nTick=nTick)
 
     def hartmann(self, cmd, finish=True):
         """
@@ -770,19 +756,18 @@ class SopCmd(object):
         cmdState = sopState.hartmann
 
         if self.doing_science(sopState):
-            cmd.fail(
-                "text='A science exposure sequence is running -- "
-                "will not start a hartmann sequence!")
+            cmd.fail("text='A science exposure sequence is running -- "
+                     'will not start a hartmann sequence!')
             return
 
         cmdState.reinitialize(cmd, output=False)
 
-        expTime = float(cmd.cmd.keywords["expTime"].values[0]) \
-            if "expTime" in cmd.cmd.keywords else CmdState.getDefaultArcTime(sopActor.BOSS)
+        expTime = float(cmd.cmd.keywords['expTime'].values[0]) \
+            if 'expTime' in cmd.cmd.keywords else CmdState.getDefaultArcTime(sopActor.BOSS)
         cmdState.expTime = expTime
 
-        sopState.queues[sopActor.MASTER].put(Msg.HARTMANN, cmd, replyQueue=self.replyQueue,
-                                             actorState=sopState, cmdState=cmdState)
+        sopState.queues[sopActor.MASTER].put(
+            Msg.HARTMANN, cmd, replyQueue=self.replyQueue, actorState=sopState, cmdState=cmdState)
 
     def collimateBoss(self, cmd):
         """
@@ -793,15 +778,18 @@ class SopCmd(object):
         cmdState = sopState.collimateBoss
 
         if self.doing_science(sopState):
-            cmd.fail(
-                "text='A science exposure sequence is running -- "
-                "will not start a hartmann sequence!")
+            cmd.fail("text='A science exposure sequence is running -- "
+                     'will not start a hartmann sequence!')
             return
 
         cmdState.reinitialize(cmd, output=False)
 
-        sopState.queues[sopActor.MASTER].put(Msg.COLLIMATE_BOSS, cmd, replyQueue=self.replyQueue,
-                                             actorState=sopState, cmdState=cmdState)
+        sopState.queues[sopActor.MASTER].put(
+            Msg.COLLIMATE_BOSS,
+            cmd,
+            replyQueue=self.replyQueue,
+            actorState=sopState,
+            cmdState=cmdState)
 
     def gotoField(self, cmd):
         """Slew to the current cartridge/pointing
@@ -819,98 +807,81 @@ class SopCmd(object):
         keywords = cmd.cmd.keywords
 
         if self.doing_science(sopState):
-            cmd.fail(
-                "text='A science exposure sequence is running -- will not go to field!")
+            cmd.fail("text='A science exposure sequence is running -- will not go to field!")
             return
 
-        if "abort" in keywords:
+        if 'abort' in keywords:
             self.stop_cmd(cmd, cmdState, sopState, 'gotoField')
             return
 
         # Modify running gotoField command
         if self.modifiable(cmd, cmdState):
-            cmdState.doSlew = True if "noSlew" not in keywords else False
-            cmdState.doGuider = True if "noGuider" not in keywords else False
-            cmdState.doHartmann = True if "noHartmann" not in keywords else False
+            cmdState.doSlew = True if 'noSlew' not in keywords else False
+            cmdState.doGuider = True if 'noGuider' not in keywords else False
+            cmdState.doHartmann = True if 'noHartmann' not in keywords else False
 
             # NOTE: TBD: Need a full set of test cases for this...
 
             dropCalibs = False
-            if "noCalibs" in keywords:
+            if 'noCalibs' in keywords:
                 if cmdState.didFlat or cmdState.didArc:
-                    cmd.warn(
-                        'text="Some cals have been taken; it\'s too late to disable them."')
+                    cmd.warn('text="Some cals have been taken; it\'s too late to disable them."')
                 else:
                     dropCalibs = True
-            if "arcTime" in keywords:
+            if 'arcTime' in keywords:
                 if cmdState.didArc:
-                    cmd.warn(
-                        'text="Arcs are taken; it\'s too late to modify arcTime"')
+                    cmd.warn('text="Arcs are taken; it\'s too late to modify arcTime"')
                 else:
-                    cmdState.arcTime = float(keywords["arcTime"].values[0])
-            if "flatTime" in keywords:
+                    cmdState.arcTime = float(keywords['arcTime'].values[0])
+            if 'flatTime' in keywords:
                 if cmdState.didFlat:
-                    cmd.warn(
-                        'text="Flats are taken; it\'s too late to modify flatTime"')
+                    cmd.warn('text="Flats are taken; it\'s too late to modify flatTime"')
                 else:
-                    cmdState.flatTime = float(keywords["flatTime"].values[0])
-            if "guiderFlatTime" in keywords:
-                cmdState.guiderFlatTime = float(
-                    keywords["guiderFlatTime"].values[0])
-            if "guiderTime" in keywords:
-                cmdState.guiderTime = float(keywords["guiderTime"].values[0])
+                    cmdState.flatTime = float(keywords['flatTime'].values[0])
+            if 'guiderFlatTime' in keywords:
+                cmdState.guiderFlatTime = float(keywords['guiderFlatTime'].values[0])
+            if 'guiderTime' in keywords:
+                cmdState.guiderTime = float(keywords['guiderTime'].values[0])
 
             # * TBD: WARNING! This does not keep track of what's already been done,
             # * except for the dropCalibs bit above.
             cmdState.doCalibs = not dropCalibs
-            cmdState.setStageState(
-                "slew", "pending" if cmdState.doSlew else "off")
-            cmdState.setStageState("hartmann",
-                                   "pending" if cmdState.doHartmann else "off")
-            cmdState.setStageState(
-                "calibs", "pending" if not dropCalibs else "off")
-            cmdState.setStageState(
-                "guider", "pending" if cmdState.doGuider else "off")
+            cmdState.setStageState('slew', 'pending' if cmdState.doSlew else 'off')
+            cmdState.setStageState('hartmann', 'pending' if cmdState.doHartmann else 'off')
+            cmdState.setStageState('calibs', 'pending' if not dropCalibs else 'off')
+            cmdState.setStageState('guider', 'pending' if cmdState.doGuider else 'off')
 
-            self.status(
-                cmd,
-                threads=False,
-                finish=True,
-                oneCommand="gotoField")
+            self.status(cmd, threads=False, finish=True, oneCommand='gotoField')
             return
 
         cmdState.reinitialize(cmd, output=False)
 
-        cmdState.doSlew = "noSlew" not in keywords
-        cmdState.doGuider = "noGuider" not in keywords
-        cmdState.doCalibs = (
-            "noCalibs" not in keywords and survey != sopActor.APOGEE)
-        cmdState.doHartmann = (
-            "noHartmann" not in keywords and survey != sopActor.APOGEE)
+        cmdState.doSlew = 'noSlew' not in keywords
+        cmdState.doGuider = 'noGuider' not in keywords
+        cmdState.doCalibs = ('noCalibs' not in keywords and survey != sopActor.APOGEE)
+        cmdState.doHartmann = ('noHartmann' not in keywords and survey != sopActor.APOGEE)
         if cmdState.doCalibs:
-            if "arcTime" in keywords:
-                cmdState.arcTime = float(keywords["arcTime"].values[0])
+            if 'arcTime' in keywords:
+                cmdState.arcTime = float(keywords['arcTime'].values[0])
             else:
                 cmdState.arcTime = CmdState.getDefaultArcTime(survey)
-            if "flatTime" in keywords:
-                cmdState.flatTime = float(keywords["flatTime"].values[0])
+            if 'flatTime' in keywords:
+                cmdState.flatTime = float(keywords['flatTime'].values[0])
             else:
                 cmdState.flatTime = CmdState.getDefaultFlatTime(survey)
             if cmdState.arcTime <= 0:
-                cmd.warn(
-                    'text="GotoField arcTime is not a positive number: '
-                    'are you sure you want that?"')
+                cmd.warn('text="GotoField arcTime is not a positive number: '
+                         'are you sure you want that?"')
             if cmdState.flatTime <= 0:
-                cmd.warn(
-                    'text="GotoField flatTime is not a positive number: '
-                    'are you sure you want that?"')
+                cmd.warn('text="GotoField flatTime is not a positive number: '
+                         'are you sure you want that?"')
         if cmdState.doGuider:
             cmdState.guiderFlatTime = float(
-                keywords["guiderFlatTime"].values[0]) if "guiderFlatTime" in keywords else 0.5
-            cmdState.guiderTime = float(keywords["guiderTime"].values[0]) \
-                if "guiderTime" in keywords else 5
+                keywords['guiderFlatTime'].values[0]) if 'guiderFlatTime' in keywords else 0.5
+            cmdState.guiderTime = float(keywords['guiderTime'].values[0]) \
+                if 'guiderTime' in keywords else 5
             cmdState.doGuiderFlat = cmdState.guiderFlatTime > 0
-            cmdState.keepOffsets = "keepOffsets" in keywords
+            cmdState.keepOffsets = 'keepOffsets' in keywords
         else:
             cmdState.doGuiderFlat = False
 
@@ -920,40 +891,39 @@ class SopCmd(object):
             cmdState.doGuiderFlat = False
 
         if cmdState.doSlew:
-            pointingInfo = sopState.models["platedb"].keyVarDict["pointingInfo"]
+            pointingInfo = sopState.models['platedb'].keyVarDict['pointingInfo']
             cmdState.ra = pointingInfo[3]
             cmdState.dec = pointingInfo[4]
             cmdState.rotang = 0.0  # Rotator angle; should always be 0.0
 
         if myGlobals.bypass.get(name='slewToField'):
-            fakeSkyPos = obs2Sky(
-                cmd,
-                cmdState.fakeAz,
-                cmdState.fakeAlt,
-                cmdState.fakeRotOffset)
+            fakeSkyPos = obs2Sky(cmd, cmdState.fakeAz, cmdState.fakeAlt, cmdState.fakeRotOffset)
             cmdState.ra = fakeSkyPos[0]
             cmdState.dec = fakeSkyPos[1]
             cmdState.rotang = fakeSkyPos[2]
-            cmd.warn(
-                'text="Bypass slewToField is FAKING RA DEC:  %g, %g /rotang=%g"' %
-                (cmdState.ra, cmdState.dec, cmdState.rotang))
+            cmd.warn('text="Bypass slewToField is FAKING RA DEC:  %g, %g /rotang=%g"' %
+                     (cmdState.ra, cmdState.dec, cmdState.rotang))
 
         # Junk!! Must keep this in one place! Adjustment will be ugly
         # otherwise.
         activeStages = []
         if cmdState.doSlew:
-            activeStages.append("slew")
+            activeStages.append('slew')
         if cmdState.doHartmann:
-            activeStages.append("hartmann")
+            activeStages.append('hartmann')
         if cmdState.doCalibs:
-            activeStages.append("calibs")
+            activeStages.append('calibs')
         if cmdState.doGuider:
-            activeStages.append("guider")
+            activeStages.append('guider')
         activeStages.append('cleanup')  # we always may have to cleanup...
         cmdState.setupCommand(cmd, activeStages)
 
-        sopState.queues[sopActor.MASTER].put(Msg.GOTO_FIELD, cmd, replyQueue=self.replyQueue,
-                                             actorState=sopState, cmdState=cmdState)
+        sopState.queues[sopActor.MASTER].put(
+            Msg.GOTO_FIELD,
+            cmd,
+            replyQueue=self.replyQueue,
+            actorState=sopState,
+            cmdState=cmdState)
 
     def gotoPosition(self, cmd, cmdState, name, az=None, alt=None, rot=None):
         """Goto a specified alt/az/[rot] position, named 'name'."""
@@ -964,8 +934,7 @@ class SopCmd(object):
 
         blocked = self.isSlewingDisabled(cmd)
         if blocked:
-            cmd.fail('text=%s' %
-                     (qstr('will not {0}: {1}'.format(name, blocked))))
+            cmd.fail('text=%s' % (qstr('will not {0}: {1}'.format(name, blocked))))
             return
 
         if 'stop' in keywords or 'abort' in keywords:
@@ -986,8 +955,11 @@ class SopCmd(object):
         cmdState.setupCommand(cmd, activeStages)
 
         sopState.queues[sopActor.SLEW].put(
-            Msg.GOTO_POSITION, cmd, replyQueue=self.replyQueue,
-            actorState=sopState, cmdState=cmdState)
+            Msg.GOTO_POSITION,
+            cmd,
+            replyQueue=self.replyQueue,
+            actorState=sopState,
+            cmdState=cmdState)
 
     def gotoInstrumentChange(self, cmd):
         """Go to the instrument change position: alt=90 az=121 rot=0"""
@@ -1004,12 +976,12 @@ class SopCmd(object):
     def gotoAll60(self, cmd):
         """Go to the startup check position: alt=60, az=60, rot=60"""
 
-        self.gotoPosition(cmd, None, "stow", 60, 60, 60)
+        self.gotoPosition(cmd, None, 'stow', 60, 60, 60)
 
     def gotoStow60(self, cmd):
         """Go to the resting position: alt=60, az=121, rot=0"""
 
-        self.gotoPosition(cmd, None, "stow", 121, 60, 0)
+        self.gotoPosition(cmd, None, 'stow', 121, 60, 0)
 
     def gotoGangChange(self, cmd):
         """Go to the gang connector change position"""
@@ -1020,11 +992,7 @@ class SopCmd(object):
 
         blocked = self.isSlewingDisabled(cmd)
         if blocked:
-            cmd.fail(
-                'text=%s' %
-                (qstr(
-                    'will not go to gang change: %s' %
-                    (blocked))))
+            cmd.fail('text=%s' % (qstr('will not go to gang change: %s' % (blocked))))
             return
 
         if 'stop' in keywords or 'abort' in keywords:
@@ -1037,10 +1005,10 @@ class SopCmd(object):
             return
 
         cmdState.reinitialize(cmd, output=False)
-        alt = keywords["alt"].values[0] if "alt" in keywords else None
+        alt = keywords['alt'].values[0] if 'alt' in keywords else None
         cmdState.set('alt', alt)
-        cmdState.doSlew = "noSlew" not in keywords
-        cmdState.doDomeFlat = "noDomeFlat" not in keywords
+        cmdState.doSlew = 'noSlew' not in keywords
+        cmdState.doDomeFlat = 'noDomeFlat' not in keywords
 
         activeStages = []
         if cmdState.doSlew:
@@ -1049,8 +1017,12 @@ class SopCmd(object):
             activeStages.append('domeFlat')
         cmdState.setupCommand(cmd, activeStages)
 
-        sopState.queues[sopActor.SLEW].put(Msg.GOTO_GANG_CHANGE, cmd, replyQueue=self.replyQueue,
-                                           actorState=sopState, cmdState=cmdState)
+        sopState.queues[sopActor.SLEW].put(
+            Msg.GOTO_GANG_CHANGE,
+            cmd,
+            replyQueue=self.replyQueue,
+            actorState=sopState,
+            cmdState=cmdState)
 
     def doApogeeDomeFlat(self, cmd):
         """Take an APOGEE dome flat, with FFS closed and FFlamps on."""
@@ -1058,8 +1030,7 @@ class SopCmd(object):
         cmdState = sopState.doApogeeDomeFlat
 
         if self.doing_science(sopState):
-            cmd.fail(
-                "text='A science exposure sequence is running -- will not take a dome flat!")
+            cmd.fail("text='A science exposure sequence is running -- will not take a dome flat!")
             return
 
         if 'stop' in cmd.cmd.keywords or 'abort' in cmd.cmd.keywords:
@@ -1073,32 +1044,32 @@ class SopCmd(object):
 
         cmdState.reinitialize(cmd)
 
-        sopState.queues[sopActor.SLEW].put(Msg.DO_APOGEE_DOME_FLAT,
-                                           cmd,
-                                           replyQueue=self.replyQueue,
-                                           actorState=sopState,
-                                           cmdState=cmdState,
-                                           survey=sopState.survey)
+        sopState.queues[sopActor.SLEW].put(
+            Msg.DO_APOGEE_DOME_FLAT,
+            cmd,
+            replyQueue=self.replyQueue,
+            actorState=sopState,
+            cmdState=cmdState,
+            survey=sopState.survey)
 
     def runScript(self, cmd):
         """ Run the named script from the SOPACTOR_DIR/scripts directory. """
         sopState = myGlobals.actorState
 
-        sopState.queues[sopActor.SCRIPT].put(Msg.NEW_SCRIPT,
-                                             cmd,
-                                             replyQueue=self.replyQueue,
-                                             actorState=sopState,
-                                             survey=sopState.survey,
-                                             scriptName=cmd.cmd.keywords["scriptName"].values[0])
+        sopState.queues[sopActor.SCRIPT].put(
+            Msg.NEW_SCRIPT,
+            cmd,
+            replyQueue=self.replyQueue,
+            actorState=sopState,
+            survey=sopState.survey,
+            scriptName=cmd.cmd.keywords['scriptName'].values[0])
 
     def listScripts(self, cmd, finish=True):
         """ List available script names for the runScript command."""
 
         path = os.path.join(os.environ['SOPACTOR_DIR'], 'scripts', '*.inp')
         scripts = glob.glob(path)
-        scripts = ','.join(
-            os.path.splitext(
-                os.path.basename(s))[0] for s in scripts)
+        scripts = ','.join(os.path.splitext(os.path.basename(s))[0] for s in scripts)
         cmd.inform('availableScripts="%s"' % scripts)
 
         if finish:
@@ -1120,7 +1091,7 @@ class SopCmd(object):
 
         sopState = myGlobals.actorState
 
-        keepQueues = True if "keepQueues" in cmd.cmd.keywords else False
+        keepQueues = True if 'keepQueues' in cmd.cmd.keywords else False
 
         if sopState.restartCmd:
             sopState.restartCmd.finish("text=\"secundum verbum tuum in pace\"")
@@ -1132,8 +1103,7 @@ class SopCmd(object):
         cmd.inform("text=\"Restarting threads\"")
         sopState.restartCmd = cmd
 
-        sopState.actor.startThreads(sopState, cmd, restart=True,
-                                    restartQueues=not keepQueues)
+        sopState.actor.startThreads(sopState, cmd, restart=True, restartQueues=not keepQueues)
 
     def reinit(self, cmd):
         """ (engineering command) Recreate the objects which hold the state of
@@ -1189,17 +1159,15 @@ class SopCmd(object):
 
         self.actor.sendVersionKey(cmd)
 
-        if hasattr(
-                cmd,
-                'cmd') and cmd.cmd is not None and "geek" in cmd.cmd.keywords:
+        if hasattr(cmd, 'cmd') and cmd.cmd is not None and 'geek' in cmd.cmd.keywords:
             threads = True
             for t in threading.enumerate():
                 cmd.inform('text="%s"' % t)
 
         bypassNames, bypassStates = bypass.get_bypass_list()
-        cmd.inform("bypassNames=" + ", ".join(bypassNames))
+        cmd.inform('bypassNames=' + ', '.join(bypassNames))
         bypassed = bypass.get_bypassedNames()
-        txt = "bypassedNames=" + ", ".join(bypassed)
+        txt = 'bypassedNames=' + ', '.join(bypassed)
         # output non-empty bypassedNames as a warning, per #2187.
         if bypassed == []:
             cmd.inform(txt)
@@ -1207,7 +1175,7 @@ class SopCmd(object):
             cmd.warn(txt)
         cmd.inform('text="apogeeGang: %s"' % (sopState.apogeeGang.getPos()))
 
-        cmd.inform("surveyCommands=" + ", ".join(sopState.validCommands))
+        cmd.inform('surveyCommands=' + ', '.join(sopState.validCommands))
 
         # major commands
         sopState.gotoField.genKeys(cmd=cmd, trimKeys=oneCommand)
@@ -1239,10 +1207,10 @@ class SopCmd(object):
 
                 if not getStatus.run():
                     if finish:
-                        cmd.fail("")
+                        cmd.fail('')
                         return
                     else:
-                        cmd.warn("")
+                        cmd.warn('')
             finally:
                 sopState.ignoreAborting = False
 
@@ -1250,7 +1218,7 @@ class SopCmd(object):
         self.listScripts(cmd, finish=False)
 
         if finish:
-            cmd.finish("")
+            cmd.finish('')
 
     def initCommands(self):
         """Recreate the objects that hold the state of the various commands."""
@@ -1274,16 +1242,9 @@ class SopCmd(object):
         sopState.collimateBoss = CmdState.CollimateBossCmd()
 
         self.updateCartridge(-1, 'UNKNOWN', 'None')
-        sopState.guiderState.setLoadedNewCartridgeCallback(
-            self.updateCartridge)
+        sopState.guiderState.setLoadedNewCartridgeCallback(self.updateCartridge)
 
-    def updateCartridge(
-            self,
-            cartridge,
-            plateType,
-            surveyModeName,
-            status=True,
-            bypassed=False):
+    def updateCartridge(self, cartridge, plateType, surveyModeName, status=True, bypassed=False):
         """
         Read the guider's notion of the loaded cartridge and configure ourselves appropriately.
 
@@ -1314,32 +1275,33 @@ class SopCmd(object):
         surveyMode = sopState.surveyMode
         survey = sopState.survey
 
-        cmd.warn('text="loadCartridge fired cart=%s survey=%s surveyMode=%s"' %
-                 (cartridge, survey, surveyMode))
-        cmd.inform("survey={0},{1}".format(
-            *[qstr(x) for x in sopState.surveyText]))
+        cmd.warn('text="loadCartridge fired cart=%s survey=%s surveyMode=%s"' % (cartridge, survey,
+                                                                                 surveyMode))
+        cmd.inform('survey={0},{1}'.format(*[qstr(x) for x in sopState.surveyText]))
 
         sopState.validCommands = [
-            'gotoField',
-            'gotoStow',
-            'gotoInstrumentChange',
-            'gotoAll60',
-            'gotoStow60']
+            'gotoField', 'gotoStow', 'gotoInstrumentChange', 'gotoAll60', 'gotoStow60'
+        ]
         if survey is sopActor.BOSS:
-            sopState.gotoField.setStages(
-                ['slew', 'hartmann', 'calibs', 'guider', 'cleanup'])
-            sopState.validCommands += ['doBossCalibs', 'doBossScience', ]
+            sopState.gotoField.setStages(['slew', 'hartmann', 'calibs', 'guider', 'cleanup'])
+            sopState.validCommands += [
+                'doBossCalibs',
+                'doBossScience',
+            ]
         elif survey is sopActor.APOGEE:
             apogeeDesign = self.update_apogee_design(sopState)
             sopState.doApogeeScience.set_apogee_expTime(apogeeDesign[1])
             sopState.gotoField.setStages(['slew', 'guider', 'cleanup'])
-            sopState.validCommands += ['doApogeeScience', 'doApogeeSkyFlats',
-                                       'gotoGangChange', 'doApogeeDomeFlat']
+            sopState.validCommands += [
+                'doApogeeScience', 'doApogeeSkyFlats', 'gotoGangChange', 'doApogeeDomeFlat'
+            ]
         elif survey is sopActor.MANGA:
-            sopState.gotoField.setStages(
-                ['slew', 'hartmann', 'calibs', 'guider', 'cleanup'])
-            sopState.validCommands += ['doBossCalibs',
-                                       'doMangaDither', 'doMangaSequence', ]
+            sopState.gotoField.setStages(['slew', 'hartmann', 'calibs', 'guider', 'cleanup'])
+            sopState.validCommands += [
+                'doBossCalibs',
+                'doMangaDither',
+                'doMangaSequence',
+            ]
             if surveyMode is sopActor.MANGADITHER:
                 sopState.doMangaSequence.set_mangaDither()
             if surveyMode is sopActor.MANGA10:
@@ -1348,20 +1310,15 @@ class SopCmd(object):
             if surveyMode is sopActor.MANGASTARE or surveyMode is sopActor.MASTAR:
                 sopState.doMangaSequence.set_mangaStare()
         elif survey is sopActor.APOGEEMANGA:
-            sopState.gotoField.setStages(
-                ['slew', 'hartmann', 'calibs', 'guider', 'cleanup'])
-            sopState.validCommands += ['doBossCalibs',
-                                       'doApogeeMangaDither',
-                                       'doApogeeMangaSequence',
-                                       'doApogeeSkyFlats',
-                                       'gotoGangChange',
-                                       'doApogeeDomeFlat']
+            sopState.gotoField.setStages(['slew', 'hartmann', 'calibs', 'guider', 'cleanup'])
+            sopState.validCommands += [
+                'doBossCalibs', 'doApogeeMangaDither', 'doApogeeMangaSequence', 'doApogeeSkyFlats',
+                'gotoGangChange', 'doApogeeDomeFlat'
+            ]
             if surveyMode is sopActor.APOGEELEAD or surveyMode is None:
                 apogeeDesign = self.update_apogee_design(sopState)
-                sopState.doApogeeMangaDither.set_apogeeLead(
-                    apogeeExpTime=apogeeDesign[1])
-                sopState.doApogeeMangaSequence.set_apogeeLead(
-                    apogeeExpTime=apogeeDesign[1])
+                sopState.doApogeeMangaDither.set_apogeeLead(apogeeExpTime=apogeeDesign[1])
+                sopState.doApogeeMangaSequence.set_apogeeLead(apogeeExpTime=apogeeDesign[1])
                 sopState.doApogeeScience.set_apogee_expTime(apogeeDesign[1])
             if surveyMode is sopActor.MANGADITHER:
                 sopState.doApogeeMangaDither.set_manga()
@@ -1408,13 +1365,11 @@ class SopCmd(object):
             sopState.survey = sopActor.MANGA
             sopState.surveyMode = sopActor.MANGASTARE
         elif bypass.get('isMaStar'):
-            cmd.warn(
-                'text="We are lying about this being a MaNGA MaStar cartridge"')
+            cmd.warn('text="We are lying about this being a MaNGA MaStar cartridge"')
             sopState.survey = sopActor.MANGA
             sopState.surveyMode = sopActor.MASTAR
         elif bypass.get('isMangaDither'):
-            cmd.warn(
-                'text="We are lying about this being a MaNGA Dither cartridge"')
+            cmd.warn('text="We are lying about this being a MaNGA Dither cartridge"')
             sopState.survey = sopActor.MANGA
             sopState.surveyMode = sopActor.MANGADITHER
         elif bypass.get('isManga10'):
@@ -1422,8 +1377,7 @@ class SopCmd(object):
             sopState.survey = sopActor.MANGA
             sopState.surveyMode = sopActor.MANGA10
         elif bypass.get('isApogeeMangaStare'):
-            cmd.warn(
-                'text="We are lying about this being an APOGEE&MaNGA Stare cartridge"')
+            cmd.warn('text="We are lying about this being an APOGEE&MaNGA Stare cartridge"')
             sopState.survey = sopActor.APOGEEMANGA
             sopState.surveyMode = sopActor.MANGASTARE
         elif bypass.get('isApogeeMangaMaStar'):
@@ -1431,18 +1385,15 @@ class SopCmd(object):
             sopState.survey = sopActor.APOGEEMANGA
             sopState.surveyMode = sopActor.MASTAR
         elif bypass.get('isApogeeMangaDither'):
-            cmd.warn(
-                'text="We are lying about this being a APOGEE&MaNGA Dither cartridge"')
+            cmd.warn('text="We are lying about this being a APOGEE&MaNGA Dither cartridge"')
             sopState.survey = sopActor.APOGEEMANGA
             sopState.surveyMode = sopActor.MANGADITHER
         elif bypass.get('isApogeeManga10'):
-            cmd.warn(
-                'text="We are lying about this being a APOGEE&MaNGA 10min cartridge"')
+            cmd.warn('text="We are lying about this being a APOGEE&MaNGA 10min cartridge"')
             sopState.survey = sopActor.APOGEEMANGA
             sopState.surveyMode = sopActor.MANGA10
         elif bypass.get('isApogeeLead'):
-            cmd.warn(
-                'text="We are lying about this being an APOGEE&MaNGA, APOGEE Lead cartridge"')
+            cmd.warn('text="We are lying about this being an APOGEE&MaNGA, APOGEE Lead cartridge"')
             sopState.survey = sopActor.APOGEEMANGA
             sopState.surveyMode = sopActor.APOGEELEAD
 
@@ -1459,9 +1410,11 @@ class SopCmd(object):
             surveyModeName (str): surveyMode keyword from the guider, used as a lookup into
                                   surveyMode_dict
         """
+
         def update_surveyText():
-            sopState.surveyText = [survey_inv_dict[sopState.survey],
-                                   surveyMode_inv_dict[sopState.surveyMode]]
+            sopState.surveyText = [
+                survey_inv_dict[sopState.survey], surveyMode_inv_dict[sopState.surveyMode]
+            ]
 
         sopState = myGlobals.actorState
         sopState.surveyText = ['', '']
@@ -1471,9 +1424,7 @@ class SopCmd(object):
             return
 
         if cartridge <= 0:
-            cmd.warn(
-                'text="We do not have a valid cartridge (id=%s)"' %
-                (cartridge))
+            cmd.warn('text="We do not have a valid cartridge (id=%s)"' % (cartridge))
             sopState.survey = sopActor.UNKNOWN
             sopState.surveyMode = None
             update_surveyText()
@@ -1485,11 +1436,7 @@ class SopCmd(object):
             sopState.survey = survey_dict[plateType]
             sopState.surveyText[0] = plateType
         except KeyError:
-            cmd.error(
-                'text=%s' %
-                qstr(
-                    "Do not understand plateType: %s." %
-                    plateType))
+            cmd.error('text=%s' % qstr('Do not understand plateType: %s.' % plateType))
             sopState.survey = sopActor.UNKNOWN
             sopState.surveyText[0] = survey_inv_dict[sopState.survey]
 
@@ -1497,22 +1444,18 @@ class SopCmd(object):
             sopState.surveyMode = surveyMode_dict[surveyMode]
             sopState.surveyText[1] = surveyMode
         except KeyError:
-            cmd.error(
-                'text=%s' %
-                qstr(
-                    "Do not understand surveyMode: %s." %
-                    surveyMode))
+            cmd.error('text=%s' % qstr('Do not understand surveyMode: %s.' % surveyMode))
             sopState.surveyMode = None
             sopState.surveyText[1] = surveyMode_inv_dict[sopState.surveyMode]
 
         # #2453 Check which instruments were plugged for APOGEE-MaNGA plates
         self.update_plugged_instruments(sopState)
         if sopState.survey == sopActor.APOGEEMANGA:
-            if sopState.pluggedInstruments == ('APOGEE',):
+            if sopState.pluggedInstruments == ('APOGEE', ):
                 sopState.survey = sopActor.APOGEE
                 sopState.surveyMode = None
                 update_surveyText()
-            elif sopState.pluggedInstruments == ('BOSS',):
+            elif sopState.pluggedInstruments == ('BOSS', ):
                 sopState.survey = sopActor.MANGA
                 sopState.surveyMode = sopActor.MANGADITHER
                 update_surveyText()
@@ -1529,8 +1472,7 @@ class SopCmd(object):
             (sopState.doMangaDither.cmd and sopState.doMangaDither.cmd.isAlive()) or
             (sopState.doMangaSequence.cmd and sopState.doMangaSequence.cmd.isAlive()) or
             (sopState.doApogeeMangaDither.cmd and sopState.doApogeeMangaDither.cmd.isAlive()) or
-            (sopState.doApogeeMangaSequence.cmd and sopState.doApogeeMangaSequence.cmd.isAlive())
-            )
+            (sopState.doApogeeMangaSequence.cmd and sopState.doApogeeMangaSequence.cmd.isAlive()))
 
 
 def obs2Sky(cmd, az=None, alt=None, rotOffset=0.0):
@@ -1541,13 +1483,10 @@ def obs2Sky(cmd, az=None, alt=None, rotOffset=0.0):
     gotoAz = az if az is not None else axePos[0]
     gotoAlt = alt if alt is not None else axePos[1]
 
-    cmd.warn(
-        'text="FAKING slew position from az, alt, and rotator offset: %0.1f %0.1f %0.1f"' %
-        (gotoAz, gotoAlt, rotOffset))
+    cmd.warn('text="FAKING slew position from az, alt, and rotator offset: %0.1f %0.1f %0.1f"' %
+             (gotoAz, gotoAlt, rotOffset))
     cmdVar = myGlobals.actorState.actor.cmdr.call(
-        actor="tcc", forUserCmd=cmd, cmdStr=(
-            "convert %0.5f,%0.6f obs icrs" %
-            (gotoAz, gotoAlt)))
+        actor='tcc', forUserCmd=cmd, cmdStr=('convert %0.5f,%0.6f obs icrs' % (gotoAz, gotoAlt)))
     if cmdVar.didFail:
         return 0, 0, 0
     else:
