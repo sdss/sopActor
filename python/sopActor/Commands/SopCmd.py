@@ -75,14 +75,13 @@ class SopCmd(object):
     """ Wrap commands to the sop actor"""
 
     def __init__(self, actor):
+
         self.actor = actor
         self.replyQueue = sopActor.Queue('(replyQueue)', 0)
-        #
+
         # Declare keys that we're going to use
-        #
         self.keys = keys.KeysDictionary(
-            'sop_sop',
-            (1, 2),
+            'sop_sop', (1, 2),
             keys.Key('abort', help='Abort a command'),
             keys.Key('clear', help='Clear a flag'),
             keys.Key('narc', types.Int(), help='Number of arcs to take'),
@@ -147,49 +146,50 @@ class SopCmd(object):
             keys.Key('rotOffset', types.Float(), help='what rotator offset to add'),
             keys.Key('alt', types.Float(), help='what altitude to slew to'),
         )
-        #
+
         # Declare commands
-        #
         self.vocab = [
-            ('bypass', '<subSystem> [clear]',
-             self.bypass), ('doBossCalibs', '[<narc>] [<nbias>] [<ndark>] [<nflat>] [<arcTime>] '
-                            '[<darkTime>] [<flatTime>] [<guiderFlatTime>] [abort]',
-                            self.doBossCalibs), ('doBossScience',
-                                                 '[<expTime>] [<nexp>] [abort] [stop] [test]',
-                                                 self.doBossScience),
+            ('bypass', '<subSystem> [clear]', self.bypass),
+            ('doBossCalibs', '[<narc>] [<nbias>] [<ndark>] [<nflat>] [<arcTime>] '
+                             '[<darkTime>] [<flatTime>] [<guiderFlatTime>] [abort]',
+                             self.doBossCalibs),
+            ('doBossScience', '[<expTime>] [<nexp>] [abort] [stop] [test]',
+                              self.doBossScience),
             ('doApogeeScience', '[<expTime>] [<ditherPairs>] [stop] [<abort>] [<comment>]',
-             self.doApogeeScience), ('doApogeeSkyFlats',
-                                     '[<expTime>] [<ditherPairs>] [stop] [abort]',
-                                     self.doApogeeSkyFlats),
+                                self.doApogeeScience),
+             ('doApogeeSkyFlats', '[<expTime>] [<ditherPairs>] [stop] [abort]',
+                                  self.doApogeeSkyFlats),
             ('doMangaDither', '[<expTime>] [<dither>] [stop] [abort]',
-             self.doMangaDither), ('doMangaSequence',
-                                   '[<expTime>] [<dithers>] [<count>] [stop] [abort]',
-                                   self.doMangaSequence),
+                              self.doMangaDither),
+            ('doMangaSequence', '[<expTime>] [<dithers>] [<count>] [stop] [abort]',
+                                self.doMangaSequence),
             ('doApogeeMangaDither', '[<mangaDither>] [<comment>] [stop] [abort]',
-             self.doApogeeMangaDither), ('doApogeeMangaSequence',
-                                         '[<mangaDithers>] [<count>] [<comment>] [stop] [abort]',
-                                         self.doApogeeMangaSequence),
+                                    self.doApogeeMangaDither),
+             ('doApogeeMangaSequence', '[<mangaDithers>] [<count>] [<comment>] [stop] [abort]',
+                                       self.doApogeeMangaSequence),
             ('ditheredFlat', '[sp1] [sp2] [<expTime>] [<nStep>] [<nTick>]',
-             self.ditheredFlat), ('hartmann', '[<expTime>]', self.hartmann), ('collimateBoss', '',
-                                                                              self.collimateBoss),
-            ('lampsOff', '', self.lampsOff), ('ping', '', self.ping), ('restart', '[keepQueues]',
-                                                                       self.restart),
+                             self.ditheredFlat),
+            ('hartmann', '[<expTime>]', self.hartmann),
+            ('collimateBoss', '', self.collimateBoss),
+            ('lampsOff', '', self.lampsOff),
+            ('ping', '', self.ping),
+            ('restart', '[keepQueues]', self.restart),
             ('gotoField', '[<arcTime>] [<flatTime>] [<guiderFlatTime>] [<guiderTime>] [noSlew] '
-             '[noHartmann] [noCalibs] [noGuider] [abort] [keepOffsets]',
-             self.gotoField), ('gotoInstrumentChange', '[abort] [stop]',
-                               self.gotoInstrumentChange), ('gotoStow', '[abort] [stop]',
-                                                            self.gotoStow), ('gotoAll60',
-                                                                             '[abort] [stop]',
-                                                                             self.gotoAll60),
-            ('gotoStow60', '[abort] [stop]',
-             self.gotoStow60), ('gotoGangChange', '[<alt>] [abort] [stop] [noDomeFlat] [noSlew]',
-                                self.gotoGangChange), ('doApogeeDomeFlat', '[stop] [abort]',
-                                                       self.doApogeeDomeFlat),
-            ('setFakeField', '[<az>] [<alt>] [<rotOffset>]',
-             self.setFakeField), ('status', '[geek]', self.status), ('reinit', '', self.reinit),
-            ('runScript', '<scriptName>', self.runScript), ('listScripts', '',
-                                                            self.listScripts), ('stopScript', '',
-                                                                                self.stopScript)
+                          '[noHartmann] [noCalibs] [noGuider] [abort] [keepOffsets]',
+                          self.gotoField),
+            ('gotoInstrumentChange', '[abort] [stop]', self.gotoInstrumentChange),
+            ('gotoStow', '[abort] [stop]', self.gotoStow),
+            ('gotoAll60', '[abort] [stop]', self.gotoAll60),
+            ('gotoStow60', '[abort] [stop]', self.gotoStow60),
+            ('gotoGangChange', '[<alt>] [abort] [stop] [noDomeFlat] [noSlew]',
+                               self.gotoGangChange),
+            ('doApogeeDomeFlat', '[stop] [abort]', self.doApogeeDomeFlat),
+            ('setFakeField', '[<az>] [<alt>] [<rotOffset>]', self.setFakeField),
+            ('status', '[geek]', self.status),
+            ('reinit', '', self.reinit),
+            ('runScript', '<scriptName>', self.runScript),
+            ('listScripts', '', self.listScripts),
+            ('stopScript', '', self.stopScript)
         ]
 
     def stop_cmd(self, cmd, cmdState, sopState, name):
