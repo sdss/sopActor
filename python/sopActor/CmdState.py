@@ -914,7 +914,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
         remaining_dithers = self.mangaDitherSeq[self.index:]
         num = len(remaining_dithers)
 
-        mangaExpTime = self.mangaExpTime if self.mangaExpTime >= 900. None else 900.
+        mangaExpTime = self.mangaExpTime if self.mangaExpTime >= 900. else 900.
         self.etr = (num * (mangaExpTime + self.readout_time)) / 60.
 
     def getUserKeys(self):
