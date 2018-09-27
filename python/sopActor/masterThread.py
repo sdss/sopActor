@@ -5,7 +5,7 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 #
 # @Last modified by: José Sánchez-Gallego (gallegoj@uw.edu)
-# @Last modified time: 2018-09-21 15:23:16
+# @Last modified time: 2018-09-26 19:27:02
 
 import Queue
 import threading
@@ -744,22 +744,29 @@ def do_one_apogeemanga_dither(cmd, cmdState, actorState, sequenceState=None):
 
     multiCmd = SopMultiCommand(cmd, duration, cmdState.name + '.expose')
     multiCmd.append(
-        sopActor.BOSS,
-        Msg.EXPOSE,
-        expTime=mangaExpTime,
-        expType='science',
-        readout=readout,
-        finish_msg=finish_msg)
-    multiCmd.append(
         sopActor.APOGEE,
         Msg.APOGEE_DITHER_SET,
         expTime=apogeeExpTime,
         dithers=apogeeDithers,
         expType='object',
         comment=cmdState.comment)
-    if cmdState.apogee_long:
+
+    # The total time the APOGEE dither set will take. There is no readout time
+    # for APOGEE.
+    apogee_total_exptime = apogeeExpTime * 2.
+
+    # Determine how many BOSS exposures we can fit in that time.
+    n_boss_exposures = int(apogee_total_exptime / (mangaExpTime + readoutDuration)) or 1
+
+    for ii in range(n_boss_exposures):
         multiCmd.append(
-            sopActor.BOSS, Msg.EXPOSE, expTime=mangaExpTime, expType='science', readout=readout)
+            sopActor.BOSS,
+            Msg.EXPOSE,
+            expTime=mangaExpTime,
+            expType='science',
+            readout=readout,
+            finish_msg=finish_msg)
+
     prep_for_science(multiCmd, precondition=True)
     prep_apogee_shutter(multiCmd, open=True)
     prep_manga_dither(multiCmd, dither=mangaDither, precondition=True)

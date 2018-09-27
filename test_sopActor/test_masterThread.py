@@ -1166,7 +1166,7 @@ class TestApogeeMangaScience(MasterThreadTester):
 
         mangaDithers = 'CC'
         count = 1
-        self._do_apogeemanga_sequence(7, 45, 0, 0, mangaDithers, count, surveyMode='APOGEE lead')
+        self._do_apogeemanga_sequence(7, 46, 0, 0, mangaDithers, count, surveyMode='APOGEE lead')
 
     def test_do_apogeemanga_sequence_apogee_lead_count2_CC_long_exposure(self):
         sopTester.updateModel('mcp', TestHelper.mcpState['apogee_science'])
@@ -1175,7 +1175,7 @@ class TestApogeeMangaScience(MasterThreadTester):
 
         mangaDithers = 'CC'
         count = 2
-        self._do_apogeemanga_sequence(12, 68, 0, 0, mangaDithers, count, surveyMode='APOGEE lead')
+        self._do_apogeemanga_sequence(12, 70, 0, 0, mangaDithers, count, surveyMode='APOGEE lead')
 
     def test_do_manga_led_sequence_after_apogee_long_lead_sequence(self):
 
@@ -1196,6 +1196,26 @@ class TestApogeeMangaScience(MasterThreadTester):
         count = 1
         self._do_apogeemanga_sequence(
             20, 100, 1, 0, mangaDithers, count, surveyMode='MaNGA dither', checkCall=True)
+
+    def test_do_apogeemanga_sequence_apogee_lead_count1_CC_manga_short(self):
+
+        sopTester.updateModel('mcp', TestHelper.mcpState['apogee_science'])
+        sopTester.updateModel('apogee', TestHelper.apogeeState['B_open'])
+        sopTester.updateModel('platedb', TestHelper.platedbState['apogeeLead_manga_short'])
+
+        mangaDithers = 'CC'
+        count = 1
+        self._do_apogeemanga_sequence(24, 78, 0, 0, mangaDithers, count, surveyMode='APOGEE lead')
+
+    def test_do_apogeemanga_sequence_apogee_lead_count1_CC_apogee_long_manga_short(self):
+
+        sopTester.updateModel('mcp', TestHelper.mcpState['apogee_science'])
+        sopTester.updateModel('apogee', TestHelper.apogeeState['B_open'])
+        sopTester.updateModel('platedb', TestHelper.platedbState['apogeeLead1000s_manga_short'])
+
+        mangaDithers = 'CC'
+        count = 1
+        self._do_apogeemanga_sequence(21, 74, 0, 0, mangaDithers, count, surveyMode='APOGEE lead')
 
 
 class TestBossCalibs(MasterThreadTester):

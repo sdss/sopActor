@@ -1289,7 +1289,7 @@ class SopCmd(object):
                 'doBossScience',
             ]
         elif survey is sopActor.APOGEE:
-            apogeeDesign = self.update_apogee_design(sopState)
+            apogeeDesign, __ = self.update_designs(sopState)
             sopState.doApogeeScience.set_apogee_expTime(apogeeDesign[1])
             sopState.gotoField.setStages(['slew', 'guider', 'cleanup'])
             sopState.validCommands += [
@@ -1316,9 +1316,11 @@ class SopCmd(object):
                 'gotoGangChange', 'doApogeeDomeFlat'
             ]
             if surveyMode is sopActor.APOGEELEAD or surveyMode is None:
-                apogeeDesign = self.update_apogee_design(sopState)
-                sopState.doApogeeMangaDither.set_apogeeLead(apogeeExpTime=apogeeDesign[1])
-                sopState.doApogeeMangaSequence.set_apogeeLead(apogeeExpTime=apogeeDesign[1])
+                apogeeDesign, mangaExpTime = self.update_designs(sopState)
+                sopState.doApogeeMangaDither.set_apogeeLead(apogeeExpTime=apogeeDesign[1],
+                                                            mangaExpTime=mangaExpTime)
+                sopState.doApogeeMangaSequence.set_apogeeLead(apogeeExpTime=apogeeDesign[1],
+                                                              mangaExpTime=mangaExpTime)
                 sopState.doApogeeScience.set_apogee_expTime(apogeeDesign[1])
             if surveyMode is sopActor.MANGADITHER:
                 sopState.doApogeeMangaDither.set_manga()
@@ -1335,10 +1337,13 @@ class SopCmd(object):
         if status:
             self.status(cmd, threads=False, finish=False)
 
-    def update_apogee_design(self, sopState):
+    def update_designs(self, sopState):
         """Update the APOGEE design parameters, including expTime, from the platedb keyword."""
 
-        return sopState.models['platedb'].keyVarDict['apogeeDesign']
+        apogeeDesign = sopState.models['platedb'].keyVarDict['apogeeDesign']
+        mangaExpTime = sopState.models['platedb'].keyVarDict['mangaExposureTime'][0]
+
+        return (apogeeDesign, None if mangaExpTime == -1 else mangaExpTime)
 
     def update_plugged_instruments(self, sopState):
         ''' Update the plugged instrument from the platedb keyword '''

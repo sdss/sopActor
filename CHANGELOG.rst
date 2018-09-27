@@ -4,10 +4,14 @@
 Change Log
 ==========
 
-This document records the main changes to the sopActor code.
+3.11.0 (unreleased)
+-------------------
+
+Added
+^^^^^
+* Support for MaNGA short exposure time.
 
 
-.. _changelog-3.10.2:
 3.10.2 (2018-04-02)
 -------------------
 
@@ -17,7 +21,6 @@ Fixed
 * Lots of `nInfo` in tests that were out of date after adding the `availableScripts` output to the status.
 
 
-.. _changelog-3.10.1:
 3.10.1 (2018-02-01)
 -------------------
 
@@ -26,7 +29,6 @@ Fixed
 * Forgot to remove the ``dev`` suffix in the version when released ``3.10.0``.
 
 
-.. _changelog-3.10.0:
 3.10.0 (2018-02-01)
 -------------------
 
@@ -38,7 +40,6 @@ Added
 * Added ``stopScript`` command and other changes to allow STUI to show a script widget in the SOP GUI window. Fixes `#2842 <https://trac.sdss.org/ticket/2842>`_.
 
 
-.. _changelog-v3_9_5:
 v3_9_5 (2017-11-06)
 -------------------
 
@@ -58,7 +59,6 @@ Fixed
 * Ticket `#2707 <https://trac.sdss.org/ticket/2707>`_: unclean stop of MaNGA sequences.
 
 
-.. _changelog-v3_9_4:
 v3_9_4 (2017-06-12)
 -------------------
 
@@ -67,7 +67,6 @@ Fixed
 * Fixed a bug with outputting of the doApogeeScience_index keyword in the CmdState getUserKeys
 
 
-.. _changelog-v3_9_3:
 v3_9_3 (2017-06-11)
 -------------------
 
@@ -76,7 +75,6 @@ Fixed
 * The previous fix to ``gotoInstrumentChange`` or ``gotoStow`` was incomplete. Let's see if this does the trick.
 
 
-.. _changelog-v3_9_2:
 v3_9_2 (2017-06-11)
 -------------------
 
@@ -91,7 +89,6 @@ v3_9_1
 This version was skipped.
 
 
-.. _changelog-v3_9:
 v3_9 (2017-06-11)
 -----------------
 
@@ -116,21 +113,3 @@ Fixed
 * Ticket `#2748 <https://trac.sdss.org/ticket/2748>`_: Don't allow a slew during MaNGA post-calibration. Slews are disabled during ``do_boss_calibs`` until the readout of the last exposure (usually an arc).
 * Ticket `#2808 <https://trac.sdss.org/ticket/2808>`_: fixes a problem in which ``gotoInstrumentChange`` and ``gotoStow`` could not be stopped from STUI.
 * Ticket `#2805 <https://trac.sdss.org/ticket/2805>`_: STUI SOP should display estimated time remaining for dither sets.
-
-
-.. x.y.z (unreleased)
-.. ------------------
-..
-.. A short description
-..
-.. Added
-.. ^^^^^
-.. * TBD
-..
-.. Changed
-.. ^^^^^^^
-.. * TBD
-..
-.. Fixed
-.. ^^^^^
-.. * TBD
