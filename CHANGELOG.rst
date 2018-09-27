@@ -9,8 +9,8 @@ Change Log
 
 Added
 ^^^^^
-* Support for MaNGA short exposure time (`#2 https://github.com/sdss/sopActor/issues/2`__).
-* Pass ``bypass="ffs"`` to ``hartmannActor`` when FFS are bypassed (`#1 https://github.com/sdss/sopActor/issues/1`__).
+* Support for MaNGA short exposure time (`#2 <https://github.com/sdss/sopActor/issues/2>`_).
+* Pass ``bypass="ffs"`` to ``hartmannActor`` when FFS are bypassed (`#1 <https://github.com/sdss/sopActor/issues/1>`__).
 
 
 3.10.2 (2018-04-02)
