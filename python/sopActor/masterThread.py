@@ -5,7 +5,7 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 #
 # @Last modified by: José Sánchez-Gallego (gallegoj@uw.edu)
-# @Last modified time: 2018-08-22 18:09:55
+# @Last modified time: 2018-09-21 15:23:16
 
 import Queue
 import threading
@@ -1079,6 +1079,8 @@ def do_goto_field_hartmann(cmd, cmdState, actorState):
 
     # TODO: decide whether to add minBlueCorrection here depending on observers decision
     args = 'ignoreResiduals'
+    if myGlobals.bypass.get('ffs'):
+        args += ' bypass="ffs"'
 
     multiCmd.append(sopActor.BOSS, Msg.HARTMANN, args=args)
     if not handle_multiCmd(multiCmd, cmd, cmdState, stageName, 'Failed to take hartmann sequence'):
@@ -1397,7 +1399,12 @@ def collimate_boss(cmd, cmdState, actorState):
                                cmdState.name + '.collimate')
     prep_quick_hartmann(multiCmd)
     # TODO: decide whether to add minBlueCorrection here depending on observers decision
-    multiCmd.append(sopActor.BOSS, Msg.HARTMANN, args='ignoreResiduals noSubFrame')
+
+    args = 'ignoreResiduals noSubFrame'
+    if myGlobals.bypass.get('ffs'):
+        args += ' bypass="ffs"'
+
+    multiCmd.append(sopActor.BOSS, Msg.HARTMANN, args=args)
     if not handle_multiCmd(multiCmd, cmd, cmdState, stageName,
                            'Failed to collimate BOSS for afternoon checkout'):
         return

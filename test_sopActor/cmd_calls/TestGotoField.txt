@@ -371,3 +371,13 @@ hartmann collimate ignoreResiduals
 mcp ff.off
 mcp ne.off
 mcp hgcd.off
+
+
+[test_goto_field_boss_hartmann_ffs_bypassed]
+mcp ne.on
+
+hartmann collimate ignoreResiduals bypass="ffs"
+mcp hgcd.on
+
+mcp hgcd.off
+mcp ne.off

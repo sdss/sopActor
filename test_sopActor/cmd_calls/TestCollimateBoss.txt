@@ -39,3 +39,17 @@ mcp ff.off
 mcp ne.on
 mcp hgcd.on
 mcp ffs.close
+
+[test_collimate_boss_ffs_bypassed]
+mcp ff.off
+mcp ne.on
+mcp hgcd.on
+mcp ffs.close
+
+mcp ne.on
+mcp hgcd.on
+hartmann collimate ignoreResiduals noSubFrame bypass="ffs"
+
+mcp ffs.open
+mcp ne.off
+mcp hgcd.off

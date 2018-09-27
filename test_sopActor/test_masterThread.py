@@ -278,6 +278,21 @@ class TestGotoField(MasterThreadTester):
         cmdState.doGuider = False
         self._goto_field_boss(5, 29, 0, 0, cmdState)
 
+    def test_goto_field_boss_hartmann_ffs_bypassed(self):
+
+        self._prep_bypass('ffs', clear=True)
+        sopTester.updateModel('mcp', TestHelper.mcpState['all_off'])
+
+        cmdState = self.actorState.gotoField
+        cmdState.reinitialize(self.cmd)
+        cmdState.doSlew = False
+        cmdState.doCalibs = False
+        cmdState.arcTime = 0
+        cmdState.flatTime = 0
+        cmdState.doGuider = False
+
+        self._goto_field_boss(5, 28, 1, 0, cmdState)
+
     def test_goto_field_boss_calibs(self):
         """
         see cmd_calls/TestGotoField.txt for command list.
@@ -485,6 +500,11 @@ class TestCollimateBoss(MasterThreadTester):
         self.cmd.failOn = 'mcp ffs.close'
         sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
         self._collimate_boss(4, 17, 1, 0, didFail=True)
+
+    def test_collimate_boss_ffs_bypassed(self):
+        self._prep_bypass('ffs', clear=True)
+        sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
+        self._collimate_boss(10, 41, 2, 0)
 
 
 class TestBossScience(MasterThreadTester):
