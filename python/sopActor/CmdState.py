@@ -1,7 +1,17 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+# @Filename: CmdState.py
+# @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
+#
+# @Last modified by: José Sánchez-Gallego (gallegoj@uw.edu)
+# @Last modified time: 2018-11-21 15:09:39
+
 """
 Hold state about running commands, e.g. 'running', 'done', 'failed', ...
 Also hold keywords for those commands as we pass them around.
 """
+
 from time import sleep
 
 import sopActor
@@ -634,11 +644,15 @@ class DoMangaSequenceCmd(CmdState):
         if not (self.cmd and self.cmd.isAlive()):
             self.reset_ditherSeq()
 
-    def set_mangaStare(self):
+    def set_mangaStare(self, expTime=None):
         """Setup to use this for MaNGA Stare observations."""
-        self.keywords = dict(expTime=900.0, dithers='CCC', count=1, etr=48.0)
+
+        self.expTime = expTime or 900.
+
+        self.keywords = dict(expTime=self.expTime, dithers='CCC', count=1, etr=48.0)
         self.count = 1
         self.dithers = 'CCC'
+
         if not (self.cmd and self.cmd.isAlive()):
             self.reset_ditherSeq()
 
@@ -736,6 +750,14 @@ class DoMangaDitherCmd(CmdState):
         self.dither = 'C'
         self.expTime = 600
 
+    def set_mangaStare(self, expTime=None):
+        """Sets exposure parameters for MaNGA Stare or MaStar survey mode."""
+
+        self.keywords = dict(expTime=expTime or 900., dither='C')
+
+        self.dither = 'C'
+        self.expTime = expTime or 900.
+
     def abort(self):
         self.stop_boss_exposure(wait=True)
         super(DoMangaDitherCmd, self).abort()
@@ -750,13 +772,18 @@ class DoApogeeMangaDitherCmd(CmdState):
             keywords=dict(mangaExpTime=900.0, apogeeExpTime=450.0, mangaDither='C', comment=''))
 
         self.apogee_long = False
+        self.manga_lead = False
 
     def reset_nonkeywords(self):
+
         self.readout = True
 
     def set_apogeeLead(self, apogeeExpTime=None, mangaExpTime=None):
         """Setup to use this for APOGEE lead observations."""
+
         self.keywords = dict(mangaDither='C', comment='')
+
+        self.manga_lead = False
 
         self.mangaDither = 'C'
         self.mangaExpTime = mangaExpTime or 900.0
@@ -770,12 +797,17 @@ class DoApogeeMangaDitherCmd(CmdState):
             self.apogeeExpTime = 1000.
             self.keywords['apogeeExpTime'] = 1000.
 
-    def set_manga(self):
+    def set_manga(self, mangaExpTime=None):
         """Setup to use this for MaNGA (stare or dither) observations."""
+
         self.keywords = dict(mangaDither='C', comment='')
+
         self.mangaDither = 'C'
-        self.mangaExpTime = 900.0
-        self.apogeeExpTime = 450.0
+
+        self.mangaExpTime = mangaExpTime or 900.0
+        self.apogeeExpTime = 450.
+
+        self.manga_lead = True
         self.apogee_long = False
 
     def set_manga10(self):
@@ -786,6 +818,7 @@ class DoApogeeMangaDitherCmd(CmdState):
         self.mangaExpTime = 600.0
         self.apogeeExpTime = 300.0
         self.apogee_long = False
+        self.manga_lead = True
 
     def getUserKeys(self):
         msg = []
@@ -820,6 +853,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
         self.etr = 0
         self.readout_time = 60.0
         self.apogee_long = False
+        self.manga_lead = False
         self.reset_ditherSeq()
 
     def set_default_etr(self, exptime):
@@ -835,6 +869,8 @@ class DoApogeeMangaSequenceCmd(CmdState):
         self.mangaDithers = 'CC'
         self.count = 2
         self.mangaExpTime = mangaExpTime or 900.0
+
+        self.manga_lead = False
 
         # Make sure exposure time for ETR is still correct, even if the MaNGA
         # exposure time is short.
@@ -860,6 +896,7 @@ class DoApogeeMangaSequenceCmd(CmdState):
         self.mangaDithers = 'NSE'
         self.mangaExpTime = 900.0
         self.apogeeExpTime = 450.0
+        self.manga_lead = True
         self.set_default_etr(self.mangaExpTime)
         self.readout = False
         self.apogee_long = False
@@ -877,19 +914,21 @@ class DoApogeeMangaSequenceCmd(CmdState):
         self.set_default_etr(self.mangaExpTime)
         self.readout = False
         self.apogee_long = False
+        self.manga_lead = True
         if not (self.cmd and self.cmd.isAlive()):
             self.reset_ditherSeq()
 
-    def set_mangaStare(self):
+    def set_mangaStare(self, mangaExpTime=None):
         """Setup to use this for MaNGA stare observations."""
-        self.keywords = dict(mangaDithers='CCC', count=2, etr=0, comment='')
-        self.count = 2
+        self.keywords = dict(mangaDithers='CCC', count=1, etr=0, comment='')
+        self.count = 1
         self.mangaDithers = 'CCC'
-        self.mangaExpTime = 900.0
-        self.set_default_etr(self.mangaExpTime)
+        self.mangaExpTime = mangaExpTime or 900.
+        self.set_default_etr(self.mangaExpTime if self.mangaExpTime >= 900. else 900.)
         self.apogeeExpTime = 450.0
-        self.readout = False
+        self.readout = True
         self.apogee_long = False
+        self.manga_lead = True
         if not (self.cmd and self.cmd.isAlive()):
             self.reset_ditherSeq()
 

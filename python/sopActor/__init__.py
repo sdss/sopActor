@@ -331,4 +331,4 @@ def handle_bad_exception(actor, e, threadName, msg):
 
 __all__ = ['MASTER', 'Msg', 'bypass', 'CmdState']
 
-__version__ = '3.12.0'
+__version__ = '3.12.0dev'

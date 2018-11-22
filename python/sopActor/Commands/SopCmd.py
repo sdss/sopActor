@@ -1,8 +1,11 @@
 #!/usr/bin/env python
-# encoding: utf-8
+# -*- coding: utf-8 -*-
 #
 # @Filename: SopCmd.py
-# @License: BSD 3-Clause
+# @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
+#
+# @Last modified by: José Sánchez-Gallego (gallegoj@uw.edu)
+# @Last modified time: 2018-11-21 11:07:43
 
 from __future__ import absolute_import, division, print_function
 
@@ -20,13 +23,6 @@ from sopActor.multiCommand import MultiCommand
 
 
 """ Wrap top-level ICC functions. """
-
-
-
-
-
-
-# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 # SDSS-IV plates should all be "APOGEE-2;MaNGA", but we need both,
 # for test plates drilled as part of SDSS-III.
@@ -112,34 +108,20 @@ class SopCmd(object):
             keys.Key('scale', types.Float(), help="Current scale from \"tcc show scale\""),
             keys.Key('delta', types.Float(), help='Delta scale (percent)'),
             keys.Key('absolute', help='Set scale to provided value'),
-            keys.Key(
-                'test', help='Assert that the exposures are not expected '
-                'to be meaningful'),
-            keys.Key('keepOffsets', help='When slewing, do not clear '
-                     'accumulated offsets'),
-            keys.Key(
-                'ditherPairs', types.Int(), help='Number of dither pairs (AB or BA) '
-                'to observe'),
-            keys.Key(
-                'ditherSeq', types.String(), help='dither positions for each sequence. '
-                'e.g. AB'),
+            keys.Key('test', help='Assert that the exposures are not expected to be meaningful'),
+            keys.Key('keepOffsets', help='When slewing, do not clear accumulated offsets'),
+            keys.Key('ditherPairs', types.Int(),
+                     help='Number of dither pairs (AB or BA) to observe'),
+            keys.Key('ditherSeq', types.String(),
+                     help='dither positions for each sequence, e.g. AB'),
             keys.Key('comment', types.String(), help='comment for headers'),
-            keys.Key(
-                'dither', types.String(), help='MaNGA dither position for a '
-                'single dither.'),
-            keys.Key(
-                'dithers', types.String(), help='MaNGA dither positions for a dither '
-                'sequence.'),
-            keys.Key(
-                'mangaDithers',
-                types.String(),
-                help='MaNGA dither positions for a '
-                'dither sequence.'),
-            keys.Key(
-                'mangaDither',
-                types.String(),
-                help='MaNGA dither position for a '
-                'single dither.'),
+            keys.Key('dither', types.String(), help='MaNGA dither position for a single dither.'),
+            keys.Key('dithers', types.String(),
+                     help='MaNGA dither positions for a dither sequence.'),
+            keys.Key('mangaDithers', types.String(),
+                     help='MaNGA dither positions for a dither sequence.'),
+            keys.Key('mangaDither', types.String(),
+                     help='MaNGA dither position for a single dither.'),
             keys.Key('count', types.Int(), help='Number of MaNGA dither sets to perform.'),
             keys.Key('scriptName', types.String(), help='name of script to run'),
             keys.Key('az', types.Float(), help='what azimuth to slew to'),
@@ -1308,7 +1290,9 @@ class SopCmd(object):
                 sopState.doMangaDither.set_manga10()
                 sopState.doMangaSequence.set_manga10()
             if surveyMode is sopActor.MANGASTARE or surveyMode is sopActor.MASTAR:
-                sopState.doMangaSequence.set_mangaStare()
+                __, mangaExpTime = self.update_designs(sopState)
+                sopState.doMangaDither.set_mangaStare(expTime=mangaExpTime)
+                sopState.doMangaSequence.set_mangaStare(expTime=mangaExpTime)
         elif survey is sopActor.APOGEEMANGA:
             sopState.gotoField.setStages(['slew', 'hartmann', 'calibs', 'guider', 'cleanup'])
             sopState.validCommands += [
@@ -1329,8 +1313,9 @@ class SopCmd(object):
                 sopState.doApogeeMangaDither.set_manga10()
                 sopState.doApogeeMangaSequence.set_manga10()
             if surveyMode is sopActor.MANGASTARE or surveyMode is sopActor.MASTAR:
-                sopState.doApogeeMangaDither.set_manga()
-                sopState.doApogeeMangaSequence.set_mangaStare()
+                __, mangaExpTime = self.update_designs(sopState)
+                sopState.doApogeeMangaDither.set_manga(mangaExpTime=mangaExpTime)
+                sopState.doApogeeMangaSequence.set_mangaStare(mangaExpTime=mangaExpTime)
         else:
             sopState.gotoField.setStages(['slew', 'guider', 'cleanup'])
 

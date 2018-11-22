@@ -43,6 +43,17 @@ guider mangaDither ditherPos=S
 guider decenter off
 
 
+[test_do_manga_dither_mastar_lead]
+guider decenter on
+
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
 
 
 [test_do_manga_sequence]
@@ -467,4 +478,41 @@ guider mangaDither ditherPos=N
 boss exposure science itime=900 noreadout
 
 boss exposure   readout
+guider decenter off
+
+
+[test_do_manga_sequence_mastar_lead]
+guider decenter on
+
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+
+guider mangaDither ditherPos=C
+
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+
+guider mangaDither ditherPos=C
+
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+
 guider decenter off
