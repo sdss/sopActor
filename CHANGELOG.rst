@@ -4,6 +4,14 @@
 Change Log
 ==========
 
+3.12.0 (unreleased)
+-------------------
+
+Added
+^^^^^
+* Implement MaStar-led observations with short exposures (PR `#5 <https://github.com/sdss/sopActor/pull/5>`__).
+
+
 3.11.1 (2018-09-26)
 -------------------
 

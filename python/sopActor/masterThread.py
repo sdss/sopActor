@@ -5,11 +5,13 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 #
 # @Last modified by: José Sánchez-Gallego (gallegoj@uw.edu)
-# @Last modified time: 2018-09-26 19:27:02
+# @Last modified time: 2018-11-21 21:40:44
 
 import Queue
 import threading
 import time
+
+import numpy
 
 import sopActor
 import sopActor.myGlobals as myGlobals
@@ -163,7 +165,7 @@ ffsDuration = 15                # move the FFS
 flushDuration = 25              # flush the chips prior to an exposure
 guiderReadoutDuration = 1       # readout the guider
 hartmannDuration = 240          # take a Hartmann sequence and move the collimators
-readoutDuration = 90            # read the BOSS chips
+readoutDuration = 85            # read the BOSS chips
 guiderDecenterDuration = 30     # Applying decenters could take as long as the longest
                                 # reasonable guider exposure
 
@@ -613,7 +615,14 @@ def do_one_manga_dither(cmd, cmdState, actorState):
     if readout:
         duration += readoutDuration
     multiCmd = SopMultiCommand(cmd, duration, cmdState.name + '.expose')
-    multiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=expTime, expType='science', readout=readout)
+
+    # Does as many expTime exposures as possible in a 900s dither.
+    n_exposures = int(numpy.ceil(900. / (expTime + readoutDuration))) or 1
+
+    for ii in range(n_exposures):
+        multiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=expTime,
+                        expType='science', readout=readout)
+
     # append ff lamp commands etc
     prep_for_science(multiCmd, precondition=True)
     # append guider dithers
@@ -655,8 +664,8 @@ def do_manga_sequence(cmd, cmdState, actorState):
         ditherState.reinitialize(cmd)
         ditherState.expTime = cmdState.expTime
         ditherState.dither = cmdState.ditherSeq[cmdState.index]
-        ditherState.readout = False
-        pendingReadout = True
+        ditherState.readout = True if cmdState.expTime < 900 else False
+        pendingReadout = not ditherState.readout
         # Beginning of exposure
         stageName = 'expose'
         cmdState.setStageState(stageName, 'running')
@@ -672,7 +681,8 @@ def do_manga_sequence(cmd, cmdState, actorState):
         # Command : boss exposure   readout
         multiCmd = SopMultiCommand(cmd, readoutDuration + actorState.timeout,
                                    cmdState.name + '.readout')
-        multiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
+        if pendingReadout:
+            multiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
 
         # end of one command sequence
         # here is where we can check count and dithers, append or remove?
@@ -727,6 +737,7 @@ def do_one_apogeemanga_dither(cmd, cmdState, actorState, sequenceState=None):
     mangaDither = cmdState.mangaDither
     mangaExpTime = cmdState.mangaExpTime
     apogeeExpTime = cmdState.apogeeExpTime
+    mangaLeads = cmdState.manga_lead
     expTime = max(2 * apogeeExpTime, mangaExpTime)  # need the longest expTime.
 
     apogeeDithers = get_next_apogee_dither_pair(actorState)
@@ -756,7 +767,15 @@ def do_one_apogeemanga_dither(cmd, cmdState, actorState, sequenceState=None):
     apogee_total_exptime = apogeeExpTime * 2.
 
     # Determine how many BOSS exposures we can fit in that time.
-    n_boss_exposures = int(apogee_total_exptime / (mangaExpTime + readoutDuration)) or 1
+    n_boss_exposures_float = apogee_total_exptime / (mangaExpTime + readoutDuration)
+
+    if mangaLeads:
+        # If MaNGA leads, take as many exposures as needed but it's ok to go
+        # beyond the apogee_total_exptime.
+        n_boss_exposures = int(numpy.ceil(n_boss_exposures_float)) or 1
+    else:
+        # If APOGEE leads, make sure the total MaNGA exposure time does not dominate.
+        n_boss_exposures = int(n_boss_exposures_float) or 1
 
     for ii in range(n_boss_exposures):
         multiCmd.append(
@@ -813,6 +832,7 @@ def do_apogeemanga_sequence(cmd, cmdState, actorState):
         ditherState.mangaDither = cmdState.mangaDitherSeq[cmdState.index]
         ditherState.readout = cmdState.readout
         ditherState.apogee_long = cmdState.apogee_long
+        ditherState.manga_lead = cmdState.manga_lead
         pendingReadout = not cmdState.readout
         stageName = 'expose'
         cmdState.setStageState(stageName, 'running')

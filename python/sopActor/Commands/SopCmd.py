@@ -7,7 +7,7 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 #
 # @Last modified by: José Sánchez-Gallego (gallegoj@uw.edu)
-# @Last modified time: 2018-11-20 18:08:18
+# @Last modified time: 2018-11-21 11:07:43
 
 from __future__ import absolute_import, division, print_function
 
@@ -1292,7 +1292,9 @@ class SopCmd(object):
                 sopState.doMangaDither.set_manga10()
                 sopState.doMangaSequence.set_manga10()
             if surveyMode is sopActor.MANGASTARE or surveyMode is sopActor.MASTAR:
-                sopState.doMangaSequence.set_mangaStare()
+                __, mangaExpTime = self.update_designs(sopState)
+                sopState.doMangaDither.set_mangaStare(expTime=mangaExpTime)
+                sopState.doMangaSequence.set_mangaStare(expTime=mangaExpTime)
         elif survey is sopActor.APOGEEMANGA:
             sopState.gotoField.setStages(['slew', 'hartmann', 'calibs', 'guider', 'cleanup'])
             sopState.validCommands += [
@@ -1313,8 +1315,9 @@ class SopCmd(object):
                 sopState.doApogeeMangaDither.set_manga10()
                 sopState.doApogeeMangaSequence.set_manga10()
             if surveyMode is sopActor.MANGASTARE or surveyMode is sopActor.MASTAR:
-                sopState.doApogeeMangaDither.set_manga()
-                sopState.doApogeeMangaSequence.set_mangaStare()
+                __, mangaExpTime = self.update_designs(sopState)
+                sopState.doApogeeMangaDither.set_manga(mangaExpTime=mangaExpTime)
+                sopState.doApogeeMangaSequence.set_mangaStare(mangaExpTime=mangaExpTime)
         else:
             sopState.gotoField.setStages(['slew', 'guider', 'cleanup'])
 
