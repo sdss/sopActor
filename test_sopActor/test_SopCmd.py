@@ -527,7 +527,7 @@ class TestUpdateCartridge(SopCmdTester, unittest.TestCase):
         self.assertEqual(self.actorState.doMangaSequence.expTime, 30)
         self.assertEqual(self.actorState.doBossCalibs.nArc, 1)
         self.assertEqual(self.actorState.doBossCalibs.nFlat, 1)
-        self.assertEqual(self.actorState.doBossCalibs.offset, 16)
+        self.assertEqual(self.actorState.doBossCalibs.offset, 20)
 
     def test_updateCartridge_mastar_coobs_short(self):
 
@@ -1171,7 +1171,7 @@ class TestDoBossCalibs(SopCmdTester, unittest.TestCase):
             stages,
             args,
     ):
-        allStages = ['bias', 'dark', 'flat', 'arc', 'cleanup']
+        allStages = ['offset', 'bias', 'dark', 'flat', 'arc', 'cleanup']
         stages = build_active_stages(allStages, stages)
 
         queue = myGlobals.actorState.queues[sopActor.MASTER]

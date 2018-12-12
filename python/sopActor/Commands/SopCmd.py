@@ -5,7 +5,7 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 #
 # @Last modified by: José Sánchez-Gallego (gallegoj@uw.edu)
-# @Last modified time: 2018-12-11 17:33:24
+# @Last modified time: 2018-12-12 12:56:55
 
 from __future__ import absolute_import, division, print_function
 
@@ -1328,7 +1328,7 @@ class SopCmd(object):
         if surveyMode is sopActor.MASTAR:
             sopState.doBossCalibs.nFlat = 1
             sopState.doBossCalibs.nArc = 1
-            sopState.doBossCalibs.set('offset', 16)
+            sopState.doBossCalibs.set('offset', 20)
 
         if status:
             self.status(cmd, threads=False, finish=False)

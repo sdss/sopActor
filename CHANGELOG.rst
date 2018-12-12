@@ -4,6 +4,18 @@
 Change Log
 ==========
 
+3.12.1 (2018-12-12)
+-------------------
+
+Changed
+^^^^^^^
+* Set the default offset for ``MaStar`` plates to 20 arcsec in altitude.
+
+Fixed
+^^^^^
+* Some tests broken by the introduction of the ``offset`` stage in ``doBossCalibs``.
+
+
 3.12.0 (2018-12-11)
 -------------------
 
