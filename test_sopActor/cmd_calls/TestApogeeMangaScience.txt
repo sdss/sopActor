@@ -804,3 +804,45 @@ boss exposure science itime=30
 boss exposure science itime=30
 
 guider decenter off
+
+
+[test_do_apogeemanga_sequence_mastar_lead_count1_CCC]
+guider decenter on
+
+apogee expose time=450.0 object=object
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+apogee dither namedpos=A
+apogee expose time=450.0 object=object
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+
+apogee expose time=450.0 object=object
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+apogee dither namedpos=B
+apogee expose time=450.0 object=object
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+
+apogee expose time=450.0 object=object
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+apogee dither namedpos=A
+apogee expose time=450.0 object=object
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+boss exposure science itime=30
+
+guider decenter off

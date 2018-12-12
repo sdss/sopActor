@@ -192,6 +192,7 @@ class SlewHandler(object):
         self.alt, self.az = None, None
         self.ra, self.dec = None, None
         self.rot = None
+        self.offset = False
         self.keepOffsets = False
         self.ignoreBadAz = False  # for when we start below the alt limit.
 
@@ -202,6 +203,7 @@ class SlewHandler(object):
         self.rot = getattr(msg, 'rot', None)
         self.ra = getattr(msg, 'ra', None)
         self.dec = getattr(msg, 'dec', None)
+        self.offset = getattr(msg, 'offset', False)
         self.keepOffsets = getattr(msg, 'keepOffsets', False)
 
     def slew(self, cmd, replyQueue):
@@ -247,20 +249,40 @@ class SlewHandler(object):
         # NOTE: TBD: We should limit which offsets are kept.
         keepArgs = '/keep=(obj,arc,gcorr,calib,bore)' if self.keepOffsets else ''
 
-        if self.ra is not None and self.dec is not None:
-            cmd.inform('text="slewing to ({:.4f}, {:.4f}, {:g})"'.format(
-                self.ra, self.dec, self.rot))
-            if keepArgs:
-                cmd.warn('text="keeping all offsets"')
-            cmdVar = call(actor='tcc', forUserCmd=cmd,
-                          cmdStr='track %f, %f icrs /rottype=object/rotang=%g/rotwrap=mid %s' % \
-                          (self.ra, self.dec, self.rot, keepArgs))
+        if not self.offset:
+
+            if self.ra is not None and self.dec is not None:
+                cmd.inform('text="slewing to ({:.4f}, {:.4f}, {:g})"'.format(
+                    self.ra, self.dec, self.rot))
+                if keepArgs:
+                    cmd.warn('text="keeping all offsets"')
+                cmdVar = call(actor='tcc', forUserCmd=cmd,
+                              cmdStr='track %f, %f icrs /rottype=object/rotang=%g/rotwrap=mid %s' %
+                              (self.ra, self.dec, self.rot, keepArgs))
+            else:
+                cmd.inform('text="slewing to (az, alt, rot) == ({:.4f}, {:.4f}, {:.4f})"'.format(
+                    self.az, self.alt, self.rot))
+                cmdVar = call(actor='tcc', forUserCmd=cmd,
+                              cmdStr='track %f, %f mount/rottype=mount/rotangle=%f' %
+                              (self.az, self.alt, self.rot))
+
         else:
-            cmd.inform('text="slewing to (az, alt, rot) == ({:.4f}, {:.4f}, {:.4f})"'.format(
-                self.az, self.alt, self.rot))
+
+            if self.alt is None and self.az is None:
+                cmd.error('text="Not alt/az offsets provided."')
+                replyQueue.put(Msg.REPLY, cmd=cmd, success=False)
+                return
+
+            # In arcsec
+            alt = self.alt or 0.0
+            az = self.az or 0.0
+            rot = self.rot or 0.0
+
+            cmd.inform('text="Offseting alt={:.3f}, az={:.3f}"'.format(alt, az))
+
             cmdVar = call(actor='tcc', forUserCmd=cmd,
-                          cmdStr='track %f, %f mount/rottype=mount/rotangle=%f' % \
-                          (self.az, self.alt, self.rot))
+                          cmdStr='offset guide %g,%g,%g /computed' %
+                          (az / 3600., alt / 3600., rot / 3600.))
 
         # "tcc track" in the new TCC is only Done successfully when all requested
         # axes are in the "tracking" state. All other conditions mean the command

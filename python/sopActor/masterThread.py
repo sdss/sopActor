@@ -912,6 +912,15 @@ def do_boss_calibs(cmd, cmdState, actorState):
     if not close_apogee_shutter_if_gang_on_cart(cmd, cmdState, actorState, 'cleanup'):
         return False
 
+    if cmdState.offset > 0:
+
+        multiCmd = SopMultiCommand(cmd, actorState.timeout, cmdState.name + '.offset')
+        multiCmd.append(sopActor.TCC, Msg.SLEW, alt=cmdState.offset, offset=True)
+
+        if not multiCmd.run():
+            failMsg = 'failed to offset telescope'
+            return fail_command(cmd, cmdState, failMsg)
+
     while cmdState.exposures_remain():
         show_status(cmdState.cmd, cmdState, actorState.actor, oneCommand=cmdState.name)
 

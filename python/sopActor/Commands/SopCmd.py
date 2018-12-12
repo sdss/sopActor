@@ -1,13 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# @Author: José Sánchez-Gallego (gallegoj@uw.edu)
-# @Date: 2018-11-20
 # @Filename: SopCmd.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 #
 # @Last modified by: José Sánchez-Gallego (gallegoj@uw.edu)
-# @Last modified time: 2018-11-21 11:07:43
+# @Last modified time: 2018-12-11 17:33:24
 
 from __future__ import absolute_import, division, print_function
 
@@ -93,6 +91,7 @@ class SopCmd(object):
             keys.Key('darkTime', types.Float(), help='Exposure time for flats'),
             keys.Key('expTime', types.Float(), help='Exposure time'),
             keys.Key('guiderTime', types.Float(), help='Exposure time for guider'),
+            keys.Key('offset', types.Float(), help='Offset before calibrations (arcsecs in Dec)'),
             keys.Key('fiberId', types.Int(), help='A fiber ID'),
             keys.Key('flatTime', types.Float(), help='Exposure time for flats'),
             keys.Key('guiderFlatTime', types.Float(), help='Exposure time for guider flats'),
@@ -135,7 +134,7 @@ class SopCmd(object):
         self.vocab = [
             ('bypass', '<subSystem> [clear]', self.bypass),
             ('doBossCalibs', '[<narc>] [<nbias>] [<ndark>] [<nflat>] [<arcTime>] '
-                             '[<darkTime>] [<flatTime>] [<guiderFlatTime>] [abort]',
+                             '[<darkTime>] [<flatTime>] [<guiderFlatTime>] [<offset>] [abort]',
                              self.doBossCalibs),
             ('doBossScience', '[<expTime>] [<nexp>] [abort] [stop] [test]',
                               self.doBossScience),
@@ -275,6 +274,9 @@ class SopCmd(object):
             if sopState.cartridge < 0:
                 cmd.warn('text="No cartridge is known to be loaded; not taking guider flats"')
                 cmdState.guiderFlatTime = 0
+
+        if 'offset' in keywords:
+            cmdState.offset = float(keywords['offset'].values[0])
 
         activeStages = []
         if cmdState.nBias:
@@ -1255,6 +1257,7 @@ class SopCmd(object):
         # save these for when someone sets a bypass.
         sopState.plateType = plateType
         sopState.surveyModeName = surveyModeName
+
         self.classifyCartridge(cmd, cartridge, plateType, surveyModeName)
         surveyMode = sopState.surveyMode
         survey = sopState.survey
@@ -1320,6 +1323,12 @@ class SopCmd(object):
                 sopState.doApogeeMangaSequence.set_mangaStare(mangaExpTime=mangaExpTime)
         else:
             sopState.gotoField.setStages(['slew', 'guider', 'cleanup'])
+
+        # If MaStar, sets doBossCalibs for post-cals.
+        if surveyMode is sopActor.MASTAR:
+            sopState.doBossCalibs.nFlat = 1
+            sopState.doBossCalibs.nArc = 1
+            sopState.doBossCalibs.set('offset', 16)
 
         if status:
             self.status(cmd, threads=False, finish=False)
@@ -1490,3 +1499,16 @@ def obs2Sky(cmd, az=None, alt=None, rotOffset=0.0):
 
         # I think I need to do _something with the axePos rotation angle.
         return convPos[0].getPos(), convPos[1].getPos(), rotPos
+
+
+def _set_mastar_postcals(cmd):
+    """Sets doBossCalibs for MaStar post-cals."""
+
+    sopState = myGlobals.actorState
+
+    # Resets command state
+    sopState.doBossCalibs = CmdState.DoBossCalibsCmd()
+
+    sopState.doBossCalibs.offset = 16
+    sopState.doBossCalibs.nFlat = 1
+    sopState.doBossCalibs.nArc = 1

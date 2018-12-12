@@ -418,8 +418,9 @@ class DoBossCalibsCmd(CmdState):
     def __init__(self):
         CmdState.__init__(
             self,
-            'doBossCalibs', ['bias', 'dark', 'flat', 'arc', 'cleanup'],
-            keywords=dict(darkTime=900.0, flatTime=25.0, arcTime=4.0, guiderFlatTime=0.5))
+            'doBossCalibs', ['offset', 'bias', 'dark', 'flat', 'arc', 'cleanup'],
+            keywords=dict(darkTime=900.0, flatTime=25.0, arcTime=4.0,
+                          guiderFlatTime=0.5, offset=0))
 
     def isSlewingDisabled(self):
         """If slewing is disabled, return a string describing why, else False."""
@@ -438,6 +439,7 @@ class DoBossCalibsCmd(CmdState):
         self.nFlatDone = 0
         self.nArc = 0
         self.nArcDone = 0
+        self.offset = 0
         self.disable_slews = False
 
     def exposures_remain(self):
@@ -445,8 +447,8 @@ class DoBossCalibsCmd(CmdState):
         if self.aborted:
             return False
         else:
-            return self.nBiasDone < self.nBias or self.nDarkDone < self.nDark or \
-                   self.nFlatDone < self.nFlat or self.nArcDone < self.nArc
+            return (self.nBiasDone < self.nBias or self.nDarkDone < self.nDark or
+                    self.nFlatDone < self.nFlat or self.nArcDone < self.nArc)
 
     def getUserKeys(self):
         msg = []
@@ -462,6 +464,7 @@ class DoBossCalibsCmd(CmdState):
         self.nBias = self.nBiasDone
         self.nDark = self.nDarkDone
         self.nFlat = self.nFlatDone
+        self.offset = 0
         self.disable_slews = False
         super(DoBossCalibsCmd, self).abort()
 
@@ -777,6 +780,8 @@ class DoApogeeMangaDitherCmd(CmdState):
     def reset_nonkeywords(self):
 
         self.readout = True
+        self.apogee_long = False
+        self.manga_lead = False
 
     def set_apogeeLead(self, apogeeExpTime=None, mangaExpTime=None):
         """Setup to use this for APOGEE lead observations."""
@@ -934,6 +939,8 @@ class DoApogeeMangaSequenceCmd(CmdState):
 
     def reset_nonkeywords(self):
         super(DoApogeeMangaSequenceCmd, self).reset_nonkeywords()
+        self.manga_lead = False
+        self.apogee_long = False
         self.reset_ditherSeq()
 
     def update_ditherSeq(self):

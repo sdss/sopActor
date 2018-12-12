@@ -525,6 +525,9 @@ class TestUpdateCartridge(SopCmdTester, unittest.TestCase):
 
         self.assertEqual(self.actorState.doMangaDither.expTime, 30)
         self.assertEqual(self.actorState.doMangaSequence.expTime, 30)
+        self.assertEqual(self.actorState.doBossCalibs.nArc, 1)
+        self.assertEqual(self.actorState.doBossCalibs.nFlat, 1)
+        self.assertEqual(self.actorState.doBossCalibs.offset, 16)
 
     def test_updateCartridge_mastar_coobs_short(self):
 

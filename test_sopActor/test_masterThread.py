@@ -1255,6 +1255,16 @@ class TestApogeeMangaScience(MasterThreadTester):
         count = 1
         self._do_apogeemanga_sequence(35, 106, 0, 0, mangaDithers, count, surveyMode='MaStar')
 
+    def test_do_apogeemanga_sequence_mastar_lead_count1_CCC(self):
+
+        sopTester.updateModel('mcp', TestHelper.mcpState['apogee_science'])
+        sopTester.updateModel('apogee', TestHelper.apogeeState['B_open'])
+        sopTester.updateModel('platedb', TestHelper.platedbState['MaStar_coobs_short'])
+
+        mangaDithers = 'CCC'
+        count = 1
+        self._do_apogeemanga_sequence(35, 106, 0, 0, mangaDithers, count, surveyMode='MaStar')
+
 
 class TestBossCalibs(MasterThreadTester):
     """do_boss_calibs tests"""

@@ -10,6 +10,7 @@ Change Log
 Added
 ^^^^^
 * Implement MaStar-led observations with short exposures (PR `#5 <https://github.com/sdss/sopActor/pull/5>`__).
+* Adds offset to ``doBossCalibs`` for MaStar post-cals (PR `#6 <https://github.com/sdss/sopActor/pull/6>`__).
 
 
 3.11.1 (2018-09-26)
