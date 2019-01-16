@@ -4,6 +4,14 @@
 Change Log
 ==========
 
+3.12.2 (unreleased)
+-------------------
+
+Fixed
+^^^^^
+* Fixed `#2933 <https://trac.sdss.org/ticket/2933>`__: ``manga_lead`` was being reset when a new sequence was commanded.
+
+
 3.12.1 (2018-12-12)
 -------------------
 

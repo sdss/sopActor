@@ -888,7 +888,8 @@ class TestDoApogeeMangaSequence(SopCmdTester, unittest.TestCase):
         sopTester.updateModel('platedb', TestHelper.platedbState['apgoeemangaStare'])
         self._update_cart(2, 'APOGEE-2&MaNGA', 'MaNGA stare')
         expect = {'mangaExpTime': 900, 'apogeeExpTime': 450, 'mangaDithers': 'CCC', 'count': 1}
-        self._doApogeeMangaSequence(expect)
+        msg = self._doApogeeMangaSequence(expect)
+        self.assertTrue(msg.cmdState.manga_lead)
 
     def test_doApogeeMangaSequence_MaStar(self):
         sopTester.updateModel('platedb', TestHelper.platedbState['apogeemangaMaStar'])

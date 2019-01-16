@@ -5,7 +5,7 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 #
 # @Last modified by: José Sánchez-Gallego (gallegoj@uw.edu)
-# @Last modified time: 2018-11-21 15:09:39
+# @Last modified time: 2019-01-14 14:29:35
 
 """
 Hold state about running commands, e.g. 'running', 'done', 'failed', ...
@@ -780,8 +780,6 @@ class DoApogeeMangaDitherCmd(CmdState):
     def reset_nonkeywords(self):
 
         self.readout = True
-        self.apogee_long = False
-        self.manga_lead = False
 
     def set_apogeeLead(self, apogeeExpTime=None, mangaExpTime=None):
         """Setup to use this for APOGEE lead observations."""
@@ -939,8 +937,6 @@ class DoApogeeMangaSequenceCmd(CmdState):
 
     def reset_nonkeywords(self):
         super(DoApogeeMangaSequenceCmd, self).reset_nonkeywords()
-        self.manga_lead = False
-        self.apogee_long = False
         self.reset_ditherSeq()
 
     def update_ditherSeq(self):
