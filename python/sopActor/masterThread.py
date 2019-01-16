@@ -5,7 +5,7 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 #
 # @Last modified by: José Sánchez-Gallego (gallegoj@uw.edu)
-# @Last modified time: 2018-11-21 21:40:44
+# @Last modified time: 2019-01-16 11:03:15
 
 import Queue
 import threading
@@ -165,7 +165,7 @@ ffsDuration = 15                # move the FFS
 flushDuration = 25              # flush the chips prior to an exposure
 guiderReadoutDuration = 1       # readout the guider
 hartmannDuration = 240          # take a Hartmann sequence and move the collimators
-readoutDuration = 85            # read the BOSS chips
+readoutDuration = 82            # read the BOSS chips
 guiderDecenterDuration = 30     # Applying decenters could take as long as the longest
                                 # reasonable guider exposure
 

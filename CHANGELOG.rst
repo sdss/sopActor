@@ -6,6 +6,9 @@ Change Log
 
 3.12.2 (unreleased)
 -------------------
+Changed
+^^^^^^^
+* Set ``readoutDuration`` to 82 seconds.
 
 Fixed
 ^^^^^
