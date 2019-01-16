@@ -15,7 +15,7 @@ class Bypass(object):
         self._bypassed = {}
         for ss in ('ffs', 'lamp_ff', 'lamp_hgcd', 'lamp_ne', 'axes', 'slewToField', 'guiderDark',
                    'isBoss', 'isApogee', 'isMangaDither', 'isManga10', 'isMangaStare', 'isMaStar',
-                   'isApogeeLead', 'isApogeeMangaDither', 'isApogeeMangaStare',
+                   'isApogeeLead', 'isApogeeMangaDither', 'isApogeeMangaStare', 'guider_decenter',
                    'isApogeeMangaMaStar', 'isApogeeManga10', 'gangToCart', 'gangToPodium'):
             self._bypassed[ss] = False
 

@@ -6,6 +6,11 @@ Change Log
 
 3.12.2 (unreleased)
 -------------------
+
+Added
+^^^^^
+* ``guider_decenter`` bypass.
+
 Changed
 ^^^^^^^
 * Set ``readoutDuration`` to 82 seconds.
