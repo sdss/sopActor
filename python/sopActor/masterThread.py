@@ -5,7 +5,7 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 #
 # @Last modified by: José Sánchez-Gallego (gallegoj@uw.edu)
-# @Last modified time: 2019-01-16 14:51:50
+# @Last modified time: 2019-01-16 15:23:24
 
 import Queue
 import threading
@@ -351,6 +351,7 @@ def prep_guider_decenter_off(multiCmd, precondition=True):
     if myGlobals.bypass.get('guider_decenter'):
         multiCmd.cmd.warn('text="skipping prep_guider_decenter_off '
                           'because guider_decenter is bypassed."')
+        return
 
     if precondition:
         multiCmd.append(SopPrecondition(sopActor.GUIDER, Msg.DECENTER, on=False))
@@ -369,6 +370,7 @@ def prep_manga_dither(multiCmd, dither='C', precondition=False):
     if myGlobals.bypass.get('guider_decenter'):
         multiCmd.cmd.warn('text="skipping prep_manga_dither because '
                           'guider_decenter is bypassed."')
+        return
 
     # append guider decenter on
     prep_guider_decenter_on(multiCmd)
