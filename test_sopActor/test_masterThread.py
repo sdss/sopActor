@@ -664,7 +664,7 @@ class TestMangaScience(MasterThreadTester):
         sopTester.updateModel('platedb', TestHelper.platedbState['MaStar_short'])
 
         dither = 'C'
-        self._do_one_manga_dither(9, 26, 0, 0, dither=dither, surveyMode='MaStar')
+        self._do_one_manga_dither(10, 27, 0, 0, dither=dither, surveyMode='MaStar')
 
     def _do_manga_sequence(self,
                            nCall,
@@ -875,7 +875,7 @@ class TestMangaScience(MasterThreadTester):
 
         count = 1
         dithers = 'CCC'
-        self._do_manga_sequence(28, 116, 0, 0, count, dithers, surveyMode='MaStar')
+        self._do_manga_sequence(31, 119, 0, 0, count, dithers, surveyMode='MaStar')
 
 
 class TestApogeeMangaScience(MasterThreadTester):
@@ -988,7 +988,7 @@ class TestApogeeMangaScience(MasterThreadTester):
         sopTester.updateModel('platedb', TestHelper.platedbState['MaStar_coobs_short'])
 
         mangaDithers = 'C'
-        self._do_apogeemanga_dither(13, 43, 0, 0, mangaDithers, surveyMode='MaStar')
+        self._do_apogeemanga_dither(14, 44, 0, 0, mangaDithers, surveyMode='MaStar')
 
     def _do_apogeemanga_sequence(self,
                                  nCall,
@@ -1233,7 +1233,7 @@ class TestApogeeMangaScience(MasterThreadTester):
 
         mangaDithers = 'CC'
         count = 1
-        self._do_apogeemanga_sequence(24, 78, 0, 0, mangaDithers, count, surveyMode='APOGEE lead')
+        self._do_apogeemanga_sequence(26, 80, 0, 0, mangaDithers, count, surveyMode='APOGEE lead')
 
     def test_do_apogeemanga_sequence_apogee_lead_count1_CC_apogee_long_manga_short(self):
 
@@ -1243,7 +1243,7 @@ class TestApogeeMangaScience(MasterThreadTester):
 
         mangaDithers = 'CC'
         count = 1
-        self._do_apogeemanga_sequence(22, 76, 0, 0, mangaDithers, count, surveyMode='APOGEE lead')
+        self._do_apogeemanga_sequence(23, 78, 0, 0, mangaDithers, count, surveyMode='APOGEE lead')
 
     def test_do_apogeemanga_sequence_mastar_lead_count1_CCC(self):
 
@@ -1253,7 +1253,7 @@ class TestApogeeMangaScience(MasterThreadTester):
 
         mangaDithers = 'CCC'
         count = 1
-        self._do_apogeemanga_sequence(35, 106, 0, 0, mangaDithers, count, surveyMode='MaStar')
+        self._do_apogeemanga_sequence(38, 109, 0, 0, mangaDithers, count, surveyMode='MaStar')
 
 
 class TestBossCalibs(MasterThreadTester):

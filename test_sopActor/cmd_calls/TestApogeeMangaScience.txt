@@ -82,16 +82,17 @@ guider decenter off
 guider decenter on
 
 apogee expose time=450.0 object=object
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
 apogee dither namedpos=A
 apogee expose time=450.0 object=object
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
 
 guider decenter off
 
@@ -711,28 +712,30 @@ guider decenter off
 guider decenter on
 
 apogee expose time=500.0 object=object
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
 apogee dither namedpos=A
 apogee expose time=500.0 object=object
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
 
 apogee expose time=500.0 object=object
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
 apogee dither namedpos=B
 apogee expose time=500.0 object=object
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
 
 guider decenter off
 
@@ -741,25 +744,26 @@ guider decenter off
 guider decenter on
 
 apogee expose time=1000.0 object=object
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
 apogee dither namedpos=A
 apogee expose time=1000.0 object=object
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
 
 guider decenter off
 
@@ -768,39 +772,42 @@ guider decenter off
 guider decenter on
 
 apogee expose time=450.0 object=object
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
 apogee dither namedpos=A
 apogee expose time=450.0 object=object
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
 
 apogee expose time=450.0 object=object
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
 apogee dither namedpos=B
 apogee expose time=450.0 object=object
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
 
 apogee expose time=450.0 object=object
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
 apogee dither namedpos=A
 apogee expose time=450.0 object=object
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
 
 guider decenter off

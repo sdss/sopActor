@@ -46,14 +46,15 @@ guider decenter off
 [test_do_manga_dither_mastar_lead]
 guider decenter on
 
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
 
 
 [test_do_manga_sequence]
@@ -484,35 +485,38 @@ guider decenter off
 [test_do_manga_sequence_mastar_lead]
 guider decenter on
 
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
 
 guider mangaDither ditherPos=C
 
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
 
 guider mangaDither ditherPos=C
 
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
-boss exposure science itime=30
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
 
 guider decenter off
