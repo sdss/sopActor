@@ -5,7 +5,7 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 #
 # @Last modified by: José Sánchez-Gallego (gallegoj@uw.edu)
-# @Last modified time: 2019-01-14 14:29:35
+# @Last modified time: 2019-01-16 15:48:46
 
 """
 Hold state about running commands, e.g. 'running', 'done', 'failed', ...
@@ -258,13 +258,27 @@ class CmdState(object):
                 self.stages[s] = 'aborted'
         self.genCmdStateKeys()
 
-    def stop_boss_exposure(self, wait=False):
+    def stop_boss_exposure(self, wait=False, clear_queue=False):
         """Abort any currently running BOSS exposure, or warn if there's nothing to abort.
 
-        If force_readout is set, makes sure the exposure has been read.
+        Parameters
+        ----------
+        force_readout : bool
+            If set, makes sure the exposure has been read.
+        clear_queue : bool
+            If set, removes all messages from the BOSS queue. This is useful
+            if multiple exposures have been queued and we want to cancel all
+            of them, not only the current one.
 
         """
+
         cmd = self._getCmd()
+
+        if clear_queue:
+            cmd.warn('text="clearing BOSS queue."')
+            boss_queue = myGlobals.actorState.queues[sopActor.BOSS]
+            boss_queue.clear()
+
         # The same states we cannot slew during are the states we can't abort from.
         if self.isSlewingDisabled_BOSS()[0]:
             cmd.warn('text="Will cancel pending BOSS exposures and stop any running one."')
@@ -724,7 +738,7 @@ class DoMangaSequenceCmd(CmdState):
             return False
 
     def abort(self):
-        self.stop_boss_exposure(wait=True)
+        self.stop_boss_exposure(wait=True, clear_queue=(self.mangaExpTime < 900))
         super(DoMangaSequenceCmd, self).abort()
 
 
@@ -762,7 +776,7 @@ class DoMangaDitherCmd(CmdState):
         self.expTime = expTime or 900.
 
     def abort(self):
-        self.stop_boss_exposure(wait=True)
+        self.stop_boss_exposure(wait=True, clear_queue=(self.mangaExpTime < 900))
         super(DoMangaDitherCmd, self).abort()
 
 
@@ -839,7 +853,7 @@ class DoApogeeMangaDitherCmd(CmdState):
             return False
 
     def abort(self):
-        self.stop_boss_exposure(wait=True)
+        self.stop_boss_exposure(wait=True, clear_queue=(self.mangaExpTime < 900))
         self.stop_apogee_exposure()
         super(DoApogeeMangaDitherCmd, self).abort()
 
@@ -1008,6 +1022,6 @@ class DoApogeeMangaSequenceCmd(CmdState):
             return False
 
     def abort(self):
-        self.stop_boss_exposure(wait=True)
+        self.stop_boss_exposure(wait=True, clear_queue=(self.mangaExpTime < 900))
         self.stop_apogee_exposure()
         super(DoApogeeMangaSequenceCmd, self).abort()

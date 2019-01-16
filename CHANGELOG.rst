@@ -10,6 +10,7 @@ Change Log
 Added
 ^^^^^
 * ``guider_decenter`` bypass.
+* Clear BOSS queue of all scheduled tasks when aborting a MaStar sequence with short exposures.
 
 Changed
 ^^^^^^^
