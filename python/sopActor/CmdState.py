@@ -5,7 +5,7 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 #
 # @Last modified by: José Sánchez-Gallego (gallegoj@uw.edu)
-# @Last modified time: 2019-01-16 15:48:46
+# @Last modified time: 2019-01-16 17:20:10
 
 """
 Hold state about running commands, e.g. 'running', 'done', 'failed', ...
@@ -277,7 +277,12 @@ class CmdState(object):
         if clear_queue:
             cmd.warn('text="clearing BOSS queue."')
             boss_queue = myGlobals.actorState.queues[sopActor.BOSS]
-            boss_queue.clear()
+            while not boss_queue.empty():
+                try:
+                    boss_queue.get(False)
+                except boss_queue.Empty:
+                    continue
+                boss_queue.task_done()
 
         # The same states we cannot slew during are the states we can't abort from.
         if self.isSlewingDisabled_BOSS()[0]:
