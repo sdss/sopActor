@@ -98,7 +98,9 @@ class MultiCommand(object):
                 self.status = False
 
         if myGlobals.actorState.aborting:  # don't schedule those commands
-            if not myGlobals.actorState.ignoreAborting:  # override for e.g. status command
+            # override for e.g. status command
+            if (hasattr(myGlobals.actorState, 'ignoreAborting') and
+                    not myGlobals.actorState.ignoreAborting):
                 self.commands = []
                 self.status = False
 

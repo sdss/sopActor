@@ -877,6 +877,23 @@ class TestMangaScience(MasterThreadTester):
         dithers = 'CCC'
         self._do_manga_sequence(31, 119, 0, 0, count, dithers, surveyMode='MaStar')
 
+    def test_do_manga_sequence_abort_mastar(self):
+
+        sopTester.updateModel('mcp', TestHelper.mcpState['boss_science'])
+        sopTester.updateModel('platedb', TestHelper.platedbState['MaStar_short'])
+
+        cmdState = self.actorState.doMangaSequence
+
+        def abort_sequence():
+            cmdState.abort()
+
+        self.cmd.runOn = ('boss exposure science itime=28', abort_sequence)
+        self.cmd.runOnCount = 3
+
+        count = 1
+        dithers = 'CCC'
+        self._do_manga_sequence(5, 44, 2, 0, count, dithers, surveyMode='MaStar')
+
 
 class TestApogeeMangaScience(MasterThreadTester):
 
@@ -1253,6 +1270,25 @@ class TestApogeeMangaScience(MasterThreadTester):
 
         mangaDithers = 'CCC'
         count = 1
+        self._do_apogeemanga_sequence(38, 109, 0, 0, mangaDithers, count, surveyMode='MaStar')
+
+    def test_do_apogeemanga_abort_sequence_mastar_lead_count1_CCC(self):
+
+        sopTester.updateModel('mcp', TestHelper.mcpState['apogee_science'])
+        sopTester.updateModel('apogee', TestHelper.apogeeState['B_open'])
+        sopTester.updateModel('platedb', TestHelper.platedbState['MaStar_coobs_short'])
+
+        mangaDithers = 'CCC'
+        count = 1
+
+        cmdState = self.actorState.doApogeeMangaSequence
+
+        def abort_sequence():
+            cmdState.abort()
+
+        self.cmd.runOn = ('boss exposure science itime=28', abort_sequence)
+        self.cmd.runOnCount = 3
+
         self._do_apogeemanga_sequence(38, 109, 0, 0, mangaDithers, count, surveyMode='MaStar')
 
 

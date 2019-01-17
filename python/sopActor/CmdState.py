@@ -5,7 +5,7 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 #
 # @Last modified by: José Sánchez-Gallego (gallegoj@uw.edu)
-# @Last modified time: 2019-01-16 17:20:10
+# @Last modified time: 2019-01-16 17:54:39
 
 """
 Hold state about running commands, e.g. 'running', 'done', 'failed', ...
@@ -279,7 +279,8 @@ class CmdState(object):
             boss_queue = myGlobals.actorState.queues[sopActor.BOSS]
             while not boss_queue.empty():
                 try:
-                    boss_queue.get(False)
+                    msg = boss_queue.get(False)
+                    msg.replyQueue.put(sopActor.Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
                 except boss_queue.Empty:
                     continue
                 boss_queue.task_done()
@@ -743,7 +744,7 @@ class DoMangaSequenceCmd(CmdState):
             return False
 
     def abort(self):
-        self.stop_boss_exposure(wait=True, clear_queue=(self.mangaExpTime < 900))
+        self.stop_boss_exposure(wait=True, clear_queue=(self.expTime < 900))
         super(DoMangaSequenceCmd, self).abort()
 
 
@@ -781,7 +782,7 @@ class DoMangaDitherCmd(CmdState):
         self.expTime = expTime or 900.
 
     def abort(self):
-        self.stop_boss_exposure(wait=True, clear_queue=(self.mangaExpTime < 900))
+        self.stop_boss_exposure(wait=True, clear_queue=(self.expTime < 900))
         super(DoMangaDitherCmd, self).abort()
 
 

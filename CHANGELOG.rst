@@ -19,6 +19,7 @@ Changed
 Fixed
 ^^^^^
 * Fixed `#2933 <https://trac.sdss.org/ticket/2933>`__: ``manga_lead`` was being reset when a new sequence was commanded.
+* Fixed `#2919 <https://trac.sdss.org/ticket/2919>`__: clear all MaStar short exposures when aborting a sequence.
 
 
 3.12.1 (2018-12-12)

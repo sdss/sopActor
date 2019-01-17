@@ -520,3 +520,13 @@ boss exposure science itime=28
 boss exposure science itime=28
 
 guider decenter off
+
+
+[test_do_manga_sequence_abort_mastar]
+guider decenter on
+
+boss exposure science itime=28
+boss exposure science itime=28
+boss exposure science itime=28
+
+guider decenter off
