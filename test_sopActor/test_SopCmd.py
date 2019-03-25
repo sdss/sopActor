@@ -129,6 +129,9 @@ class TestBypass(SopCmdTester, unittest.TestCase):
     def test_bypass_isMaStar(self):
         self._bypass_set('isMaStar', 60, 3, 1, ['MaNGA', 'MaStar'])
 
+    def test_bypass_isMangaGlobular(self):
+        self._bypass_set('isMangaGlobular', 60, 3, 1, ['MaNGA', 'MaNGA Globular'])
+
     def test_bypass_isMangaDither(self):
         self._bypass_set('isMangaDither', 60, 3, 1, ['MaNGA', 'MaNGA dither'])
 
@@ -149,6 +152,9 @@ class TestBypass(SopCmdTester, unittest.TestCase):
 
     def test_bypass_isApogeeMangaMaStar(self):
         self._bypass_set('isApogeeMangaMaStar', 60, 3, 1, ['APGOEE-2&MaNGA', 'MaStar'])
+
+    def test_bypass_isApogeeMangaGlobular(self):
+        self._bypass_set('isApogeeMangaGlobular', 60, 3, 1, ['APGOEE-2&MaNGA', 'MaNGA Globular'])
 
     def test_bypass_gangToCart(self):
         self._bypass_set('gangToCart', 59, 4)
@@ -237,6 +243,11 @@ class TestClassifyCartridge(SopCmdTester, unittest.TestCase):
         expect = [sopActor.MANGA, sopActor.MANGADITHER, ['MaNGA', 'MaNGA dither']]
         self._classifyCartridge(2, 'MaNGA', 'MaNGA dither', expect)
 
+    def test_classifyCartridge_mangaGlobular(self):
+        sopTester.updateModel('guider', TestHelper.guiderState['mangaGlobularLoaded'])
+        expect = [sopActor.MANGA, sopActor.MANGAGLOBULAR, ['MaNGA', 'MaNGA Globular']]
+        self._classifyCartridge(2, 'MaNGA', 'MaNGA Globular', expect)
+
     def test_classifyCartridge_mangaStare(self):
         sopTester.updateModel('guider', TestHelper.guiderState['mangaStareLoaded'])
         expect = [sopActor.MANGA, sopActor.MANGASTARE, ['MaNGA', 'MaNGA stare']]
@@ -267,6 +278,14 @@ class TestClassifyCartridge(SopCmdTester, unittest.TestCase):
         self._classifyCartridge(3, 'APOGEE-2&MaNGA', 'MaNGA dither', expect)
         expect = [sopActor.APOGEEMANGA, sopActor.MANGADITHER, ['APOGEE&MaNGA', 'MaNGA dither']]
         self._classifyCartridge(3, 'APOGEE&MaNGA', 'MaNGA dither', expect)
+
+    def test_classifyCartridge_apogeemanga_globular(self):
+        sopTester.updateModel('guider', TestHelper.guiderState['apogeemangaGlobularLoaded'])
+        sopTester.updateModel('platedb', TestHelper.platedbState['apgoeemangaGlobular'])
+        expect = [sopActor.APOGEEMANGA, sopActor.MANGAGLOBULAR, ['APOGEE-2&MaNGA', 'MaNGA Globular']]
+        self._classifyCartridge(3, 'APOGEE-2&MaNGA', 'MaNGA Globular', expect)
+        expect = [sopActor.APOGEEMANGA, sopActor.MANGAGLOBULAR, ['APOGEE&MaNGA', 'MaNGA Globular']]
+        self._classifyCartridge(3, 'APOGEE&MaNGA', 'MaNGA Globular', expect)
 
     def test_classifyCartridge_apogeemanga_10(self):
         sopTester.updateModel('guider', TestHelper.guiderState['apogeemanga10Loaded'])
@@ -528,6 +547,36 @@ class TestUpdateCartridge(SopCmdTester, unittest.TestCase):
         self.assertEqual(self.actorState.doBossCalibs.nArc, 1)
         self.assertEqual(self.actorState.doBossCalibs.nFlat, 1)
         self.assertEqual(self.actorState.doBossCalibs.offset, 20)
+
+    def test_updateCartridge_manga_globular(self):
+
+        sopTester.updateModel('guider', TestHelper.guiderState['mangaGlobularLoaded'])
+        sopTester.updateModel('platedb', TestHelper.platedbState['mangaGlobular'])
+
+        expected = {}
+        expected['surveyCommands'] = TestHelper.sopMangaCommands['surveyCommands']
+
+        self._updateCartridge(3, 'MaNGA', 'MaNGA Globular', expected)
+
+        self.assertEqual(self.actorState.doMangaDither.expTime, 900)
+        self.assertEqual(self.actorState.doMangaSequence.expTime, 900)
+        self.assertEqual(self.actorState.doMangaSequence.dithers, 'NSE')
+        self.assertEqual(self.actorState.doMangaSequence.count, 3)
+
+    def test_updateCartridge_apogeemanga_globular(self):
+
+        sopTester.updateModel('guider', TestHelper.guiderState['apogeemangaGlobularLoaded'])
+        sopTester.updateModel('platedb', TestHelper.platedbState['apogeemangaGlobular'])
+
+        expected = {}
+        expected['surveyCommands'] = TestHelper.sopApogeeMangaCommands['surveyCommands']
+
+        self._updateCartridge(3, 'APOGEE&MaNGA', 'MaNGA Globular', expected)
+
+        self.assertEqual(self.actorState.doApogeeMangaDither.mangaExpTime, 900)
+        self.assertEqual(self.actorState.doApogeeMangaSequence.mangaExpTime, 900)
+        self.assertEqual(self.actorState.doApogeeMangaSequence.mangaDithers, 'NSE')
+        self.assertEqual(self.actorState.doApogeeMangaSequence.count, 2)
 
     def test_updateCartridge_mastar_coobs_short(self):
 

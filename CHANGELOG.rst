@@ -4,6 +4,18 @@
 Change Log
 ==========
 
+3.12.3 (unreleased)
+-------------------
+
+Added
+^^^^^
+* ``MaNGA Globular`` survey mode (which is just an alias of ``MaNGA Dither``) with bypasses and tests.
+
+Fixed
+^^^^^
+* Some ``MaStar`` short exposure tests were still using the old 30s exposure time..
+
+
 3.12.2 (2019-01-22)
 -------------------
 

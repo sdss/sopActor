@@ -5,7 +5,7 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 #
 # @Last modified by: José Sánchez-Gallego (gallegoj@uw.edu)
-# @Last modified time: 2018-12-12 12:56:55
+# @Last modified time: 2019-03-25 14:24:45
 
 from __future__ import absolute_import, division, print_function
 
@@ -44,7 +44,8 @@ surveyMode_dict = {
     'MaNGA dither': sopActor.MANGADITHER,
     'MaNGA 10min': sopActor.MANGA10,
     'MaNGA stare': sopActor.MANGASTARE,
-    'MaStar': sopActor.MASTAR
+    'MaStar': sopActor.MASTAR,
+    'MaNGA Globular': sopActor.MANGAGLOBULAR
 }
 
 # And the inverses of the above.
@@ -63,7 +64,8 @@ surveyMode_inv_dict = {
     sopActor.MANGA10: 'MaNGA 10min',
     sopActor.MANGASTARE: 'MaNGA stare',
     sopActor.APOGEELEAD: 'APOGEE lead',
-    sopActor.MASTAR: 'MaStar'
+    sopActor.MASTAR: 'MaStar',
+    sopActor.MANGAGLOBULAR: 'MaNGA Globular'
 }
 
 
@@ -1289,7 +1291,7 @@ class SopCmd(object):
                 'doMangaDither',
                 'doMangaSequence',
             ]
-            if surveyMode is sopActor.MANGADITHER:
+            if surveyMode in [sopActor.MANGADITHER, sopActor.MANGAGLOBULAR]:
                 sopState.doMangaSequence.set_mangaDither()
             if surveyMode is sopActor.MANGA10:
                 sopState.doMangaDither.set_manga10()
@@ -1311,7 +1313,7 @@ class SopCmd(object):
                 sopState.doApogeeMangaSequence.set_apogeeLead(apogeeExpTime=apogeeDesign[1],
                                                               mangaExpTime=mangaExpTime)
                 sopState.doApogeeScience.set_apogee_expTime(apogeeDesign[1])
-            if surveyMode is sopActor.MANGADITHER:
+            if surveyMode in [sopActor.MANGADITHER, sopActor.MANGAGLOBULAR]:
                 sopState.doApogeeMangaDither.set_manga()
                 sopState.doApogeeMangaSequence.set_mangaDither()
             if surveyMode is sopActor.MANGA10:
@@ -1373,6 +1375,10 @@ class SopCmd(object):
             cmd.warn('text="We are lying about this being a MaNGA Dither cartridge"')
             sopState.survey = sopActor.MANGA
             sopState.surveyMode = sopActor.MANGADITHER
+        elif bypass.get('isMangaGlobular'):
+            cmd.warn('text="We are lying about this being a MaNGA Globular cartridge"')
+            sopState.survey = sopActor.MANGA
+            sopState.surveyMode = sopActor.MANGAGLOBULAR
         elif bypass.get('isManga10'):
             cmd.warn('text="We are lying about this being a MaNGA 10min cartridge"')
             sopState.survey = sopActor.MANGA
@@ -1389,6 +1395,10 @@ class SopCmd(object):
             cmd.warn('text="We are lying about this being a APOGEE&MaNGA Dither cartridge"')
             sopState.survey = sopActor.APOGEEMANGA
             sopState.surveyMode = sopActor.MANGADITHER
+        elif bypass.get('isApogeeMangaGlobular'):
+            cmd.warn('text="We are lying about this being a APOGEE&MaNGA Globular cartridge"')
+            sopState.survey = sopActor.APOGEEMANGA
+            sopState.surveyMode = sopActor.MANGAGLOBULAR
         elif bypass.get('isApogeeManga10'):
             cmd.warn('text="We are lying about this being a APOGEE&MaNGA 10min cartridge"')
             sopState.survey = sopActor.APOGEEMANGA

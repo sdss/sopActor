@@ -32,6 +32,9 @@ except NameError:
     class MASTAR():
         pass
 
+    class MANGAGLOBULAR():
+        pass
+
     class MANGADITHER():
         pass
 
