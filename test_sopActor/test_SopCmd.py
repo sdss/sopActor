@@ -523,8 +523,8 @@ class TestUpdateCartridge(SopCmdTester, unittest.TestCase):
 
         self._updateCartridge(3, 'MaNGA', 'MaStar', expected)
 
-        self.assertEqual(self.actorState.doMangaDither.expTime, 30)
-        self.assertEqual(self.actorState.doMangaSequence.expTime, 30)
+        self.assertEqual(self.actorState.doMangaDither.expTime, 28)
+        self.assertEqual(self.actorState.doMangaSequence.expTime, 28)
         self.assertEqual(self.actorState.doBossCalibs.nArc, 1)
         self.assertEqual(self.actorState.doBossCalibs.nFlat, 1)
         self.assertEqual(self.actorState.doBossCalibs.offset, 20)
@@ -540,11 +540,11 @@ class TestUpdateCartridge(SopCmdTester, unittest.TestCase):
 
         self._updateCartridge(3, 'APOGEE-2&MaNGA', 'MaStar', expected)
 
-        self.assertEqual(self.actorState.doApogeeMangaDither.mangaExpTime, 30)
+        self.assertEqual(self.actorState.doApogeeMangaDither.mangaExpTime, 28)
         self.assertEqual(self.actorState.doApogeeMangaDither.apogeeExpTime, 450)
         self.assertEqual(self.actorState.doApogeeMangaSequence.manga_lead, True)
 
-        self.assertEqual(self.actorState.doApogeeMangaSequence.mangaExpTime, 30)
+        self.assertEqual(self.actorState.doApogeeMangaSequence.mangaExpTime, 28)
         self.assertEqual(self.actorState.doApogeeMangaSequence.apogeeExpTime, 450)
         self.assertEqual(self.actorState.doApogeeMangaSequence.manga_lead, True)
 
