@@ -80,24 +80,21 @@ class SopActor(actorcore.Actor.SDSSActor):
         sopActor.myGlobals.bypass = Bypass()
 
         # Define the Thread list
-        self.threadList = [('master', sopActor.MASTER,
-                            masterThread), ('boss', sopActor.BOSS,
-                                            bossThread), ('apogee', sopActor.APOGEE, apogeeThread),
-                           ('apogeeScript', sopActor.APOGEE_SCRIPT,
-                            apogeeThread.script_main), ('script', sopActor.SCRIPT,
-                                                        scriptThread), ('guider', sopActor.GUIDER,
-                                                                        guiderThread),
-                           ('gcamera', sopActor.GCAMERA,
-                            gcameraThread), ('ff', sopActor.FF_LAMP,
-                                             lampThreads.ff_main), ('hgcd', sopActor.HGCD_LAMP,
-                                                                    lampThreads.hgcd_main),
-                           ('ne', sopActor.NE_LAMP,
-                            lampThreads.ne_main), ('uv', sopActor.UV_LAMP,
-                                                   lampThreads.uv_main), ('wht', sopActor.WHT_LAMP,
-                                                                          lampThreads.wht_main),
-                           ('ffs', sopActor.FFS, ffsThread), ('tcc', sopActor.TCC,
-                                                              tccThread), ('slew', sopActor.SLEW,
-                                                                           slewThread)]
+        self.threadList = [('master', sopActor.MASTER, masterThread),
+                           ('boss', sopActor.BOSS, bossThread),
+                           ('apogee', sopActor.APOGEE, apogeeThread),
+                           ('apogeeScript', sopActor.APOGEE_SCRIPT, apogeeThread.script_main),
+                           ('script', sopActor.SCRIPT, scriptThread),
+                           ('guider', sopActor.GUIDER, guiderThread),
+                           ('gcamera', sopActor.GCAMERA, gcameraThread),
+                           ('ff', sopActor.FF_LAMP, lampThreads.ff_main),
+                           ('hgcd', sopActor.HGCD_LAMP, lampThreads.hgcd_main),
+                           ('ne', sopActor.NE_LAMP, lampThreads.ne_main),
+                           ('uv', sopActor.UV_LAMP, lampThreads.uv_main),
+                           ('wht', sopActor.WHT_LAMP, lampThreads.wht_main),
+                           ('ffs', sopActor.FFS, ffsThread),
+                           ('tcc', sopActor.TCC, tccThread),
+                           ('slew', sopActor.SLEW, slewThread)]
 
         # Explicitly load other actor models.
         self.models = {}
