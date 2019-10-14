@@ -1015,7 +1015,7 @@ class TestApogeeMangaScience(MasterThreadTester):
         sopTester.updateModel('platedb', TestHelper.platedbState['apogeemangaGlobular'])
 
         mangaDithers = 'N'
-        self._do_apogeemanga_dither(14, 44, 0, 0, mangaDithers, surveyMode='MaNGA Globular')
+        self._do_apogeemanga_dither(7, 37, 0, 0, mangaDithers, surveyMode='MaNGA Globular')
 
     def _do_apogeemanga_sequence(self,
                                  nCall,
