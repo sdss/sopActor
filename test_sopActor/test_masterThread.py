@@ -892,7 +892,8 @@ class TestMangaScience(MasterThreadTester):
 
         count = 1
         dithers = 'CCC'
-        self._do_manga_sequence(5, 44, 2, 0, count, dithers, surveyMode='MaStar')
+        self._do_manga_sequence(5, 44, 2, 0, count, dithers,
+                                surveyMode='MaStar', didFail=True)
 
 
 class TestApogeeMangaScience(MasterThreadTester):
@@ -1289,7 +1290,8 @@ class TestApogeeMangaScience(MasterThreadTester):
         self.cmd.runOn = ('boss exposure science itime=28', abort_sequence)
         self.cmd.runOnCount = 3
 
-        self._do_apogeemanga_sequence(38, 109, 0, 0, mangaDithers, count, surveyMode='MaStar')
+        self._do_apogeemanga_sequence(9, 41, 3, 0, mangaDithers, count,
+                                      surveyMode='MaStar', didFail=True)
 
 
 class TestBossCalibs(MasterThreadTester):

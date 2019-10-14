@@ -281,7 +281,7 @@ class TestClassifyCartridge(SopCmdTester, unittest.TestCase):
 
     def test_classifyCartridge_apogeemanga_globular(self):
         sopTester.updateModel('guider', TestHelper.guiderState['apogeemangaGlobularLoaded'])
-        sopTester.updateModel('platedb', TestHelper.platedbState['apgoeemangaGlobular'])
+        sopTester.updateModel('platedb', TestHelper.platedbState['apogeemangaGlobular'])
         expect = [sopActor.APOGEEMANGA, sopActor.MANGAGLOBULAR, ['APOGEE-2&MaNGA', 'MaNGA Globular']]
         self._classifyCartridge(3, 'APOGEE-2&MaNGA', 'MaNGA Globular', expect)
         expect = [sopActor.APOGEEMANGA, sopActor.MANGAGLOBULAR, ['APOGEE&MaNGA', 'MaNGA Globular']]
