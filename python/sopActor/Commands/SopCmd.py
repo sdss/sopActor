@@ -1289,14 +1289,16 @@ class SopCmd(object):
                 'doMangaSequence',
             ]
             if surveyMode in [sopActor.MANGADITHER, sopActor.MANGAGLOBULAR]:
-                sopState.doMangaSequence.set_mangaDither()
+                __, expTime = self.update_designs(sopState)
+                sopState.doMangaDither.set_mangaDither(expTime=expTime)
+                sopState.doMangaSequence.set_mangaDither(expTime=expTime)
             if surveyMode is sopActor.MANGA10:
                 sopState.doMangaDither.set_manga10()
                 sopState.doMangaSequence.set_manga10()
             if surveyMode is sopActor.MANGASTARE or surveyMode is sopActor.MASTAR:
-                __, mangaExpTime = self.update_designs(sopState)
-                sopState.doMangaDither.set_mangaStare(expTime=mangaExpTime)
-                sopState.doMangaSequence.set_mangaStare(expTime=mangaExpTime)
+                __, expTime = self.update_designs(sopState)
+                sopState.doMangaDither.set_mangaStare(expTime=expTime)
+                sopState.doMangaSequence.set_mangaStare(expTime=expTime)
         elif survey is sopActor.APOGEEMANGA:
             sopState.gotoField.setStages(['slew', 'hartmann', 'calibs', 'guider', 'cleanup'])
             sopState.validCommands += [
@@ -1311,8 +1313,11 @@ class SopCmd(object):
                                                               mangaExpTime=mangaExpTime)
                 sopState.doApogeeScience.set_apogee_expTime(apogeeDesign[1])
             if surveyMode in [sopActor.MANGADITHER, sopActor.MANGAGLOBULAR]:
-                sopState.doApogeeMangaDither.set_manga()
-                sopState.doApogeeMangaSequence.set_mangaDither()
+                __, mangaExpTime = self.update_designs(sopState)
+                apogeeExpTime = None if mangaExpTime is None else mangaExpTime / 2.
+                sopState.doApogeeMangaDither.set_manga(mangaExpTime=mangaExpTime,
+                                                       apogeeExpTime=apogeeExpTime)
+                sopState.doApogeeMangaSequence.set_mangaDither(mangaExpTime=mangaExpTime)
             if surveyMode is sopActor.MANGA10:
                 sopState.doApogeeMangaDither.set_manga10()
                 sopState.doApogeeMangaSequence.set_manga10()

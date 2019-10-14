@@ -1008,6 +1008,15 @@ class TestApogeeMangaScience(MasterThreadTester):
         mangaDithers = 'C'
         self._do_apogeemanga_dither(14, 44, 0, 0, mangaDithers, surveyMode='MaStar')
 
+    def test_do_apogeemanga_dither_globular_lead(self):
+
+        sopTester.updateModel('mcp', TestHelper.mcpState['apogee_science'])
+        sopTester.updateModel('apogee', TestHelper.apogeeState['B_open'])
+        sopTester.updateModel('platedb', TestHelper.platedbState['apogeemangaGlobular'])
+
+        mangaDithers = 'N'
+        self._do_apogeemanga_dither(14, 44, 0, 0, mangaDithers, surveyMode='MaNGA Globular')
+
     def _do_apogeemanga_sequence(self,
                                  nCall,
                                  nInfo,

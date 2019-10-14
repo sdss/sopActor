@@ -558,8 +558,8 @@ class TestUpdateCartridge(SopCmdTester, unittest.TestCase):
 
         self._updateCartridge(3, 'MaNGA', 'MaNGA Globular', expected)
 
-        self.assertEqual(self.actorState.doMangaDither.expTime, 900)
-        self.assertEqual(self.actorState.doMangaSequence.expTime, 900)
+        self.assertEqual(self.actorState.doMangaDither.expTime, 28)
+        self.assertEqual(self.actorState.doMangaSequence.expTime, 28)
         self.assertEqual(self.actorState.doMangaSequence.dithers, 'NSE')
         self.assertEqual(self.actorState.doMangaSequence.count, 3)
 
@@ -573,8 +573,10 @@ class TestUpdateCartridge(SopCmdTester, unittest.TestCase):
 
         self._updateCartridge(3, 'APOGEE&MaNGA', 'MaNGA Globular', expected)
 
-        self.assertEqual(self.actorState.doApogeeMangaDither.mangaExpTime, 900)
-        self.assertEqual(self.actorState.doApogeeMangaSequence.mangaExpTime, 900)
+        self.assertEqual(self.actorState.doApogeeMangaDither.mangaExpTime, 28)
+        self.assertEqual(self.actorState.doApogeeMangaSequence.mangaExpTime, 28)
+        self.assertEqual(self.actorState.doApogeeMangaDither.apogeeExpTime, 14)
+        self.assertEqual(self.actorState.doApogeeMangaSequence.apogeeExpTime, 14)
         self.assertEqual(self.actorState.doApogeeMangaSequence.mangaDithers, 'NSE')
         self.assertEqual(self.actorState.doApogeeMangaSequence.count, 2)
 

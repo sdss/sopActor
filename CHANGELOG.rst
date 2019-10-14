@@ -4,6 +4,14 @@
 Change Log
 ==========
 
+3.12.4 (unreleased)
+-------------------
+
+Changed
+^^^^^^^
+* Better support for MaNGA dither plates with exposure time different than 900 seconds. In particular this is needed for some ``MaNGA Globular`` plates.
+
+
 3.12.3 (2019-04-19)
 -------------------
 
