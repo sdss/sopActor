@@ -4,8 +4,8 @@
 # @Filename: masterThread.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 #
-# @Last modified by: José Sánchez-Gallego (gallegoj@uw.edu)
-# @Last modified time: 2019-01-16 15:23:24
+# @Last modified by: José Sánchez-Gallego
+# @Last modified time: 2019-10-14 14:58:31
 
 import Queue
 import threading
@@ -190,7 +190,7 @@ class SopMultiCommand(MultiCommand):
             if queueName == sopActor.GUIDER:
                 msg.duration += msg.expTime
                 msg.duration += guiderReadoutDuration
-            elif queueName == sopActor.BOSS:
+            elif queueName == sopActor.BOSS_ACTOR:
                 if msg.expTime >= 0:
                     msg.duration += flushDuration
                     msg.duration += msg.expTime
@@ -557,7 +557,7 @@ def do_boss_science(cmd, cmdState, actorState):
                 (cmdState.name, stageName)))
 
         multiCmd.append(
-            sopActor.BOSS, Msg.EXPOSE, expTime=expTime, expType='science', readout=True)
+            sopActor.BOSS_ACTOR, Msg.EXPOSE, expTime=expTime, expType='science', readout=True)
         prep_for_science(multiCmd, precondition=True)
         cmd.inform('text="Taking a BOSS science exposure"')
 
@@ -631,7 +631,7 @@ def do_one_manga_dither(cmd, cmdState, actorState):
     n_exposures = int(numpy.ceil(900. / (expTime + readoutDuration))) or 1
 
     for ii in range(n_exposures):
-        multiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=expTime,
+        multiCmd.append(sopActor.BOSS_ACTOR, Msg.EXPOSE, expTime=expTime,
                         expType='science', readout=readout)
 
     # append ff lamp commands etc
@@ -693,7 +693,7 @@ def do_manga_sequence(cmd, cmdState, actorState):
         multiCmd = SopMultiCommand(cmd, readoutDuration + actorState.timeout,
                                    cmdState.name + '.readout')
         if pendingReadout:
-            multiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
+            multiCmd.append(sopActor.BOSS_ACTOR, Msg.EXPOSE, expTime=-1, readout=True)
 
         # end of one command sequence
         # here is where we can check count and dithers, append or remove?
@@ -723,7 +723,7 @@ def do_manga_sequence(cmd, cmdState, actorState):
             cmd,
             actorState.timeout + readoutDuration,
             cmdState.name + '.readout',
-            sopActor.BOSS,
+            sopActor.BOSS_ACTOR,
             Msg.EXPOSE,
             expTime=-1,
             readout=True)
@@ -790,7 +790,7 @@ def do_one_apogeemanga_dither(cmd, cmdState, actorState, sequenceState=None):
 
     for ii in range(n_boss_exposures):
         multiCmd.append(
-            sopActor.BOSS,
+            sopActor.BOSS_ACTOR,
             Msg.EXPOSE,
             expTime=mangaExpTime,
             expType='science',
@@ -862,7 +862,7 @@ def do_apogeemanga_sequence(cmd, cmdState, actorState):
         if pendingReadout:
             duration = actorState.timeout + readoutDuration
             multiCmd = SopMultiCommand(cmd, duration, cmdState.name + '.readout')
-            multiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
+            multiCmd.append(sopActor.BOSS_ACTOR, Msg.EXPOSE, expTime=-1, readout=True)
             try:
                 mangaDither = cmdState.mangaDitherSeq[cmdState.index]
                 prep_manga_dither(multiCmd, dither=mangaDither, precondition=False)
@@ -882,7 +882,7 @@ def do_apogeemanga_sequence(cmd, cmdState, actorState):
             cmd,
             actorState.timeout + readoutDuration,
             cmdState.name + '.readout',
-            sopActor.BOSS,
+            sopActor.BOSS_ACTOR,
             Msg.EXPOSE,
             expTime=-1,
             readout=True)
@@ -953,7 +953,7 @@ def do_boss_calibs(cmd, cmdState, actorState):
             # turning on while a dark is reading out!
             multiCmd = SopMultiCommand(cmd, actorState.timeout + readoutDuration,
                                        cmdState.name + '.pendingReadout')
-            multiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
+            multiCmd.append(sopActor.BOSS_ACTOR, Msg.EXPOSE, expTime=-1, readout=True)
             pendingReadout = False
             if expType == 'arc':
                 prep_for_arc(multiCmd)
@@ -983,13 +983,13 @@ def do_boss_calibs(cmd, cmdState, actorState):
         if expType in ('bias', 'dark'):
             pendingReadout = False
             multiCmd.append(
-                sopActor.BOSS, Msg.EXPOSE, expTime=expTime, expType=expType, readout=True)
+                sopActor.BOSS_ACTOR, Msg.EXPOSE, expTime=expTime, expType=expType, readout=True)
             prep_lamps_off(multiCmd, precondition=True)
         elif expType == 'flat':
             if cmdState.flatTime > 0:
                 pendingReadout = True
                 multiCmd.append(
-                    sopActor.BOSS, Msg.EXPOSE, expTime=expTime, expType=expType, readout=False)
+                    sopActor.BOSS_ACTOR, Msg.EXPOSE, expTime=expTime, expType=expType, readout=False)
             if cmdState.guiderFlatTime > 0:
                 cmd.inform('text="Taking a %gs guider flat exposure"' % (cmdState.guiderFlatTime))
                 multiCmd.append(
@@ -998,7 +998,7 @@ def do_boss_calibs(cmd, cmdState, actorState):
         elif expType == 'arc':
             pendingReadout = True
             multiCmd.append(
-                sopActor.BOSS, Msg.EXPOSE, expTime=expTime, expType=expType, readout=False)
+                sopActor.BOSS_ACTOR, Msg.EXPOSE, expTime=expTime, expType=expType, readout=False)
             prep_for_arc(multiCmd, precondition=True)
         else:
             failMsg = ('Impossible condition: unknown exposure type '
@@ -1024,7 +1024,7 @@ def do_boss_calibs(cmd, cmdState, actorState):
                     cmd,
                     actorState.timeout + readoutDuration,
                     cmdState.name + '.readoutCleanup',
-                    sopActor.BOSS,
+                    sopActor.BOSS_ACTOR,
                     Msg.EXPOSE,
                     expTime=-1,
                     readout=True).run():
@@ -1039,7 +1039,7 @@ def do_boss_calibs(cmd, cmdState, actorState):
                                cmdState.name + '.readoutFinish')
 
     if pendingReadout:
-        multiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
+        multiCmd.append(sopActor.BOSS_ACTOR, Msg.EXPOSE, expTime=-1, readout=True)
         pendingReadout = False
     multiCmd.append(sopActor.FFS, Msg.FFS_MOVE, open=ffsInitiallyOpen)
     prep_lamps_off(multiCmd)
@@ -1129,7 +1129,7 @@ def do_goto_field_hartmann(cmd, cmdState, actorState):
     if myGlobals.bypass.get('ffs'):
         args += ' bypass="ffs"'
 
-    multiCmd.append(sopActor.BOSS, Msg.HARTMANN, args=args)
+    multiCmd.append(sopActor.BOSS_ACTOR, Msg.HARTMANN, args=args)
     if not handle_multiCmd(multiCmd, cmd, cmdState, stageName, 'Failed to take hartmann sequence'):
         return False
 
@@ -1207,7 +1207,7 @@ def goto_field_boss(cmd, cmdState, actorState, slewTimeout):
                         cmd,
                         cmdState.arcTime + actorState.timeout,
                         cmdState.name + '.calibs.arcExposure',
-                        sopActor.BOSS,
+                        sopActor.BOSS_ACTOR,
                         Msg.EXPOSE,
                         expTime=cmdState.arcTime,
                         expType='arc',
@@ -1226,7 +1226,7 @@ def goto_field_boss(cmd, cmdState, actorState, slewTimeout):
                 cmd, actorState.timeout + (readoutDuration if pendingReadout else 0),
                 cmdState.name + '.calibs.flats')
             if pendingReadout:
-                multiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
+                multiCmd.append(sopActor.BOSS_ACTOR, Msg.EXPOSE, expTime=-1, readout=True)
                 pendingReadout = False
 
             if cmdState.flatTime > 0 or doGuiderFlat:
@@ -1242,7 +1242,7 @@ def goto_field_boss(cmd, cmdState, actorState, slewTimeout):
             if cmdState.flatTime > 0:
                 pendingReadout = True
                 multiCmd.append(
-                    sopActor.BOSS,
+                    sopActor.BOSS_ACTOR,
                     Msg.EXPOSE,
                     expTime=cmdState.flatTime,
                     expType='flat',
@@ -1260,7 +1260,7 @@ def goto_field_boss(cmd, cmdState, actorState, slewTimeout):
                             cmd,
                             actorState.timeout + readoutDuration,
                             cmdState.name + '.calibs.flatReadout',
-                            sopActor.BOSS,
+                            sopActor.BOSS_ACTOR,
                             Msg.EXPOSE,
                             expTime=-1,
                             readout=True).run():
@@ -1275,7 +1275,7 @@ def goto_field_boss(cmd, cmdState, actorState, slewTimeout):
     if pendingReadout:
         readoutMultiCmd = SopMultiCommand(cmd, readoutDuration + actorState.timeout,
                                           cmdState.name + '.calibs.lastReadout')
-        readoutMultiCmd.append(sopActor.BOSS, Msg.EXPOSE, expTime=-1, readout=True)
+        readoutMultiCmd.append(sopActor.BOSS_ACTOR, Msg.EXPOSE, expTime=-1, readout=True)
         pendingReadout = False
         readoutMultiCmd.start()
     else:
@@ -1346,7 +1346,7 @@ def goto_field(cmd, cmdState, actorState):
 
     if actorState.survey == sopActor.APOGEE:
         success = goto_field_apogee(cmd, cmdState, actorState, slewTimeout)
-    elif actorState.survey == sopActor.BOSS or actorState.survey == sopActor.MANGA:
+    elif actorState.survey == sopActor.BOSS_ACTOR or actorState.survey == sopActor.MANGA:
         success = goto_field_boss(cmd, cmdState, actorState, slewTimeout)
     elif actorState.survey == sopActor.APOGEEMANGA:
         success = goto_field_apogeemanga(cmd, cmdState, actorState, slewTimeout)
@@ -1402,7 +1402,7 @@ def hartmann(cmd, cmdState, actorState):
         multiCmd = SopMultiCommand(cmd, actorState.timeout + hartmannTime, '.'.join((cmdState.name,
                                                                                      stageName)))
         multiCmd.append(
-            sopActor.BOSS, Msg.SINGLE_HARTMANN, expTime=cmdState.expTime, mask=stageName)
+            sopActor.BOSS_ACTOR, Msg.SINGLE_HARTMANN, expTime=cmdState.expTime, mask=stageName)
         if not handle_multiCmd(multiCmd, cmd, cmdState, stageName,
                                'Failed to take %s Hartmann' % stageName):
             return False
@@ -1451,7 +1451,7 @@ def collimate_boss(cmd, cmdState, actorState):
     if myGlobals.bypass.get('ffs'):
         args += ' bypass="ffs"'
 
-    multiCmd.append(sopActor.BOSS, Msg.HARTMANN, args=args)
+    multiCmd.append(sopActor.BOSS_ACTOR, Msg.HARTMANN, args=args)
     if not handle_multiCmd(multiCmd, cmd, cmdState, stageName,
                            'Failed to collimate BOSS for afternoon checkout'):
         return

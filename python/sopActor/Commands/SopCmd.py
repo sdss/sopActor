@@ -3,9 +3,6 @@
 #
 # @Filename: SopCmd.py
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
-#
-# @Last modified by: José Sánchez-Gallego (gallegoj@uw.edu)
-# @Last modified time: 2019-03-25 14:24:45
 
 from __future__ import absolute_import, division, print_function
 

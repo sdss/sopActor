@@ -86,7 +86,7 @@ except NameError:
     class WHT_LAMP():
         pass  # WHT lamps
 
-    class BOSS():
+    class BOSS_ACTOR():
         pass  # command the Boss ICC
 
     class GCAMERA():

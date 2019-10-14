@@ -13,7 +13,6 @@
 from __future__ import division, print_function
 
 import abc
-import os
 
 import actorcore.Actor
 import apogeeThread
@@ -81,7 +80,7 @@ class SopActor(actorcore.Actor.SDSSActor):
 
         # Define the Thread list
         self.threadList = [('master', sopActor.MASTER, masterThread),
-                           ('boss', sopActor.BOSS, bossThread),
+                           ('boss', sopActor.BOSS_ACTOR, bossThread),
                            ('apogee', sopActor.APOGEE, apogeeThread),
                            ('apogeeScript', sopActor.APOGEE_SCRIPT, apogeeThread.script_main),
                            ('script', sopActor.SCRIPT, scriptThread),

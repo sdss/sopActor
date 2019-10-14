@@ -79,7 +79,7 @@ def main(actor, queues):
 
     while True:
         try:
-            msg = queues[sopActor.BOSS].get(timeout=timeout)
+            msg = queues[sopActor.BOSS_ACTOR].get(timeout=timeout)
 
             if msg.type == Msg.EXIT:
                 if msg.cmd:

@@ -36,7 +36,7 @@ class MasterThreadTester(sopTester.SopThreadTester, unittest.TestCase):
         self.useThreads = [
             ('apogee', sopActor.APOGEE, apogeeThread.main),
             ('apogeeScript', sopActor.APOGEE_SCRIPT, apogeeThread.script_main),
-            ('boss', sopActor.BOSS, bossThread.main),
+            ('boss', sopActor.BOSS_ACTOR, bossThread.main),
             ('script', sopActor.SCRIPT, sopTester.FakeThread),
             ('guider', sopActor.GUIDER, guiderThread.main),
             ('gcamera', sopActor.GCAMERA, sopTester.FakeThread),
