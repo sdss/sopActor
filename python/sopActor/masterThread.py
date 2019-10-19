@@ -5,7 +5,7 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 #
 # @Last modified by: José Sánchez-Gallego
-# @Last modified time: 2019-10-14 14:58:31
+# @Last modified time: 2019-10-19 11:13:57
 
 import Queue
 import threading
@@ -1346,7 +1346,7 @@ def goto_field(cmd, cmdState, actorState):
 
     if actorState.survey == sopActor.APOGEE:
         success = goto_field_apogee(cmd, cmdState, actorState, slewTimeout)
-    elif actorState.survey == sopActor.BOSS_ACTOR or actorState.survey == sopActor.MANGA:
+    elif actorState.survey == sopActor.BOSS or actorState.survey == sopActor.MANGA:
         success = goto_field_boss(cmd, cmdState, actorState, slewTimeout)
     elif actorState.survey == sopActor.APOGEEMANGA:
         success = goto_field_apogeemanga(cmd, cmdState, actorState, slewTimeout)
