@@ -5,7 +5,7 @@
 # @License: BSD 3-clause (http://www.opensource.org/licenses/BSD-3-Clause)
 #
 # @Last modified by: José Sánchez-Gallego
-# @Last modified time: 2019-10-19 11:13:57
+# @Last modified time: 2019-10-19 11:52:37
 
 import Queue
 import threading
@@ -1130,7 +1130,8 @@ def do_goto_field_hartmann(cmd, cmdState, actorState):
         args += ' bypass="ffs"'
 
     multiCmd.append(sopActor.BOSS_ACTOR, Msg.HARTMANN, args=args)
-    if not handle_multiCmd(multiCmd, cmd, cmdState, stageName, 'Failed to take hartmann sequence'):
+    if not handle_multiCmd(multiCmd, cmd, cmdState, stageName,
+                           'Failed to take hartmann sequence. Lamps are on.'):
         return False
 
     # Because we always use ignoreResiduals we need to check the model to see if the
