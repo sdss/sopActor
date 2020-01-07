@@ -310,7 +310,7 @@ class CmdState(object):
         cmd = self._getCmd()
         cmd.warn('text="Will cancel pending APOGEE exposures and stop any running one."')
         call = myGlobals.actorState.actor.cmdr.call
-        cmdVar = call(actor='apogee', forUserCmd=cmd, cmdStr='expose stop')
+        cmdVar = call(actor='apogee', forUserCmd=cmd, cmdStr='expose stop', timeLim=1)
         if cmdVar.didFail:
             cmd.warn('text="Failed to stop running APOGEE exposure"')
 
@@ -318,7 +318,7 @@ class CmdState(object):
         """Stop current TCC motion."""
         cmd = self._getCmd()
         cmdVar = myGlobals.actorState.actor.cmdr.call(
-            actor='tcc', forUserCmd=cmd, cmdStr='track /stop')
+            actor='tcc', forUserCmd=cmd, cmdStr='track /stop', timeLim=1)
         if cmdVar.didFail:
             cmd.warn('text="Failed to abort slew"')
 
