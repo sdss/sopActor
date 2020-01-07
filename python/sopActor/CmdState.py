@@ -312,7 +312,7 @@ class CmdState(object):
         cmd = self._getCmd()
         cmd.warn('text="Will cancel pending APOGEE exposures and stop any running one."')
         call = myGlobals.actorState.actor.cmdr.call
-        cmdVar = call(actor='apogee', forUserCmd=cmd, cmdStr='expose stop', timeLim=1)
+        cmdVar = call(actor='apogee', forUserCmd=cmd, cmdStr='expose stop')
         if cmdVar.didFail:
             cmd.warn('text="Failed to stop running APOGEE exposure"')
 
