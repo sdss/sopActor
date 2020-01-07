@@ -255,7 +255,7 @@ class TestGotoField(CmdStateTester, unittest.TestCase):
         self.cmdState.setStages(['slew', 'calibs'])
         self._fake_boss_exposing()
         super(TestGotoField, self).test_abort()
-        self.assertEqual(self.cmd.calls, ['boss exposure stop', 'tcc track /stop'])
+        self.assertItemsEqual(self.cmd.calls, ['boss exposure stop', 'tcc track /stop'])
 
 
 class TestGotoPosition(CmdStateTester, unittest.TestCase):

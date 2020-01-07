@@ -284,10 +284,10 @@ class CmdState(object):
                 while not boss_queue.empty():
                     try:
                         msg = boss_queue.get(False)
-                        msg.replyQueue.put(sopActor.Msg.EXPOSURE_FINISHED, cmd=cmd, success=False)
+                        msg.replyQueue.put(sopActor.Msg.REPLY, cmd=cmd, success=False)
+                        boss_queue.task_done()
                     except boss_queue.Empty:
                         continue
-                    boss_queue.task_done()
 
         # The same states we cannot slew during are the states we can't abort from.
         if self.isSlewingDisabled_BOSS()[0]:
@@ -434,7 +434,7 @@ class GotoFieldCmd(CmdState):
         self.doGuider = False
         super(GotoFieldCmd, self).abort()
         self.stop_tcc()
-        self.stop_boss_exposure()
+        self.stop_boss_exposure(clear_queue=True)
 
 
 class DoBossCalibsCmd(CmdState):
@@ -483,7 +483,6 @@ class DoBossCalibsCmd(CmdState):
         return ['%s_%s' % (self.name, m) for m in msg]
 
     def abort(self):
-        self.stop_boss_exposure()
         self.nArc = self.nArcDone
         self.nBias = self.nBiasDone
         self.nDark = self.nDarkDone
@@ -491,6 +490,7 @@ class DoBossCalibsCmd(CmdState):
         self.offset = 0
         self.disable_slews = False
         super(DoBossCalibsCmd, self).abort()
+        self.stop_boss_exposure(clear_queue=True)
 
 
 class DoApogeeScienceCmd(CmdState):
@@ -729,7 +729,7 @@ class DoMangaSequenceCmd(CmdState):
         ''' Gets the current dither '''
         try:
             return self.ditherSeq[self.index]
-        except Exception as e:
+        except Exception:
             return None
 
     def hasStateChanged(self, oldstate):
