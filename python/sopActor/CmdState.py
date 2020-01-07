@@ -427,14 +427,14 @@ class GotoFieldCmd(CmdState):
         self.doGuider = True
 
     def abort(self):
-        self.stop_boss_exposure()
-        self.stop_tcc()
         self.doSlew = False
         self.doHartmann = False
         self.doCalibs = False
         self.doGuiderFlat = False
         self.doGuider = False
         super(GotoFieldCmd, self).abort()
+        self.stop_tcc()
+        self.stop_boss_exposure()
 
 
 class DoBossCalibsCmd(CmdState):
