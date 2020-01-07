@@ -140,8 +140,8 @@ class SopPrecondition(Precondition):
             print 'Unknown lamp queue %s' % queueName
             return False, 0
 
-        if status == None:
-            raise RuntimeError, ('Unable to read %s lamp status' % queueName)
+        if status is None:
+            raise RuntimeError('Unable to read %s lamp status' % queueName)
 
         on = 0
         for i in status:
@@ -988,8 +988,8 @@ def do_boss_calibs(cmd, cmdState, actorState):
         elif expType == 'flat':
             if cmdState.flatTime > 0:
                 pendingReadout = True
-                multiCmd.append(
-                    sopActor.BOSS_ACTOR, Msg.EXPOSE, expTime=expTime, expType=expType, readout=False)
+                multiCmd.append(sopActor.BOSS_ACTOR, Msg.EXPOSE, expTime=expTime,
+                                expType=expType, readout=False)
             if cmdState.guiderFlatTime > 0:
                 cmd.inform('text="Taking a %gs guider flat exposure"' % (cmdState.guiderFlatTime))
                 multiCmd.append(
@@ -1015,7 +1015,6 @@ def do_boss_calibs(cmd, cmdState, actorState):
             failMsg = ('Impossible condition: unknown exposure type when '
                        'determining exposures remaining!')
             break
-    #endwhile
 
     # Did we break out of the while loop?
     if failMsg:
@@ -1053,7 +1052,12 @@ def do_boss_calibs(cmd, cmdState, actorState):
 
 
 def start_slew(cmd, cmdState, actorState, slewTimeout):
-    """Prepare for the start of a slew. Returns the relevant multiCmd for precondition appending."""
+    """Prepare for the start of a slew.
+
+    Returns the relevant multiCmd for precondition appending.
+
+    """
+
     cmdState.setStageState('slew', 'running')
     multiCmd = SopMultiCommand(cmd, slewTimeout + actorState.timeout, cmdState.name + '.slew')
     multiCmd.append(SopPrecondition(sopActor.TCC, Msg.AXIS_INIT))  # start with an axis init

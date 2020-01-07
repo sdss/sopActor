@@ -146,8 +146,8 @@ class CmdState(object):
     def setStageState(self, name, stageState, genKeys=True):
         """Set a stage to a new state, and output the stage state keys."""
         assert name in self.stages, 'stage %s is unknown, out of %s' % (name, repr(self.stages))
-        assert stageState in self.validStageStates, 'state %s is unknown, out of %s' % (
-            stageState, repr(self.validStageStates))
+        assert stageState in self.validStageStates, \
+            'state %s is unknown, out of %s' % (stageState, repr(self.validStageStates))
         self.stages[name] = stageState
 
         if genKeys:
@@ -157,29 +157,30 @@ class CmdState(object):
         cmd = self._getCmd(cmd)
         cmd.inform('%sState=%s,%s,%s' % (self.name, qstr(self.cmdState),
                                          qstr(self.stateText),
-                                         ','.join([qstr(self.stages[sname]) \
-                                                       for sname in self.allStages])))
+                                         ','.join([qstr(self.stages[sname])
+                                                   for sname in self.allStages])))
 
     def genCommandKeys(self, cmd=None):
         """ Return a list of the keywords describing our command. """
 
         cmd = self._getCmd(cmd)
-        cmd.inform('%sStages=%s' % (self.name,
-                                    ','.join([qstr(sname) \
-                                                  for sname in self.allStages])))
+        cmd.inform('%sStages=%s' % (self.name, ','.join([qstr(sname)
+                                                         for sname in self.allStages])))
+
         self.genCmdStateKeys(cmd=cmd)
 
     def getUserKeys(self):
         return []
 
     def genStateKeys(self, cmd=None):
-        '''
-        Generates command info statements for commmand keys
+        """Generates command info statements for commmand keys.
+
         Format: [commandName]_keyword = currentset_value, default_value
-        e.g.
-        doMangaSequence_count=1,3; doMangaSequence_dithers="NSE","NSE"
+        e.g. doMangaSequence_count=1,3; doMangaSequence_dithers="NSE","NSE"
         doMangaSequence_expTime=900.0,900.0; doMangaSequence_ditherSeq=NSE,0
-        '''
+
+        """
+
         cmd = self._getCmd(cmd)
 
         msg = []
@@ -194,7 +195,7 @@ class CmdState(object):
 
         try:
             userKeys = self.getUserKeys()
-        except:
+        except BaseException:
             userKeys = []
             cmd.warn('text="failed to fetch all keywords for %s"' % (self.name))
 
@@ -204,7 +205,8 @@ class CmdState(object):
     def genKeys(self, cmd=None, trimKeys=False):
         """Output all our keywords."""
         if not trimKeys or trimKeys == self.name:
-            # [commandName]Stages and [commandName]State info statements (e.g. doMangaSequenceStages, doMangaSequenceState)
+            # [commandName]Stages and [commandName]State info statements
+            # (e.g. doMangaSequenceStages, doMangaSequenceState)
             self.genCommandKeys(cmd=cmd)
             # invidual state keys
             self.genStateKeys(cmd=cmd)
@@ -323,10 +325,7 @@ class CmdState(object):
             cmd.warn('text="Failed to abort slew"')
 
 
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
 # Now define the actual command states we'll be using:
-
 
 class GotoGangChangeCmd(CmdState):
 
