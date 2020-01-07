@@ -426,14 +426,20 @@ class GotoFieldCmd(CmdState):
         self.doGuider = True
 
     def abort(self):
+
         self.doSlew = False
         self.doHartmann = False
         self.doCalibs = False
         self.doGuiderFlat = False
         self.doGuider = False
+
         super(GotoFieldCmd, self).abort()
-        self.stop_tcc()
+
+        # Stop BOSS exposure first since this should be really fast if there
+        # are no exposures running (i.e., during slew), but it will clear the
+        # queue, and then proceed to stop the TCC
         self.stop_boss_exposure(clear_queue=True)
+        self.stop_tcc()
 
 
 class DoBossCalibsCmd(CmdState):
