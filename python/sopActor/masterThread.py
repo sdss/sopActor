@@ -1359,10 +1359,13 @@ def goto_field(cmd, cmdState, actorState):
         success = False
         failMsg = 'Do not know survey: %s. Did you loadCartridge?' % actorState.survey
         fail_command(cmd, cmdState, failMsg)
+        return
 
     # if not success: we've already failed the command.
     if success:
         finish_command(cmd, cmdState, actorState, finishMsg)
+    else:
+        fail_command(cmd, cmdState, actorState, 'gotoField failed.')
 
 
 def do_apogee_sky_flats(cmd, cmdState, actorState):
