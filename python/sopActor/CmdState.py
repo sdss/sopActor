@@ -324,6 +324,15 @@ class CmdState(object):
         if cmdVar.didFail:
             cmd.warn('text="Failed to abort slew"')
 
+    def abort_hartmann(self):
+        """Aborts the hartmanns."""
+
+        cmd = self._getCmd()
+        call = myGlobals.actorState.actor.cmdr.call
+        cmdVar = call(actor='hartmann', forUserCmd=cmd, cmdStr='abort')
+        if cmdVar.didFail:
+            cmd.warn('text="Failed to abort hartmann."')
+
 
 # Now define the actual command states we'll be using:
 
@@ -434,6 +443,9 @@ class GotoFieldCmd(CmdState):
         self.doGuider = False
 
         super(GotoFieldCmd, self).abort()
+
+        if self.stages['hartmann'] == 'running':
+            self.abort_hartmann()
 
         # Stop BOSS exposure first since this should be really fast if there
         # are no exposures running (i.e., during slew), but it will clear the
