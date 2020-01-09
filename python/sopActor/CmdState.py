@@ -436,6 +436,9 @@ class GotoFieldCmd(CmdState):
 
     def abort(self):
 
+        # Before we set the stages to aborted, we check if hartmann was running.
+        is_hartmann_running = (self.stages['hartmann'] == 'running')
+
         self.doSlew = False
         self.doHartmann = False
         self.doCalibs = False
@@ -444,7 +447,7 @@ class GotoFieldCmd(CmdState):
 
         super(GotoFieldCmd, self).abort()
 
-        if self.stages['hartmann'] == 'running':
+        if is_hartmann_running:
             self.abort_hartmann()
 
         # Stop BOSS exposure first since this should be really fast if there
