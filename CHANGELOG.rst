@@ -4,6 +4,14 @@
 Change Log
 ==========
 
+3.12.6 (2020-01-12)
+-------------------
+
+Fixed
+^^^^^
+* A series of bugs that prevented a ``gotoField`` sequence to be stopped successfully. This includes a race problem in which while stopping a slew, the hartmann would start before it could be cancelled. Another bug prevented the slew to be stopped in some circumstances. In combination with ``hartmannActor 1.7.1``, which allows to stop the hartmann collimate sequence, this should fix `#2203 <https://trac.sdss.org/ticket/2203>`__ and `#2919 <https://trac.sdss.org/ticket/2919>`__.
+
+
 3.12.5 (2019-10-19)
 -------------------
 
