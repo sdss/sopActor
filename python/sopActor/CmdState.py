@@ -437,8 +437,7 @@ class GotoFieldCmd(CmdState):
     def abort(self):
 
         # Before we set the stages to aborted, we check if hartmann was running.
-        is_hartmann_set = 'hartmann' in self.stage
-        is_hartmann_running = (is_hartmann_set and self.stages['hartmann'] == 'running')
+        is_hartmann_running = self.stages.get('hartmann', None) == 'running'
 
         self.doSlew = False
         self.doHartmann = False
