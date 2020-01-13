@@ -4,6 +4,14 @@
 Change Log
 ==========
 
+3.12.7 (2020-01-13)
+-------------------
+
+Fixed
+^^^^^
+* Avoid a problem with APOGEE goto field stops that do not have a ``hartmann`` stage.
+
+
 3.12.6 (2020-01-12)
 -------------------
 
