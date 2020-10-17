@@ -26,6 +26,12 @@ except NameError:
     class MANGA():
         pass
 
+    class BHM():
+        pass
+
+    class MWM():
+        pass
+
     class MANGASTARE():
         pass
 
@@ -44,7 +50,16 @@ except NameError:
     class APOGEELEAD():
         pass
 
+    class BHMLEAD():
+        pass
+
+    class MWMLEAD():
+        pass
+
     class APOGEEMANGA():
+        pass
+
+    class BHMMWM():
         pass
 
     class ECAMERA():
@@ -147,6 +162,9 @@ except NameError:
             pass
 
         class DO_MANGA_SEQUENCE():
+            pass
+
+        class DO_APOGEE_BOSS_SCIENCE():
             pass
 
         class DO_APOGEEMANGA_DITHER():
@@ -334,4 +352,4 @@ def handle_bad_exception(actor, e, threadName, msg):
 
 __all__ = ['MASTER', 'Msg', 'bypass', 'CmdState']
 
-__version__ = '3.12.8dev'
+__version__ = '4.0.0dev'

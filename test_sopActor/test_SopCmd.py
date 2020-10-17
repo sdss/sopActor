@@ -118,55 +118,58 @@ class TestBypass(SopCmdTester, unittest.TestCase):
         self._check_cmd(nCalls, nInfo, nWarn, 0, True)
 
     def test_bypass_isBoss(self):
-        self._bypass_set('isBoss', 60, 3, 1, ['eBOSS', None])
+        self._bypass_set('isBoss', 64, 3, 1, ['eBOSS', None])
 
     def test_bypass_isApogee(self):
-        self._bypass_set('isApogee', 60, 3, 1, ['APOGEE', None])
+        self._bypass_set('isApogee', 64, 3, 1, ['APOGEE', None])
 
     def test_bypass_isMangaStare(self):
-        self._bypass_set('isMangaStare', 60, 3, 1, ['MaNGA', 'MaNGA stare'])
+        self._bypass_set('isMangaStare', 64, 3, 1, ['MaNGA', 'MaNGA stare'])
 
     def test_bypass_isMaStar(self):
-        self._bypass_set('isMaStar', 60, 3, 1, ['MaNGA', 'MaStar'])
+        self._bypass_set('isMaStar', 64, 3, 1, ['MaNGA', 'MaStar'])
 
     def test_bypass_isMangaGlobular(self):
-        self._bypass_set('isMangaGlobular', 60, 3, 1, ['MaNGA', 'MaNGA Globular'])
+        self._bypass_set('isMangaGlobular', 64, 3, 1, ['MaNGA', 'MaNGA Globular'])
 
     def test_bypass_isMangaDither(self):
-        self._bypass_set('isMangaDither', 60, 3, 1, ['MaNGA', 'MaNGA dither'])
+        self._bypass_set('isMangaDither', 64, 3, 1, ['MaNGA', 'MaNGA dither'])
 
     def test_bypass_isManga10(self):
-        self._bypass_set('isManga10', 60, 3, 1, ['MaNGA', 'MaNGA 10min'])
+        self._bypass_set('isManga10', 64, 3, 1, ['MaNGA', 'MaNGA 10min'])
 
     def test_bypass_isApogeeLead(self):
-        self._bypass_set('isApogeeLead', 60, 3, 1, ['APGOEE-2&MaNGA', 'APOGEE lead'])
+        self._bypass_set('isApogeeLead', 64, 3, 1, ['APGOEE-2&MaNGA', 'APOGEE lead'])
 
     def test_bypass_isApogeeMangaDither(self):
-        self._bypass_set('isApogeeMangaDither', 60, 3, 1, ['APGOEE-2&MaNGA', 'MaNGA dither'])
+        self._bypass_set('isApogeeMangaDither', 64, 3, 1, ['APGOEE-2&MaNGA', 'MaNGA dither'])
 
     def test_bypass_isApogeeManga10(self):
-        self._bypass_set('isApogeeManga10', 60, 3, 1, ['APGOEE-2&MaNGA', 'MaNGA 10min'])
+        self._bypass_set('isApogeeManga10', 64, 3, 1, ['APGOEE-2&MaNGA', 'MaNGA 10min'])
 
     def test_bypass_isApogeeMangaStare(self):
-        self._bypass_set('isApogeeMangaStare', 60, 3, 1, ['APGOEE-2&MaNGA', 'MaNGA stare'])
+        self._bypass_set('isApogeeMangaStare', 64, 3, 1, ['APGOEE-2&MaNGA', 'MaNGA stare'])
 
     def test_bypass_isApogeeMangaMaStar(self):
-        self._bypass_set('isApogeeMangaMaStar', 60, 3, 1, ['APGOEE-2&MaNGA', 'MaStar'])
+        self._bypass_set('isApogeeMangaMaStar', 64, 3, 1, ['APGOEE-2&MaNGA', 'MaStar'])
 
     def test_bypass_isApogeeMangaGlobular(self):
-        self._bypass_set('isApogeeMangaGlobular', 60, 3, 1, ['APGOEE-2&MaNGA', 'MaNGA Globular'])
+        self._bypass_set('isApogeeMangaGlobular', 64, 3, 1, ['APGOEE-2&MaNGA', 'MaNGA Globular'])
+
+    def test_bypass_isBhmMwm(self):
+        self._bypass_set('isBHMMWM', 64, 3, 1, ['BHM&MWM', None])
 
     def test_bypass_gangToCart(self):
-        self._bypass_set('gangToCart', 59, 4)
+        self._bypass_set('gangToCart', 63, 4)
 
     def test_bypass_gangToPodium(self):
-        self._bypass_set('gangToPodium', 59, 4)
+        self._bypass_set('gangToPodium', 63, 4)
 
     def test_bypass_axes(self):
-        self._bypass_set('axes', 59, 1)
+        self._bypass_set('axes', 63, 1)
 
     def test_bypass_slewToField(self):
-        self._bypass_set('slewToField', 59, 1)
+        self._bypass_set('slewToField', 63, 1)
 
     def test_not_bypassable(self):
         self._clear_bypasses()
@@ -623,14 +626,14 @@ class TestStatus(SopCmdTester, unittest.TestCase):
         self._check_cmd(0, nInfo, 0, 0, True)
 
     def test_status(self):
-        self._status(60)
+        self._status(64)
 
     def test_status_geek(self):
-        self._status(62, args='geek')
+        self._status(66, args='geek')
 
     def test_status_noFinish(self):
         self.sopCmd.status(self.cmd, finish=False)
-        self._check_cmd(0, 60, 0, 0, False)
+        self._check_cmd(0, 64, 0, 0, False)
 
     def _oneCommand(self, nInfo, oneCommand):
         """

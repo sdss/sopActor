@@ -572,6 +572,64 @@ def do_boss_science(cmd, cmdState, actorState):
     finish_command(cmd, cmdState, actorState, finishMsg)
 
 
+def do_apogee_boss_science(cmd, cmdState, actorState):
+    """Start an APOGEE-BOSS science sequence."""
+
+    finishMsg = 'Your Nobel Prize is a little closer!'
+    failMsg = ''  # message to use if we've failed
+    stageName = 'expose'
+    cmdState.setStageState(stageName, 'running')
+    show_status(cmdState.cmd, cmdState, actorState.actor,
+                oneCommand=cmdState.name)
+
+    while cmdState.dither_remain():
+
+        bossExpTime = cmdState.bossExpTime
+        apogeeExpTime = cmdState.apogeeExpTime
+
+        # If dithering is disabled, just keep using whatever
+        # is the current dither position.
+        if cmdState.apogee_dither is False:
+            current_dither = actorState.models['apogee'].keyVarDict['ditherPosition'][1]
+            dithers = current_dither * 2
+        else:
+            dithers = get_next_apogee_dither_pair(actorState)
+
+        duration = (flushDuration + 2. * apogeeExpTime +
+                    readoutDuration + actorState.timeout)
+
+        multiCmd = SopMultiCommand(
+            cmd, duration, '.'.join((cmdState.name, stageName)))
+
+        multiCmd.append(sopActor.BOSS_ACTOR, Msg.EXPOSE,
+                        expTime=bossExpTime, expType='science', readout=True)
+        multiCmd.append(sopActor.APOGEE, Msg.APOGEE_DITHER_SET,
+                        expTime=apogeeExpTime, dithers=dithers,
+                        expType='object')
+
+        if cmdState.apogee_long:
+            multiCmd.append(sopActor.BOSS_ACTOR, Msg.EXPOSE,
+                            expTime=bossExpTime, expType='science',
+                            readout=True)
+
+        prep_for_science(multiCmd, precondition=True)
+        prep_apogee_shutter(multiCmd, open=True)
+
+        cmd.inform('text="Taking an APOGEE-BOSS science exposure"')
+
+        if not multiCmd.run():
+            failMsg = 'Failed to take APOGEE-BOSS science exposure'
+            break
+
+        cmdState.took_exposure()
+
+    # Did we break out of that loop?
+    if failMsg:
+        return fail_command(cmd, cmdState, failMsg)
+
+    finish_command(cmd, cmdState, actorState, finishMsg)
+
+
 def do_apogee_science(cmd, cmdState, actorState, finishMsg=None):
     """Start an APOGEE science sequence."""
 
@@ -1133,6 +1191,9 @@ def do_goto_field_hartmann(cmd, cmdState, actorState):
     if myGlobals.bypass.get('ffs'):
         args += ' bypass="ffs"'
 
+    if actorState.survey in [sopActor.BHM, sopActor.BHMMWM]:
+        args += ' cameras="r1,b1"'
+
     multiCmd.append(sopActor.BOSS_ACTOR, Msg.HARTMANN, args=args)
     if not handle_multiCmd(multiCmd, cmd, cmdState, stageName,
                            'Failed to take hartmann sequence. Lamps are on.'):
@@ -1349,15 +1410,17 @@ def goto_field(cmd, cmdState, actorState):
         fail_command(cmd, cmdState, failMsg)
         return
 
-    if actorState.survey == sopActor.APOGEE:
+    survey = actorState.survey
+
+    if survey == sopActor.APOGEE:
         success = goto_field_apogee(cmd, cmdState, actorState, slewTimeout)
-    elif actorState.survey == sopActor.BOSS or actorState.survey == sopActor.MANGA:
+    elif survey == sopActor.BOSS or survey == sopActor.MANGA or survey == sopActor.BHM:
         success = goto_field_boss(cmd, cmdState, actorState, slewTimeout)
-    elif actorState.survey == sopActor.APOGEEMANGA:
+    elif survey == sopActor.APOGEEMANGA or survey == sopActor.BHMMWM:
         success = goto_field_apogeemanga(cmd, cmdState, actorState, slewTimeout)
     else:
         success = False
-        failMsg = 'Do not know survey: %s. Did you loadCartridge?' % actorState.survey
+        failMsg = 'Do not know survey: %s. Did you loadCartridge?' % survey
         fail_command(cmd, cmdState, failMsg)
         return
 
@@ -1538,6 +1601,10 @@ def main(actor, queues):
             elif msg.type == Msg.DO_APOGEEMANGA_SEQUENCE:
                 cmd, cmdState, actorState = preprocess_msg(msg)
                 do_apogeemanga_sequence(cmd, cmdState, actorState)
+
+            elif msg.type == Msg.DO_APOGEE_BOSS_SCIENCE:
+                cmd, cmdState, actorState = preprocess_msg(msg)
+                do_apogee_boss_science(cmd, cmdState, actorState)
 
             elif msg.type == Msg.GOTO_FIELD:
                 cmd, cmdState, actorState = preprocess_msg(msg)

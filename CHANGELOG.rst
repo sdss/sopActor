@@ -4,6 +4,14 @@
 Change Log
 ==========
 
+4.0.0 (unreleased)
+------------------
+
+Changed
+^^^^^^^
+* BHM-MWM observations do not dither with the APOGEE spectrograph.
+
+
 3.12.7 (2020-01-20)
 -------------------
 

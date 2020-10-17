@@ -1065,3 +1065,98 @@ class DoApogeeMangaSequenceCmd(CmdState):
         self.stop_boss_exposure(wait=True, clear_queue=(self.mangaExpTime < 900))
         self.stop_apogee_exposure()
         super(DoApogeeMangaSequenceCmd, self).abort()
+
+
+class DoApogeeBossScienceCmd(CmdState):
+
+    def __init__(self):
+
+        CmdState.__init__(self, 'doApogeeBossScience', ['expose'],
+                          keywords=dict(nDither=1,
+                                        apogeeExpTime=None,
+                                        bossExpTime=None,
+                                        etr=16.6))
+
+        self.nDither = 1
+        self.index = 0
+        self.etr = 16.6
+
+        self.bossExpTime = 900.
+        self.apogeeExpTime = 500.
+        self.readout_time = 60.0
+
+        self.apogee_dither = False  # Do not dither with APOGEE.
+
+    def set_expTime(self, apogeeExpTime=None, bossExpTime=None):
+        """Setup the exposure time."""
+
+        self.keywords = dict(nDither=1,
+                             apogeeExpTime=None,
+                             bossExpTime=None,
+                             etr=16.6)
+
+        self.nDither = 1
+
+        self.bossExpTime = bossExpTime or 900.0
+        self.keywords['bossExpTime'] = self.bossExpTime
+
+        if apogeeExpTime is None or apogeeExpTime <= 500:
+            self.apogee_long = False
+            self.apogeeExpTime = 500.
+            self.keywords['apogeeExpTime'] = 500.
+        else:
+            self.apogee_long = True
+            self.apogeeExpTime = 1000.
+            self.keywords['apogeeExpTime'] = 1000.
+
+        self.readout = True
+
+        self.update_etr()
+
+    def getUserKeys(self):
+        msg = []
+        msg.append('%s_nDither=%d,%d' % (self.name, self.index, self.nDither))
+        msg.append('{0}_etr={1},{2}'.format(self.name, self.etr,
+                                            self.keywords['etr']))
+        return msg
+
+    def took_exposure(self):
+        """Update keys after an exposure and output them."""
+        self.index += 1
+        # update etr
+        self.update_etr()
+        # generate keys
+        self.genKeys()
+
+    def update_etr(self):
+        """Update the estimated time remaining"""
+
+        dither_remain = self.dither_remain()
+        self.etr = (dither_remain * 2 * self.apogeeExpTime) / 60.
+
+    def dither_remain(self):
+        """Return True if there are any dithers left to be taken."""
+
+        if self.aborted:
+            return False
+        else:
+            return self.nDither - self.index
+
+    def isSlewingDisabled(self):
+
+        boss_disabled, boss_text = self.isSlewingDisabled_BOSS()
+        apogee_disabled, apogee_text = self.isSlewingDisabled_APOGEE()
+
+        midSequence = self.exposures_remain()
+
+        if (self.cmd and self.cmd.isAlive() and (apogee_disabled or boss_disabled or midSequence)):
+            return ('slewing disallowed for APOGEE&MaNGA, with a sequence in '
+                    'progress{0}{1}; {2} exposure(s) remaining'.format(
+                        boss_text, apogee_text, self.nExposureRemain))
+        else:
+            return False
+
+    def abort(self):
+        self.stop_boss_exposure(wait=True)
+        self.stop_apogee_exposure()
+        super(DoApogeeBossScienceCmd, self).abort()

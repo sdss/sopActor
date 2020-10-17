@@ -31,8 +31,11 @@ survey_dict = {
     'APOGEE': sopActor.APOGEE,
     'APOGEE-2': sopActor.APOGEE,
     'MaNGA': sopActor.MANGA,
+    'BHM': sopActor.BHM,
+    'MWM': sopActor.MWM,
     'APOGEE-2&MaNGA': sopActor.APOGEEMANGA,
-    'APOGEE&MaNGA': sopActor.APOGEEMANGA
+    'APOGEE&MaNGA': sopActor.APOGEEMANGA,
+    'BHM&MWM': sopActor.BHMMWM
 }
 surveyMode_dict = {
     'None': None,
@@ -42,7 +45,9 @@ surveyMode_dict = {
     'MaNGA 10min': sopActor.MANGA10,
     'MaNGA stare': sopActor.MANGASTARE,
     'MaStar': sopActor.MASTAR,
-    'MaNGA Globular': sopActor.MANGAGLOBULAR
+    'MaNGA Globular': sopActor.MANGAGLOBULAR,
+    'BHM lead': sopActor.BHMLEAD,
+    'MWM lead': sopActor.MWMLEAD,
 }
 
 # And the inverses of the above.
@@ -53,7 +58,10 @@ survey_inv_dict = {
     sopActor.BOSS: 'eBOSS',
     sopActor.APOGEE: 'APOGEE-2',
     sopActor.MANGA: 'MaNGA',
-    sopActor.APOGEEMANGA: 'APOGEE-2&MaNGA'
+    sopActor.BHM: 'BHM',
+    sopActor.MWM: 'MWM',
+    sopActor.APOGEEMANGA: 'APOGEE-2&MaNGA',
+    sopActor.BHMMWM: 'BHM&MWM'
 }
 surveyMode_inv_dict = {
     None: 'None',
@@ -62,7 +70,9 @@ surveyMode_inv_dict = {
     sopActor.MANGASTARE: 'MaNGA stare',
     sopActor.APOGEELEAD: 'APOGEE lead',
     sopActor.MASTAR: 'MaStar',
-    sopActor.MANGAGLOBULAR: 'MaNGA Globular'
+    sopActor.MANGAGLOBULAR: 'MaNGA Globular',
+    sopActor.BHMLEAD: 'BHM lead',
+    sopActor.MWMLEAD: 'MWM lead',
 }
 
 
@@ -83,6 +93,7 @@ class SopCmd(object):
             keys.Key('nbias', types.Int(), help='Number of biases to take'),
             keys.Key('ndark', types.Int(), help='Number of darks to take'),
             keys.Key('nexp', types.Int(), help='Number of exposures to take'),
+            keys.Key('nDither', types.Int(), help='Number of dithers to take'),
             keys.Key('nflat', types.Int(), help='Number of flats to take'),
             keys.Key('nStep', types.Int(), help='Number of dithered exposures to take'),
             keys.Key('nTick', types.Int(), help='Number of ticks to move collimator'),
@@ -137,6 +148,8 @@ class SopCmd(object):
                              self.doBossCalibs),
             ('doBossScience', '[<expTime>] [<nexp>] [abort] [stop] [test]',
                               self.doBossScience),
+            ('doApogeeBossScience', '[<nDither>] [abort] [stop] [test]',
+                                    self.doApogeeBossScience),
             ('doApogeeScience', '[<expTime>] [<ditherPairs>] [stop] [<abort>] [<comment>]',
                                 self.doApogeeScience),
             ('doApogeeSkyFlats', '[<expTime>] [<ditherPairs>] [stop] [abort]',
@@ -337,6 +350,46 @@ class SopCmd(object):
 
         sopState.queues[sopActor.MASTER].put(
             Msg.DO_BOSS_SCIENCE,
+            cmd,
+            replyQueue=self.replyQueue,
+            actorState=sopState,
+            cmdState=cmdState)
+
+    def doApogeeBossScience(self, cmd):
+        """Take a set of APOGEE-BOSS science frames"""
+
+        sopState = myGlobals.actorState
+        cmdState = sopState.doApogeeBossScience
+        keywords = cmd.cmd.keywords
+
+        if 'abort' in keywords or 'stop' in keywords:
+            self.stop_cmd(cmd, cmdState, sopState, 'doApogeeBossScience')
+            return
+
+        if self.modifiable(cmd, cmdState):
+            # Modify running doBossScience command
+            if 'nDither' in keywords:
+                cmdState.nDither = int(keywords['nDither'].values[0])
+                cmdState.update_etr()
+
+            self.status(cmd, threads=False, finish=True,
+                        oneCommand='doApogeeBossScience')
+            return
+
+        cmdState.cmd = None
+        cmdState.reinitialize(cmd)
+
+        # NOTE: TBD: would have to sync with STUI to make nDither have defaults
+        # and behave like one would expect it to (see doBossScience_nDither
+        # actorkeys value)
+        cmdState.nDither = int(keywords['nDither'].values[0]) if 'nDither' in keywords else 1
+
+        if cmdState.nDither == 0:
+            cmd.fail('text="You must take at least one exposure"')
+            return
+
+        sopState.queues[sopActor.MASTER].put(
+            Msg.DO_APOGEE_BOSS_SCIENCE,
             cmd,
             replyQueue=self.replyQueue,
             actorState=sopState,
@@ -1170,6 +1223,7 @@ class SopCmd(object):
         sopState.doMangaSequence.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.doApogeeMangaDither.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.doApogeeMangaSequence.genKeys(cmd=cmd, trimKeys=oneCommand)
+        sopState.doApogeeBossScience.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.doApogeeScience.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.doApogeeSkyFlats.genKeys(cmd=cmd, trimKeys=oneCommand)
         sopState.gotoGangChange.genKeys(cmd=cmd, trimKeys=oneCommand)
@@ -1216,6 +1270,7 @@ class SopCmd(object):
         sopState.doMangaSequence = CmdState.DoMangaSequenceCmd()
         sopState.doApogeeMangaDither = CmdState.DoApogeeMangaDitherCmd()
         sopState.doApogeeMangaSequence = CmdState.DoApogeeMangaSequenceCmd()
+        sopState.doApogeeBossScience = CmdState.DoApogeeBossScienceCmd()
         sopState.doApogeeScience = CmdState.DoApogeeScienceCmd()
         sopState.doApogeeSkyFlats = CmdState.DoApogeeSkyFlatsCmd()
         sopState.gotoGangChange = CmdState.GotoGangChangeCmd()
@@ -1268,7 +1323,7 @@ class SopCmd(object):
         sopState.validCommands = [
             'gotoField', 'gotoStow', 'gotoInstrumentChange', 'gotoAll60', 'gotoStow60'
         ]
-        if survey is sopActor.BOSS:
+        if survey is sopActor.BOSS or survey is sopActor.BHM:
             sopState.gotoField.setStages(['slew', 'hartmann', 'calibs', 'guider', 'cleanup'])
             sopState.validCommands += [
                 'doBossCalibs',
@@ -1325,6 +1380,14 @@ class SopCmd(object):
                 __, mangaExpTime = self.update_designs(sopState)
                 sopState.doApogeeMangaDither.set_manga(mangaExpTime=mangaExpTime)
                 sopState.doApogeeMangaSequence.set_mangaStare(mangaExpTime=mangaExpTime)
+
+        elif survey is sopActor.BHMMWM:
+            sopState.gotoField.setStages(['slew', 'hartmann', 'calibs', 'guider', 'cleanup'])
+            sopState.validCommands += ['doBossCalibs', 'doApogeeBossScience',
+                                       'doApogeeSkyFlats', 'gotoGangChange',
+                                       'doApogeeDomeFlat']
+            apogeeDesign, _ = self.update_designs(sopState)
+            sopState.doApogeeBossScience.set_expTime(apogeeExpTime=apogeeDesign[1])
         else:
             sopState.gotoField.setStages(['slew', 'guider', 'cleanup'])
 
@@ -1409,6 +1472,22 @@ class SopCmd(object):
             cmd.warn('text="We are lying about this being an APOGEE&MaNGA, APOGEE Lead cartridge"')
             sopState.survey = sopActor.APOGEEMANGA
             sopState.surveyMode = sopActor.APOGEELEAD
+        elif bypass.get('isBHMMWM'):
+            cmd.warn('text="We are lying about this being an BHM&MWM cartridge"')
+            sopState.survey = sopActor.BHMMWM
+            sopState.surveyMode = None
+        elif bypass.get('isBHM'):
+            cmd.warn('text="We are lying about this being an BHM cartridge"')
+            sopState.survey = sopActor.BHM
+            sopState.surveyMode = None
+        elif bypass.get('isMWMLead'):
+            cmd.warn('text="We are lying about this being am MWM Lead cartridge"')
+            sopState.survey = sopActor.BHMMWM
+            sopState.surveyMode = sopActor.MWMLEAD
+        elif bypass.get('isBHMLead'):
+            cmd.warn('text="We are lying about this being am BHM Lead cartridge"')
+            sopState.survey = sopActor.BHMMWM
+            sopState.surveyMode = sopActor.BHMLEAD
 
         return sopState.survey is not None
 
