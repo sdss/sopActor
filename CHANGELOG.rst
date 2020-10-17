@@ -4,8 +4,12 @@
 Change Log
 ==========
 
-4.0.0 (unreleased)
+4.0.0 (2020-10-17)
 ------------------
+
+Added
+^^^^^
+* ``BHM-MWM`` plate type and ``BHM lead`` and ``MWM lead`` survey modes. Go to field and science sequence is similar to APOOGE-2/MaNGA.
 
 Changed
 ^^^^^^^
