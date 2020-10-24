@@ -1191,9 +1191,6 @@ def do_goto_field_hartmann(cmd, cmdState, actorState):
     if myGlobals.bypass.get('ffs'):
         args += ' bypass="ffs"'
 
-    if actorState.survey in [sopActor.BHM, sopActor.BHMMWM]:
-        args += ' cameras="r1,b1"'
-
     multiCmd.append(sopActor.BOSS_ACTOR, Msg.HARTMANN, args=args)
     if not handle_multiCmd(multiCmd, cmd, cmdState, stageName,
                            'Failed to take hartmann sequence. Lamps are on.'):
