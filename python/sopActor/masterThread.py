@@ -1203,9 +1203,8 @@ def do_goto_field_hartmann(cmd, cmdState, actorState):
     # cameras are actually focused.
     models = myGlobals.actorState.models
     sp1_resid = models['hartmann'].keyVarDict['sp1Residuals'][2]
-    sp2_resid = models['hartmann'].keyVarDict['sp2Residuals'][2]
 
-    if sp1_resid != 'OK' or sp2_resid != 'OK':
+    if sp1_resid != 'OK':
         # Turns off the lamps before failing the command.
         if not doLamps(cmd, actorState, Ne=False, HgCd=False):
             cmd.warn('text="Failed turning on lamps in preparation to fail '
