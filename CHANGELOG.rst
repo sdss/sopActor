@@ -9,7 +9,7 @@ Change Log
 
 Added
 ^^^^^
-* ``noBOSS`` bypass to disable BOSS exposures during a sequence. Only works with BOSS-APOGEE (SDSS-V) sequences.
+* ``noBOSS`` bypass to disable BOSS exposures during a sequence. Only works with BOSS-APOGEE (SDSS-V) sequences (#9).
 
 
 4.0.1 (2020-10-24)
