@@ -17,7 +17,7 @@ class Bypass(object):
                    'isBoss', 'isApogee', 'isApogeeLead', 'isApogeeMangaDither',
                    'isApogeeMangaStare', 'guider_decenter', 'isApogeeMangaMaStar',
                    'isApogeeMangaGlobular', 'gangToCart', 'gangToPodium', 'isBHM',
-                   'isBHMMWM', 'isBHMLead', 'isMWMLead'):
+                   'isBHMMWM', 'isBHMLead', 'isMWMLead', 'noBOSS'):
             self._bypassed[ss] = False
 
         # The bypasses in these groups are mutually-contradictory.

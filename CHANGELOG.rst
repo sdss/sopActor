@@ -4,6 +4,14 @@
 Change Log
 ==========
 
+4.0.2 (unreleased)
+------------------
+
+Added
+^^^^^
+* ``noBOSS`` bypass to disable BOSS exposures during a sequence. Only works with BOSS-APOGEE (SDSS-V) sequences.
+
+
 4.0.1 (2020-10-24)
 -------------------
 

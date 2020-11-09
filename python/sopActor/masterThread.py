@@ -582,6 +582,9 @@ def do_apogee_boss_science(cmd, cmdState, actorState):
     show_status(cmdState.cmd, cmdState, actorState.actor,
                 oneCommand=cmdState.name)
 
+    # Check the bypass. If noBOSS is set, we'll skip the BOSS exposures.
+    do_boss = not myGlobals.bypass.get('noBOSS', False)
+
     while cmdState.dither_remain():
 
         bossExpTime = cmdState.bossExpTime
@@ -601,16 +604,20 @@ def do_apogee_boss_science(cmd, cmdState, actorState):
         multiCmd = SopMultiCommand(
             cmd, duration, '.'.join((cmdState.name, stageName)))
 
-        multiCmd.append(sopActor.BOSS_ACTOR, Msg.EXPOSE,
-                        expTime=bossExpTime, expType='science', readout=True)
+        if do_boss:
+            multiCmd.append(sopActor.BOSS_ACTOR, Msg.EXPOSE,
+                            expTime=bossExpTime, expType='science',
+                            readout=True)
+
         multiCmd.append(sopActor.APOGEE, Msg.APOGEE_DITHER_SET,
                         expTime=apogeeExpTime, dithers=dithers,
                         expType='object')
 
         if cmdState.apogee_long:
-            multiCmd.append(sopActor.BOSS_ACTOR, Msg.EXPOSE,
-                            expTime=bossExpTime, expType='science',
-                            readout=True)
+            if do_boss:
+                multiCmd.append(sopActor.BOSS_ACTOR, Msg.EXPOSE,
+                                expTime=bossExpTime, expType='science',
+                                readout=True)
 
         prep_for_science(multiCmd, precondition=True)
         prep_apogee_shutter(multiCmd, open=True)
