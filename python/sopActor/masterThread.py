@@ -582,8 +582,14 @@ def do_apogee_boss_science(cmd, cmdState, actorState):
     show_status(cmdState.cmd, cmdState, actorState.actor,
                 oneCommand=cmdState.name)
 
-    # Check the bypass. If noBOSS is set, we'll skip the BOSS exposures.
+    # Check the bypass. If noBOSS/noAPOGEE are set, we'll skip the BOSS
+    # or APOGEE exposures.
     do_boss = not myGlobals.bypass.get('noBOSS', False)
+    do_apogee = not myGlobals.bypass.get('noAPOGEE', False)
+
+    if not do_boss and not do_apogee:
+        return fail_command(cmd, cmdState,
+                            'noBOSS and noAPOGEE cannot be used together!')
 
     while cmdState.dither_remain():
 
@@ -609,9 +615,10 @@ def do_apogee_boss_science(cmd, cmdState, actorState):
                             expTime=bossExpTime, expType='science',
                             readout=True)
 
-        multiCmd.append(sopActor.APOGEE, Msg.APOGEE_DITHER_SET,
-                        expTime=apogeeExpTime, dithers=dithers,
-                        expType='object')
+        if do_apogee:
+            multiCmd.append(sopActor.APOGEE, Msg.APOGEE_DITHER_SET,
+                            expTime=apogeeExpTime, dithers=dithers,
+                            expType='object')
 
         if cmdState.apogee_long:
             if do_boss:

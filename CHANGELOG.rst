@@ -7,6 +7,10 @@ Change Log
 4.0.3 (unreleased)
 ------------------
 
+Added
+^^^^^
+* Added ``noAPOGEE`` to disable APOGEE exposures during a BOSS-APOGEE sequence.
+
 Changed
 ^^^^^^^
 * Remove deprecated bypasses.

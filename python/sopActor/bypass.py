@@ -17,7 +17,7 @@ class Bypass(object):
 
         for ss in ('ffs', 'lamp_ff', 'lamp_hgcd', 'lamp_ne', 'axes', 'slewToField',
                    'guiderDark', 'guider_decenter', 'gangToCart', 'gangToPodium',
-                   'isBHM', 'isBHMMWM', 'isBHMLead', 'isMWMLead', 'noBOSS'):
+                   'isBHM', 'isBHMMWM', 'isBHMLead', 'isMWMLead', 'noBOSS', 'noAPOGEE'):
             self._bypassed[ss] = False
 
         # The bypasses in these groups are mutually-contradictory.
