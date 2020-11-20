@@ -679,20 +679,6 @@ class SopCmd(object):
             if finish:
                 cmd.fail('text="Some lamps failed to turn off"')
 
-    def setRefractionBalance(self, cmd, subSystem, doBypass, sopState,
-                             plateType, surveyMode):
-        """Sets the refraction balance."""
-
-        cmdStr = 'setRefractionBalance plateType="{0}" surveyMode="{1}"'.format(
-            plateType, surveyMode)
-        cmdVar = sopState.actor.cmdr.call(actor='guider', forUserCmd=cmd, cmdStr=cmdStr)
-        if cmdVar.didFail:
-            cmd.fail('text="Failed to set guider refraction '
-                     'balance for bypass {0} {1}'.format(subSystem, doBypass))
-            return False
-
-        return True
-
     def bypass(self, cmd):
         """Ignore errors in a subsystem, or force a system to be in a given state."""
 
@@ -716,24 +702,16 @@ class SopCmd(object):
                     sopState.surveyModeName,
                     status=False,
                     bypassed=True)
-                if not self.setRefractionBalance(cmd, subSystem, doBypass,
-                                                 sopState, *sopState.surveyText):
-                    return
+                cmdStr = 'setRefractionBalance plateType="{0}" surveyMode="{1}"'.format(
+                    *sopState.surveyText)
+                cmdVar = sopState.actor.cmdr.call(actor='guider', forUserCmd=cmd, cmdStr=cmdStr)
+                if cmdVar.didFail:
+                    cmd.fail('text="Failed to set guider refraction '
+                             'balance for bypass {0} {1}'.format(subSystem, doBypass))
+                    return False
 
             if bypass.is_gang_bypass(subSystem):
                 cmd.warn('text="gang bypassed: {}"'.format(sopState.apogeeGang.getPos()))
-
-            if subSystem == 'noBOSS':
-                if not self.setRefractionBalance(cmd, sopState, subSystem,
-                                                 doBypass, sopState, 'BHM&MWM',
-                                                 'MWM lead'):
-                    return
-
-            if subSystem == 'noAPOGEE':
-                if not self.setRefractionBalance(cmd, sopState, subSystem,
-                                                 doBypass, sopState, 'BHM&MWM',
-                                                 'BHM lead'):
-                    return
 
         self.status(cmd, threads=False)
 
@@ -1459,6 +1437,14 @@ class SopCmd(object):
             sopState.surveyMode = sopActor.MWMLEAD
         elif bypass.get('isBHMLead'):
             cmd.warn('text="We are lying about this being am BHM Lead cartridge"')
+            sopState.survey = sopActor.BHMMWM
+            sopState.surveyMode = sopActor.BHMLEAD
+        elif bypass.get('noBOSS'):
+            cmd.warn('text="We are lying about this being a MWM Lead cartridge"')
+            sopState.survey = sopActor.BHMMWM
+            sopState.surveyMode = sopActor.MWMLEAD
+        elif bypass.get('noAPOGEE'):
+            cmd.warn('text="We are lying about this being a BHM Lead cartridge"')
             sopState.survey = sopActor.BHMMWM
             sopState.surveyMode = sopActor.BHMLEAD
 
