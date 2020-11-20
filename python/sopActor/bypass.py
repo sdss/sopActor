@@ -21,7 +21,8 @@ class Bypass(object):
             self._bypassed[ss] = False
 
         # The bypasses in these groups are mutually-contradictory.
-        self.cartBypasses = ('isBHM', 'isBHMMWM', 'isBHMLead', 'isMWMLead')
+        self.cartBypasses = ('isBHM', 'isBHMMWM', 'isBHMLead', 'isMWMLead',
+                             'noBOSS', 'noAPOGEE')
         self.gangBypasses = ('gangToPodium', 'gangToCart')
 
     def set(self, name, bypassed=True):
