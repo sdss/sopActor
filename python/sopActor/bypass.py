@@ -12,19 +12,16 @@ class Bypass(object):
 
     def __init__(self):
         """Define what can be bypassed on init, and clear them all."""
+
         self._bypassed = {}
-        for ss in ('ffs', 'lamp_ff', 'lamp_hgcd', 'lamp_ne', 'axes', 'slewToField', 'guiderDark',
-                   'isBoss', 'isApogee', 'isApogeeLead', 'isApogeeMangaDither',
-                   'isApogeeMangaStare', 'guider_decenter', 'isApogeeMangaMaStar',
-                   'isApogeeMangaGlobular', 'gangToCart', 'gangToPodium', 'isBHM',
-                   'isBHMMWM', 'isBHMLead', 'isMWMLead', 'noBOSS'):
+
+        for ss in ('ffs', 'lamp_ff', 'lamp_hgcd', 'lamp_ne', 'axes', 'slewToField',
+                   'guiderDark', 'guider_decenter', 'gangToCart', 'gangToPodium',
+                   'isBHM', 'isBHMMWM', 'isBHMLead', 'isMWMLead', 'noBOSS'):
             self._bypassed[ss] = False
 
         # The bypasses in these groups are mutually-contradictory.
-        self.cartBypasses = ('isBoss', 'isApogee', 'isApogeeLead', 'isApogeeMangaDither',
-                             'isApogeeMangaStare', 'isApogeeMangaMaStar',
-                             'isApogeeMangaGlobular', 'isBHM', 'isBHMMWM', 'isBHMLead',
-                             'isMWMLead')
+        self.cartBypasses = ('isBHM', 'isBHMMWM', 'isBHMLead', 'isMWMLead')
         self.gangBypasses = ('gangToPodium', 'gangToCart')
 
     def set(self, name, bypassed=True):
@@ -33,7 +30,7 @@ class Bypass(object):
 
         For mutually-contradictory bypasses, clear the appropriate other ones.
         """
-        if self._bypassed.has_key(name):
+        if name in self._bypassed:
             if self.is_cart_bypass(name) and bypassed:
                 self.clear_cart_bypasses()
             if self.is_gang_bypass(name) and bypassed:

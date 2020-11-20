@@ -1420,59 +1420,7 @@ class SopCmd(object):
         sopState.survey = None
         sopState.surveyMode = None
 
-        if bypass.get('isBoss'):
-            cmd.warn('text="We are lying about this being a BOSS cartridge"')
-            sopState.survey = sopActor.BOSS
-            sopState.surveyMode = None
-        elif bypass.get('isApogee'):
-            cmd.warn('text="We are lying about this being an APOGEE cartridge"')
-            sopState.survey = sopActor.APOGEE
-            sopState.surveyMode = None
-        elif bypass.get('isMangaStare'):
-            cmd.warn('text="We are lying about this being a MaNGA Stare cartridge"')
-            sopState.survey = sopActor.MANGA
-            sopState.surveyMode = sopActor.MANGASTARE
-        elif bypass.get('isMaStar'):
-            cmd.warn('text="We are lying about this being a MaNGA MaStar cartridge"')
-            sopState.survey = sopActor.MANGA
-            sopState.surveyMode = sopActor.MASTAR
-        elif bypass.get('isMangaDither'):
-            cmd.warn('text="We are lying about this being a MaNGA Dither cartridge"')
-            sopState.survey = sopActor.MANGA
-            sopState.surveyMode = sopActor.MANGADITHER
-        elif bypass.get('isMangaGlobular'):
-            cmd.warn('text="We are lying about this being a MaNGA Globular cartridge"')
-            sopState.survey = sopActor.MANGA
-            sopState.surveyMode = sopActor.MANGAGLOBULAR
-        elif bypass.get('isManga10'):
-            cmd.warn('text="We are lying about this being a MaNGA 10min cartridge"')
-            sopState.survey = sopActor.MANGA
-            sopState.surveyMode = sopActor.MANGA10
-        elif bypass.get('isApogeeMangaStare'):
-            cmd.warn('text="We are lying about this being an APOGEE&MaNGA Stare cartridge"')
-            sopState.survey = sopActor.APOGEEMANGA
-            sopState.surveyMode = sopActor.MANGASTARE
-        elif bypass.get('isApogeeMangaMaStar'):
-            cmd.warn('text="We are lying about this being a MaStar cartridge"')
-            sopState.survey = sopActor.APOGEEMANGA
-            sopState.surveyMode = sopActor.MASTAR
-        elif bypass.get('isApogeeMangaDither'):
-            cmd.warn('text="We are lying about this being a APOGEE&MaNGA Dither cartridge"')
-            sopState.survey = sopActor.APOGEEMANGA
-            sopState.surveyMode = sopActor.MANGADITHER
-        elif bypass.get('isApogeeMangaGlobular'):
-            cmd.warn('text="We are lying about this being a APOGEE&MaNGA Globular cartridge"')
-            sopState.survey = sopActor.APOGEEMANGA
-            sopState.surveyMode = sopActor.MANGAGLOBULAR
-        elif bypass.get('isApogeeManga10'):
-            cmd.warn('text="We are lying about this being a APOGEE&MaNGA 10min cartridge"')
-            sopState.survey = sopActor.APOGEEMANGA
-            sopState.surveyMode = sopActor.MANGA10
-        elif bypass.get('isApogeeLead'):
-            cmd.warn('text="We are lying about this being an APOGEE&MaNGA, APOGEE Lead cartridge"')
-            sopState.survey = sopActor.APOGEEMANGA
-            sopState.surveyMode = sopActor.APOGEELEAD
-        elif bypass.get('isBHMMWM'):
+        if bypass.get('isBHMMWM'):
             cmd.warn('text="We are lying about this being an BHM&MWM cartridge"')
             sopState.survey = sopActor.BHMMWM
             sopState.surveyMode = None

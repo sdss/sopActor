@@ -4,6 +4,14 @@
 Change Log
 ==========
 
+4.0.3 (unreleased)
+------------------
+
+Changed
+^^^^^^^
+* Remove deprecated bypasses.
+
+
 4.0.2 (2020-11-09)
 ------------------
 
