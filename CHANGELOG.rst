@@ -10,6 +10,7 @@ Change Log
 Added
 ^^^^^
 * Added ``noAPOGEE`` to disable APOGEE exposures during a BOSS-APOGEE sequence.
+* ``noBOSS`` and ``noAPOGEE`` now update the refraction balance [COS-17].
 
 Changed
 ^^^^^^^
