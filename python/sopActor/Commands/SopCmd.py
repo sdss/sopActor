@@ -701,7 +701,7 @@ class SopCmd(object):
                     sopState.plateType,
                     sopState.surveyModeName,
                     status=False,
-                    bypassed=True)
+                    bypassed=doBypass)
                 cmdStr = 'setRefractionBalance plateType="{0}" surveyMode="{1}"'.format(
                     *sopState.surveyText)
                 cmdVar = sopState.actor.cmdr.call(actor='guider', forUserCmd=cmd, cmdStr=cmdStr)
