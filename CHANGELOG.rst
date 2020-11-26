@@ -17,6 +17,7 @@ Changed
 ^^^^^^^
 * Remove deprecated bypasses.
 * Rename ``nDithers`` in ``doApogeeBossScience`` to ``nExposures``.
+* Disable dithering for APOGEE via hack.
 
 
 4.0.2 (2020-11-09)

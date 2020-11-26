@@ -90,16 +90,21 @@ def do_apogee_dither_set(cmd, actorState, expTime, dithers, expType, comment):
     A set of exposures at multiple dither positions, moving the dither
     in between as needed.
     """
+
+    # JSG: For SDSS-V we are not dithering, so we just hack it.
+    currentDither = actorState.models['apogee'].keyVarDict['ditherPosition'][1]
+    dithers = currentDither * len(dithers)
+
     for i, dither in enumerate(dithers):
         if actorState.aborting:
             cmd.warn('text="Primary command aborted: stopping APOGEE dither set."')
             return False
-        currentDither = actorState.models['apogee'].keyVarDict['ditherPosition'][1]
+        # currentDither = actorState.models['apogee'].keyVarDict['ditherPosition'][1]
         # Per ticket #1756, APOGEE now does not want dither move requests unless necessary
-        if dither == currentDither:
-            cmd.inform('text="APOGEE dither already at desired position %s: not commanding move."'
-                       % (currentDither))
-            dither = None
+        # if dither == currentDither:
+        #     cmd.inform('text="APOGEE dither already at desired position %s: not commanding move."'
+        #                % (currentDither))
+        #     dither = None
         cmd.inform('apogeeDitherSet=%s,%d' % (dithers, i))
         success = do_expose(cmd, actorState, expTime, dither, expType, comment)
         if not success:
