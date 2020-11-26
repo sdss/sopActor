@@ -16,6 +16,7 @@ Added
 Changed
 ^^^^^^^
 * Remove deprecated bypasses.
+* Rename ``nDithers`` in ``doApogeeBossScience`` to ``nExposures``.
 
 
 4.0.2 (2020-11-09)

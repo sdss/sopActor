@@ -148,7 +148,7 @@ class SopCmd(object):
                              self.doBossCalibs),
             ('doBossScience', '[<expTime>] [<nexp>] [abort] [stop] [test]',
                               self.doBossScience),
-            ('doApogeeBossScience', '[<nDither>] [abort] [stop] [test]',
+            ('doApogeeBossScience', '[<nexp>] [abort] [stop] [test]',
                                     self.doApogeeBossScience),
             ('doApogeeScience', '[<expTime>] [<ditherPairs>] [stop] [<abort>] [<comment>]',
                                 self.doApogeeScience),
@@ -368,8 +368,8 @@ class SopCmd(object):
 
         if self.modifiable(cmd, cmdState):
             # Modify running doBossScience command
-            if 'nDither' in keywords:
-                cmdState.nDither = int(keywords['nDither'].values[0])
+            if 'nexp' in keywords:
+                cmdState.nExposures = int(keywords['nexp'].values[0])
                 cmdState.update_etr()
 
             self.status(cmd, threads=False, finish=True,
@@ -380,11 +380,11 @@ class SopCmd(object):
         cmdState.reinitialize(cmd)
 
         # NOTE: TBD: would have to sync with STUI to make nDither have defaults
-        # and behave like one would expect it to (see doBossScience_nDither
+        # and behave like one would expect it to (see doBossScience_nExposures
         # actorkeys value)
-        cmdState.nDither = int(keywords['nDither'].values[0]) if 'nDither' in keywords else 1
+        cmdState.nExposures = int(keywords['nexp'].values[0]) if 'nexp' in keywords else 1
 
-        if cmdState.nDither == 0:
+        if cmdState.nExposures == 0:
             cmd.fail('text="You must take at least one exposure"')
             return
 

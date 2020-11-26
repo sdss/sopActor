@@ -1072,12 +1072,12 @@ class DoApogeeBossScienceCmd(CmdState):
     def __init__(self):
 
         CmdState.__init__(self, 'doApogeeBossScience', ['expose'],
-                          keywords=dict(nDither=1,
+                          keywords=dict(nExposures=1,
                                         apogeeExpTime=None,
                                         bossExpTime=None,
                                         etr=16.6))
 
-        self.nDither = 1
+        self.nExposures = 1
         self.index = 0
         self.etr = 16.6
 
@@ -1090,12 +1090,12 @@ class DoApogeeBossScienceCmd(CmdState):
     def set_expTime(self, apogeeExpTime=None, bossExpTime=None):
         """Setup the exposure time."""
 
-        self.keywords = dict(nDither=1,
+        self.keywords = dict(nExposures=1,
                              apogeeExpTime=None,
                              bossExpTime=None,
                              etr=16.6)
 
-        self.nDither = 1
+        self.nExposures = 1
 
         self.bossExpTime = bossExpTime or 900.0
         self.keywords['bossExpTime'] = self.bossExpTime
@@ -1115,9 +1115,8 @@ class DoApogeeBossScienceCmd(CmdState):
 
     def getUserKeys(self):
         msg = []
-        msg.append('%s_nDither=%d,%d' % (self.name, self.index, self.nDither))
-        msg.append('{0}_etr={1},{2}'.format(self.name, self.etr,
-                                            self.keywords['etr']))
+        msg.append('%s_nExposures=%d,%d' % (self.name, self.index, self.nExposures))
+        msg.append('{0}_etr={1},{2}'.format(self.name, self.etr, self.keywords['etr']))
         return msg
 
     def took_exposure(self):
@@ -1131,16 +1130,16 @@ class DoApogeeBossScienceCmd(CmdState):
     def update_etr(self):
         """Update the estimated time remaining"""
 
-        dither_remain = self.dither_remain()
-        self.etr = (dither_remain * 2 * self.apogeeExpTime) / 60.
+        exp_remain = self.exp_remain()
+        self.etr = (exp_remain * 2 * self.apogeeExpTime) / 60.
 
-    def dither_remain(self):
-        """Return True if there are any dithers left to be taken."""
+    def exp_remain(self):
+        """Return True if there are any exps left to be taken."""
 
         if self.aborted:
             return False
         else:
-            return self.nDither - self.index
+            return self.nExposures - self.index
 
     def isSlewingDisabled(self):
 
