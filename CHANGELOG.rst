@@ -12,6 +12,7 @@ Added
 * Added ``noAPOGEE`` to disable APOGEE exposures during a BOSS-APOGEE sequence.
 * ``noBOSS`` and ``noAPOGEE`` now update the refraction balance [COS-17].
 * Reset the correct plateType and surveyMode when clearing a bypass (#10).
+* No dither version of morning and evening calibration scripts.
 
 Changed
 ^^^^^^^
