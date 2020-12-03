@@ -591,7 +591,7 @@ def do_apogee_boss_science(cmd, cmdState, actorState):
         return fail_command(cmd, cmdState,
                             'noBOSS and noAPOGEE cannot be used together!')
 
-    while cmdState.dither_remain():
+    while cmdState.exp_remain():
 
         bossExpTime = cmdState.bossExpTime
         apogeeExpTime = cmdState.apogeeExpTime
