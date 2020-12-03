@@ -4,6 +4,15 @@
 Change Log
 ==========
 
+4.0.5 (unreleased)
+------------------
+
+Fixed
+^^^^^
+* ``doApogeeBossScience`` needed to use the keyword ``nExposures`` instead of ``nexp``.
+* Changed reference to ``dither_remain()`` to ``exp_remain()``.
+
+
 4.0.4 (2020-12-01)
 ------------------
 
