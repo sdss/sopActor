@@ -93,6 +93,7 @@ class SopCmd(object):
             keys.Key('nbias', types.Int(), help='Number of biases to take'),
             keys.Key('ndark', types.Int(), help='Number of darks to take'),
             keys.Key('nexp', types.Int(), help='Number of exposures to take'),
+            keys.Key('nExposures', types.Int(), help='Number of exposures to take'),
             keys.Key('nDither', types.Int(), help='Number of dithers to take'),
             keys.Key('nflat', types.Int(), help='Number of flats to take'),
             keys.Key('nStep', types.Int(), help='Number of dithered exposures to take'),
@@ -148,7 +149,7 @@ class SopCmd(object):
                              self.doBossCalibs),
             ('doBossScience', '[<expTime>] [<nexp>] [abort] [stop] [test]',
                               self.doBossScience),
-            ('doApogeeBossScience', '[<nexp>] [abort] [stop] [test]',
+            ('doApogeeBossScience', '[<nExposures>] [abort] [stop] [test]',
                                     self.doApogeeBossScience),
             ('doApogeeScience', '[<expTime>] [<ditherPairs>] [stop] [<abort>] [<comment>]',
                                 self.doApogeeScience),
@@ -368,8 +369,8 @@ class SopCmd(object):
 
         if self.modifiable(cmd, cmdState):
             # Modify running doBossScience command
-            if 'nexp' in keywords:
-                cmdState.nExposures = int(keywords['nexp'].values[0])
+            if 'nExposures' in keywords:
+                cmdState.nExposures = int(keywords['nExposures'].values[0])
                 cmdState.update_etr()
 
             self.status(cmd, threads=False, finish=True,
@@ -382,7 +383,8 @@ class SopCmd(object):
         # NOTE: TBD: would have to sync with STUI to make nDither have defaults
         # and behave like one would expect it to (see doBossScience_nExposures
         # actorkeys value)
-        cmdState.nExposures = int(keywords['nexp'].values[0]) if 'nexp' in keywords else 1
+        cmdState.nExposures = (int(keywords['nExposures'].values[0])
+                               if 'nExposures' in keywords else 1)
 
         if cmdState.nExposures == 0:
             cmd.fail('text="You must take at least one exposure"')
