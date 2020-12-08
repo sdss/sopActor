@@ -4,6 +4,14 @@
 Change Log
 ==========
 
+4.0.6 (2020-12-08)
+------------------
+
+Changed
+^^^^^^^
+* Remove old dithered morning and evening scripts.
+
+
 4.0.5 (2020-12-03)
 ------------------
 
