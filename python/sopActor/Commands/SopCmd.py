@@ -1392,7 +1392,7 @@ class SopCmd(object):
                                        'doApogeeSkyFlats', 'gotoGangChange',
                                        'doApogeeDomeFlat']
             apogeeDesign, _ = self.update_designs(sopState)
-            sopState.doApogeeBossScience.set_expTime(apogeeExpTime=apogeeDesign[1])
+            sopState.doApogeeBossScience.set_expTime()
         else:
             sopState.gotoField.setStages(['slew', 'guider', 'cleanup'])
 

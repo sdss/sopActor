@@ -10,7 +10,7 @@ Change Log
 Changed
 ^^^^^^^
 * COS-24: Change Go To Gang Change altitude to 50 degrees.
-
+* COS-25: Change APOGEE exposure time to 475s in MWM-BHM plates. The exposure time from the addenda file is no longer taken into account.
 
 4.0.6 (2020-12-08)
 ------------------

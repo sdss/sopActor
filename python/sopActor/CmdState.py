@@ -1082,7 +1082,7 @@ class DoApogeeBossScienceCmd(CmdState):
         self.etr = 16.6
 
         self.bossExpTime = 900.
-        self.apogeeExpTime = 500.
+        self.apogeeExpTime = 475.
         self.readout_time = 60.0
 
         self.apogee_dither = False  # Do not dither with APOGEE.
@@ -1100,10 +1100,10 @@ class DoApogeeBossScienceCmd(CmdState):
         self.bossExpTime = bossExpTime or 900.0
         self.keywords['bossExpTime'] = self.bossExpTime
 
-        if apogeeExpTime is None or apogeeExpTime <= 500:
+        if apogeeExpTime is None or apogeeExpTime <= 475.:
             self.apogee_long = False
-            self.apogeeExpTime = 500.
-            self.keywords['apogeeExpTime'] = 500.
+            self.apogeeExpTime = 475.
+            self.keywords['apogeeExpTime'] = 475.
         else:
             self.apogee_long = True
             self.apogeeExpTime = 1000.
