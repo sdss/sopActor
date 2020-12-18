@@ -4,6 +4,14 @@
 Change Log
 ==========
 
+4.0.7 (Unreleased)
+------------------
+
+Changed
+^^^^^^^
+* COS-24: Change Go To Gang Change altitude to 50 degrees.
+
+
 4.0.6 (2020-12-08)
 ------------------
 

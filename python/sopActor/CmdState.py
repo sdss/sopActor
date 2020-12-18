@@ -339,7 +339,7 @@ class CmdState(object):
 class GotoGangChangeCmd(CmdState):
 
     def __init__(self):
-        CmdState.__init__(self, 'gotoGangChange', ['domeFlat', 'slew'], keywords=dict(alt=45.0))
+        CmdState.__init__(self, 'gotoGangChange', ['domeFlat', 'slew'], keywords=dict(alt=50.0))
         self.expType = 'object'
 
     def reset_nonkeywords(self):

@@ -7,7 +7,7 @@ apogee shutter close
 tcc axis status
 tcc axis init
 
-tcc track 121.000000, 45.000000 mount/rottype=mount/rotangle=41.333333
+tcc track 121.000000, 50.000000 mount/rottype=mount/rotangle=41.333333
 
 tcc axis stop
 
@@ -21,7 +21,7 @@ apogee shutter close
 tcc axis status
 tcc axis init
 
-tcc track 121.000000, 45.000000 mount/rottype=mount/rotangle=41.333333
+tcc track 121.000000, 50.000000 mount/rottype=mount/rotangle=41.333333
 
 tcc axis stop
 
@@ -29,7 +29,7 @@ tcc axis stop
 tcc axis status
 tcc axis init
 
-tcc track 12.000000, 45.000000 mount/rottype=mount/rotangle=56.000000
+tcc track 12.000000, 50.000000 mount/rottype=mount/rotangle=56.000000
 
 tcc axis stop
 
@@ -37,7 +37,7 @@ tcc axis stop
 tcc axis status
 tcc axis init
 
-tcc track 12.000000, 45.000000 mount/rottype=mount/rotangle=56.000000
+tcc track 12.000000, 50.000000 mount/rottype=mount/rotangle=56.000000
 
 tcc axis stop
 
@@ -53,7 +53,7 @@ apogee shutter close
 tcc axis status
 tcc axis init
 
-tcc track 121.000000, 45.000000 mount/rottype=mount/rotangle=0.000000
+tcc track 121.000000, 50.000000 mount/rottype=mount/rotangle=0.000000
 
 tcc axis stop
 
@@ -66,7 +66,7 @@ apogee shutter close
 tcc axis status
 tcc axis init
 
-tcc track 121.000000, 45.000000 mount/rottype=mount/rotangle=41.333333
+tcc track 121.000000, 50.000000 mount/rottype=mount/rotangle=41.333333
 
 tcc axis stop
 
@@ -74,7 +74,7 @@ tcc axis stop
 tcc axis status
 tcc axis init
 
-tcc track 12.000000, 45.000000 mount/rottype=mount/rotangle=56.000000
+tcc track 12.000000, 50.000000 mount/rottype=mount/rotangle=56.000000
 
 tcc axis stop
 

@@ -696,7 +696,7 @@ class TestGotoGangChange(SopCmdTester, unittest.TestCase):
         queue = myGlobals.actorState.queues[sopActor.SLEW]
         msg = self._run_cmd('gotoGangChange %s' % (args), queue)
         self.assertEqual(msg.type, sopActor.Msg.GOTO_GANG_CHANGE)
-        self.assertEqual(msg.cmdState.alt, expect.get('alt', 45))
+        self.assertEqual(msg.cmdState.alt, expect.get('alt', 50))
         self.assertEqual(msg.cmdState.stages, stages)
         self.assertEqual(msg.cmdState.doSlew, expect.get('doSlew', True))
         self.assertEqual(msg.cmdState.doDomeFlat, expect.get('doDomeFlat', True))
