@@ -62,11 +62,13 @@ def do_shutter(cmd, actorState, position):
 
 def do_expose(cmd, actorState, expTime, dither, expType, comment):
     """Take an exposure, moving the dither position if requested (not None)."""
-    if dither != None:
-        cmdVar = do_dither(cmd, actorState, dither)
-        if cmdVar.didFail:
-            cmd.error('text=%s' % qstr('Failed to move APOGEE dither to %s position.' % (dither)))
-            return False
+
+    # JSG: Disabling dithering.
+    # if dither != None:
+    #     cmdVar = do_dither(cmd, actorState, dither)
+    #     if cmdVar.didFail:
+    #         cmd.error('text=%s' % qstr('Failed to move APOGEE dither to %s position.' % (dither)))
+    #         return False
 
     timeLim = expTime + 15.0  # seconds
     cmdVar = actorState.actor.cmdr.call(

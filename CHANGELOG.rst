@@ -4,6 +4,14 @@
 Change Log
 ==========
 
+4.0.8 (unreleased)
+------------------
+
+Changed
+^^^^^^^
+* Do not command the APOGEE spectrograph to change the dither position, regardless of what position the dither currently is.
+
+
 4.0.7 (2020-12-22)
 ------------------
 
